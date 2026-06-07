@@ -167,6 +167,33 @@ def run_simulate(args) -> int:
     return 0
 
 
+def run_explain(args) -> int:
+    """Post-mortem: reconstruct the SIP ladder from a pcap and explain failures."""
+    from .sip_trace import analyze
+    result = analyze(args.capture)
+    if args.json:
+        print(json.dumps(result, indent=2))
+        return 0
+    print(f"Capture: {result['file']}")
+    print(f"{result['packets']} packets, {result['sip_messages']} SIP messages, "
+          f"{len(result['rtp_flows'])} RTP flow(s)")
+    for d in result["top_diagnoses"]:
+        print(f"\n[{d['domain']}] {d['headline']}\n    {d['detail']}\n    fix: {d['fix']}")
+    for c in result["calls"]:
+        print("\n" + "=" * 64)
+        print(f"Call-ID {c['call_id']}   outcome: {c['outcome']}")
+        print("SIP ladder:")
+        for line in c["ladder"]:
+            print("  " + line)
+        for d in c["diagnoses"]:
+            print(f"\n  [{d['domain']}] {d['headline']}")
+            print(f"      why: {d['detail']}")
+            print(f"      fix: {d['fix']}")
+    if not result["calls"] and not result["top_diagnoses"]:
+        print("\nNo SIP calls found in the capture.")
+    return 0
+
+
 def run_diff(args) -> int:
     """HA drift: compare an Active node config against its Standby."""
     from .validators.ha_drift import ha_diff
@@ -224,6 +251,12 @@ def main(argv=None) -> int:
     sm.add_argument("--ruleset", required=True, help="path to a signed rule bundle")
     sm.add_argument("--json", action="store_true")
     sm.set_defaults(func=run_simulate)
+
+    ex = sub.add_parser("explain",
+                        help="post-mortem: reconstruct the SIP ladder from a .pcap and diagnose")
+    ex.add_argument("capture", help="path to a classic .pcap capture")
+    ex.add_argument("--json", action="store_true")
+    ex.set_defaults(func=run_explain)
 
     args = p.parse_args(argv)
     return args.func(args)

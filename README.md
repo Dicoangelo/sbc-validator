@@ -125,6 +125,13 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   predicts how far it gets, names the user-visible symptom, and renders the SIP
   ladder up to the failure. Deterministic and offline (originates no traffic).
   Every `validate` report (text + HTML) also carries the predicted outcome.
+- **PCAP explainer** (`explain <capture.pcap>`): the post-mortem twin of
+  `simulate`. A pure-stdlib classic-pcap reader (no Wireshark/tshark/scapy)
+  reconstructs the SIP ladder from a real capture, detects RTP flow direction
+  (one-way audio), and explains why a call failed (488 codec, private media IP,
+  unanswered OPTIONS, TLS alert), mapping each cause back to a validator domain
+  (B/C/D/E) and the config fix. Scope: SIP-over-UDP + RTP, with a best-effort note
+  for TLS-encrypted SIP. Sample captures + generator in `samples/`.
 - **Real certificate inspection** (`cert_inspect.py`, via `cryptography`):
   EKU, SAN, expiry, issuer, local chain-build; C runs it on any referenced cert.
 - **Ed25519 bundle signing** with a pinned publisher public key; tampered

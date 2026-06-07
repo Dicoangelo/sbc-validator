@@ -81,6 +81,16 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
 
 ## 2. Architecture learnings
 
+- **(2026-06-07) Predict before deploy, diagnose after — same language.** The
+  `simulate` (config -> predicted call) and `explain` (pcap -> what happened)
+  commands are twins: both produce a SIP ladder and map every failure to the same
+  validator domain (B/C/D/E) and config fix. A vet lives in Wireshark; `explain`
+  automates that read. Built a pure-stdlib classic-pcap reader (no
+  Wireshark/tshark/scapy dependency) to keep it offline and dependency-light;
+  ships wire-valid synthetic capture fixtures (like the sample configs).
+  -> *Apply:* prefer a small deterministic parser over a heavy dependency when the
+  format is well-specified; it keeps the trust story and the install trivial.
+
 - **(2026-06-07) Reframe findings as a call, not a checklist.** A 20-year SBC vet
   thinks about a call as a chain of links (TLS -> SIP -> SDP -> media) that dies at
   the first broken one, and diagnoses by mapping a symptom to a link. The

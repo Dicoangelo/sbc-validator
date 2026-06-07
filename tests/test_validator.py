@@ -216,6 +216,48 @@ def test_sim_488_when_no_teams_codec_overlap(ruleset):
     assert any("488" in line for line in sim.ladder)
 
 
+# ---- PCAP explainer (post-mortem) ------------------------------------------
+
+from sbc_validator.pcap import read_packets
+from sbc_validator.sip_trace import analyze
+
+PCAP_CLEAN = REPO / "samples" / "clean_call.pcap"
+PCAP_488 = REPO / "samples" / "reject_488.pcap"
+PCAP_ONEWAY = REPO / "samples" / "one_way_audio.pcap"
+
+
+def test_pcap_reader_parses_udp_sip():
+    pkts = read_packets(str(PCAP_488))
+    assert len(pkts) == 4
+    assert all(p.proto == "udp" for p in pkts)
+    assert any(b"INVITE" in p.payload for p in pkts)
+
+
+def test_explain_clean_call_connected():
+    r = analyze(str(PCAP_CLEAN))
+    assert r["sip_messages"] == 7
+    assert len(r["rtp_flows"]) == 2            # both directions -> two-way audio
+    call = r["calls"][0]
+    assert call["outcome"] == "CONNECTED"
+    assert any("INVITE" in l for l in call["ladder"])
+
+
+def test_explain_488_maps_to_codec_domain():
+    r = analyze(str(PCAP_488))
+    call = r["calls"][0]
+    assert call["outcome"] == "REJECTED_488"
+    assert call["offered_codecs"] == ["G729"]
+    assert any(d["domain"] == "E" for d in call["diagnoses"])
+
+
+def test_explain_one_way_audio_maps_to_nat_domain():
+    r = analyze(str(PCAP_ONEWAY))
+    call = r["calls"][0]
+    assert call["outcome"] == "ONE_WAY_AUDIO"
+    assert any(d["domain"] == "D" for d in call["diagnoses"])
+    assert any("10.1.1.5" in d["detail"] for d in call["diagnoses"])
+
+
 # ---- ruleset signing -------------------------------------------------------
 
 def test_signed_ruleset_verifies(ruleset):
