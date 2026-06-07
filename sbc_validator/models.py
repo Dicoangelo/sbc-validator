@@ -51,6 +51,7 @@ class SipInterface:
     normalization_profile: Optional[str] = None  # header/SIP manipulation set
     offered_codecs: list[str] = field(default_factory=list)  # e.g. ["PCMU","G722"]
     dtmf_method: Optional[str] = None        # "rfc2833" | "inband" | "info"
+    srtp_enabled: bool = False               # media encryption (SDP a=crypto / SRTP)
 
 
 @dataclass

@@ -89,6 +89,7 @@ class AudioCodesParser(AbstractParser):
                 normalization_profile=cp.get(sect, "normalization_profile", fallback=None) or None,
                 offered_codecs=[c.strip() for c in cp.get(sect, "codecs", fallback="").split(",") if c.strip()],
                 dtmf_method=cp.get(sect, "dtmf_method", fallback=None) or None,
+                srtp_enabled=cp.getboolean(sect, "srtp", fallback=False),
             ))
 
         # Media realms: sections like [media:Default]

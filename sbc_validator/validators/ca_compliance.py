@@ -83,6 +83,20 @@ class CaComplianceValidator(AbstractValidator):
                 locator=f"TlsContext '{ctx.name}'",
             ))
 
+        # --- SRTP media encryption (Teams DR requires encrypted media) ---
+        if not teams.srtp_enabled:
+            res.add(Finding(
+                check_id="C.SRTP.DISABLED",
+                title="SRTP not enabled on the Teams media leg",
+                severity=Severity.HIGH,
+                detail="Microsoft Direct Routing requires encrypted media (SRTP, "
+                       "offered as SDP a=crypto). Without it Teams will not establish "
+                       "media and the call has no audio.",
+                remediation="Enable SRTP on the Teams leg with the "
+                            "AES_CM_128_HMAC_SHA1_80 crypto suite.",
+                locator=f"iface '{teams.name}'",
+            ))
+
         # --- required root CAs present (count + identity) ---
         # The ruleset lists each required root as {"name", "sha1"} (authoritative,
         # sourced — see RULE_AUTHORITY.md). Older bundles may list plain name

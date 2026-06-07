@@ -112,7 +112,8 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 ## Now implemented
 
 - **A/B/C/D/E** validators all live and (B/C/D/E) ruleset-driven:
-  A = syntax/semantic baseline, B = interop, C = TLS/CA wedge, D = NAT, E = codec.
+  A = syntax/semantic baseline, B = interop, C = TLS/CA wedge (incl. an **SRTP**
+  media-encryption check), D = NAT, E = codec.
 - **Three real vendor parsers on one normalized model: AudioCodes (`.ini`),
   Cisco CUBE (IOS-XE running-config), and Ribbon SBC Core (`set`-config).** The
   same validators run unmodified across all three — the vendor-agnostic claim,
@@ -130,8 +131,10 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   reconstructs the SIP ladder from a real capture, detects RTP flow direction
   (one-way audio), and explains why a call failed (488 codec, private media IP,
   unanswered OPTIONS, TLS alert), mapping each cause back to a validator domain
-  (B/C/D/E) and the config fix. Scope: SIP-over-UDP + RTP, with a best-effort note
-  for TLS-encrypted SIP. Sample captures + generator in `samples/`.
+  (B/C/D/E) and the config fix. Also detects **topology leaks** (domain F): private/
+  internal IPs exposed in Contact/Via/Record-Route/P-Asserted-Identity headers, the
+  signaling-plane counterpart to B2BUA topology hiding. Scope: SIP-over-UDP + RTP,
+  with a best-effort note for TLS-encrypted SIP. Sample captures + generator in `samples/`.
 - **Real certificate inspection** (`cert_inspect.py`, via `cryptography`):
   EKU, SAN, expiry, issuer, local chain-build; C runs it on any referenced cert.
 - **Ed25519 bundle signing** with a pinned publisher public key; tampered
@@ -144,8 +147,9 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 26 tests) covering all three parsers, the five validators,
-  HA drift, signing verify/tamper, cert inspection, risk scoring, and HTML rendering.
+- **Test suite** (`pytest`, 39 tests) covering all three parsers, the five validators,
+  SRTP, HA drift, call-flow simulation, the pcap explainer (incl. topology leak),
+  signing verify/tamper, cert inspection, risk scoring, and HTML rendering.
 
 ## Note on demo certificates
 

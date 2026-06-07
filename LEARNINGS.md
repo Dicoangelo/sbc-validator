@@ -81,6 +81,14 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
 
 ## 2. Architecture learnings
 
+- **(2026-06-07) Put each check where its data lives.** Topology hiding is a core
+  SBC job, but a static config rarely contains the runtime Contact/Via/Record-Route
+  headers that leak internal IPs. Those headers DO appear in a capture, so
+  topology-leak detection (domain F) lives in the pcap `explain` path, not the
+  config validator. Conversely SRTP is a config setting, so the SRTP media-encryption
+  check (C.SRTP.DISABLED) lives in the validator. Match the check to where the
+  evidence actually is instead of forcing every concern into the config validator.
+
 - **(2026-06-07) Predict before deploy, diagnose after — same language.** The
   `simulate` (config -> predicted call) and `explain` (pcap -> what happened)
   commands are twins: both produce a SIP ladder and map every failure to the same

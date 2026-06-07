@@ -33,7 +33,7 @@ _SIP_HARDSTOP = {
 _SIP_WARN = {"B.SIP.OPTIONS_KEEPALIVE", "B.SIP.NO_NORMALIZATION"}
 _SDP_HARDSTOP = {"E.CODEC.NO_TEAMS_OVERLAP", "E.CODEC.NONE_OFFERED"}
 _SDP_WARN = {"E.CODEC.NO_CROSS_OVERLAP", "E.DTMF.METHOD", "E.DTMF.INCONSISTENT"}
-_MEDIA_HARDSTOP = {"D.NAT.PRIVATE_ADVERTISED", "D.NAT.NO_PUBLIC_IP"}
+_MEDIA_HARDSTOP = {"D.NAT.PRIVATE_ADVERTISED", "D.NAT.NO_PUBLIC_IP", "C.SRTP.DISABLED"}
 _MEDIA_WARN = {"D.NAT.NO_SYMMETRIC_RTP"}
 
 
@@ -166,15 +166,18 @@ def simulate_call(config: NormalizedConfig, ruleset: dict,
         media_fail = _by_stage(findings, _MEDIA_HARDSTOP)
         media_warn = _by_stage(findings, _MEDIA_WARN)
         if media_fail:
+            srtp = any(f.check_id == "C.SRTP.DISABLED" for f in media_fail)
             stages.append(CallStage(
                 "Media path", "fail",
-                "SDP advertises an unreachable media address: " +
-                "; ".join(f.title for f in media_fail),
-                symptom="Call connects and rings, but audio is one-way (or silent). "
-                        "RTP from Teams never returns, and the call typically drops "
-                        "~30s after answer.",
+                "Media cannot establish: " + "; ".join(f.title for f in media_fail),
+                symptom=("Call signals through but media never encrypts; Teams drops "
+                         "the media and there is no audio."
+                         if srtp else
+                         "Call connects and rings, but audio is one-way (or silent). "
+                         "RTP from Teams never returns, and the call typically drops "
+                         "~30s after answer."),
                 driven_by=ids_of(media_fail)))
-            dies_at, outcome = "Media path", "ONE_WAY_AUDIO"
+            dies_at, outcome = "Media path", ("NO_MEDIA" if srtp else "ONE_WAY_AUDIO")
         else:
             s = "warn" if media_warn else "ok"
             detail = "Media address is routable; RTP can flow both ways."

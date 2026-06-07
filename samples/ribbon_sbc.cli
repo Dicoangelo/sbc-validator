@@ -24,6 +24,7 @@ set addressContext default zone TEAMS sipSigPort 1 ipInterfaceGroupName LIG_TEAM
 set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS state enabled mode inService
 set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS signaling messageManipulation outputAdapterProfile NORMALIZE_TEAMS
 set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS signaling sipOptions enabled
+set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS media srtpCryptoProfile SRTP_AES128
 set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS media packetServiceProfile PSP_TEAMS codec PCMU
 set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS media packetServiceProfile PSP_TEAMS codec G722
 set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS media dtmf rtp-nte

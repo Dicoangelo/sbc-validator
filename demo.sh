@@ -57,10 +57,12 @@ echo
 "$PY" -m sbc_validator.cli simulate samples/audiocodes_min.ini --ruleset "$RULESET" || true
 
 echo
-echo "== post-mortem: explain captured calls (488 reject, one-way audio) =="
+echo "== post-mortem: explain captured calls (488 reject, one-way audio, topology leak) =="
 "$PY" -m sbc_validator.cli explain samples/reject_488.pcap || true
 echo
 "$PY" -m sbc_validator.cli explain samples/one_way_audio.pcap || true
+echo
+"$PY" -m sbc_validator.cli explain samples/topology_leak.pcap || true
 
 echo
 echo "Done. Open sbc_dashboard.html (Load dashboard_data.json) and reports/*.html"

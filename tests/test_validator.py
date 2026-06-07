@@ -185,6 +185,7 @@ def test_sim_one_way_audio_from_private_media(ruleset):
         sip_interfaces=[SipInterface(
             name="T", role="teams", fqdn="sbc.example.com", transport="tls",
             options_keepalive=True, offered_codecs=["PCMU", "G722"], dtmf_method="rfc2833",
+            srtp_enabled=True,
             tls_context=TlsContext(
                 name="T", mtls_enabled=True,
                 trusted_root_ids=[r["name"] for r in ruleset["C"]["required_root_ca_ids"]],
@@ -256,6 +257,38 @@ def test_explain_one_way_audio_maps_to_nat_domain():
     assert call["outcome"] == "ONE_WAY_AUDIO"
     assert any(d["domain"] == "D" for d in call["diagnoses"])
     assert any("10.1.1.5" in d["detail"] for d in call["diagnoses"])
+
+
+PCAP_TOPO = REPO / "samples" / "topology_leak.pcap"
+
+
+def test_explain_topology_leak_maps_to_domain_f():
+    r = analyze(str(PCAP_TOPO))
+    call = r["calls"][0]
+    assert call["outcome"] == "CONNECTED"          # call works, but leaks topology
+    leak = [d for d in call["diagnoses"] if d["domain"] == "F"]
+    assert leak and "10.9.9.9" in leak[0]["detail"]
+
+
+# ---- SRTP media-encryption check (domain C) --------------------------------
+
+def test_c_flags_missing_srtp(ruleset):
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_min.ini").read_text())
+    res = CaComplianceValidator(ruleset).validate(cfg)
+    assert "C.SRTP.DISABLED" in ids(res.findings)
+
+
+def test_c_no_srtp_finding_when_enabled(ruleset):
+    cfg = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    res = CaComplianceValidator(ruleset).validate(cfg)
+    assert "C.SRTP.DISABLED" not in ids(res.findings)
+
+
+def test_cube_and_ribbon_parse_srtp():
+    cube = detect_and_parse((REPO / "samples" / "cisco_cube_dr.txt").read_text())
+    ribbon = detect_and_parse((REPO / "samples" / "ribbon_sbc.cli").read_text())
+    assert cube.teams_interface().srtp_enabled is True
+    assert ribbon.teams_interface().srtp_enabled is True
 
 
 # ---- ruleset signing -------------------------------------------------------

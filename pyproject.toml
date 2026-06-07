@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sbc-autoops-validator"
-version = "0.5.0"
-description = "Local-first, vendor-agnostic SBC validator (A-E, HA drift, call-flow simulation, pcap explainer)"
+version = "0.6.0"
+description = "Local-first, vendor-agnostic SBC validator (A-E, SRTP, HA drift, call-flow simulation, pcap explainer w/ topology-leak)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Proprietary" }

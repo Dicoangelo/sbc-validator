@@ -133,7 +133,8 @@ class CiscoCubeParser(AbstractParser):
                 tid = h.split("voice class tenant ", 1)[1].strip()
                 t = {"id": tid, "role": "unknown", "transport": None,
                      "options_keepalive": False, "codec_ref": None,
-                     "sip_profiles": None, "dtmf": None, "sip_server": None}
+                     "sip_profiles": None, "dtmf": None, "sip_server": None,
+                     "srtp": False}
                 for ln in body:
                     low = ln.lower()
                     if low.startswith("description"):
@@ -162,6 +163,8 @@ class CiscoCubeParser(AbstractParser):
                     elif low.startswith("dtmf-relay"):
                         t["dtmf"] = "rfc2833" if "rtp-nte" in low else \
                                     ("info" if "sip-notify" in low or "sip-info" in low else "inband")
+                    elif low.startswith("srtp"):          # 'srtp' or 'srtp-crypto N'
+                        t["srtp"] = True
                 tenants.append(t)
 
             elif h == "voice service voip":
@@ -223,6 +226,7 @@ class CiscoCubeParser(AbstractParser):
                 normalization_profile=t["sip_profiles"],
                 offered_codecs=codecs.get(t["codec_ref"] or "", []),
                 dtmf_method=t["dtmf"],
+                srtp_enabled=t["srtp"],
             ))
 
         # ---- media realm ----

@@ -93,7 +93,9 @@ class RibbonParser(AbstractParser):
                 zone = toks[4]
                 z = zones.setdefault(zone, {
                     "transport": None, "tls_profile": None, "keepalive": False,
-                    "normalization": None, "codecs": [], "dtmf": None})
+                    "normalization": None, "codecs": [], "dtmf": None, "srtp": False})
+                if "srtpCryptoProfile" in toks or "secureMediaProfile" in toks or "srtp" in toks:
+                    z["srtp"] = True
                 if "transportProtocolsAllowed" in toks:
                     val = toks[toks.index("transportProtocolsAllowed") + 1]
                     z["transport"] = {"sip-tls": "tls", "sip-tcp": "tcp",
@@ -151,6 +153,7 @@ class RibbonParser(AbstractParser):
                 normalization_profile=z["normalization"],
                 offered_codecs=z["codecs"],
                 dtmf_method=z["dtmf"],
+                srtp_enabled=z.get("srtp", False),
             ))
 
         if media_ip:

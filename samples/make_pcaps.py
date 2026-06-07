@@ -120,7 +120,28 @@ def one_way_audio():
     write_pcap(HERE / "one_way_audio.pcap", f)
 
 
+def topology_leak():
+    # Call connects fine, but the SBC's Contact header exposes a private/internal IP.
+    cid = "topo-leak-001@contoso.com"
+    INTERNAL = "10.9.9.9"
+    contact = f"Contact: <sip:+15551112222@{INTERNAL}:5060>\r\n"
+    f = []
+    f.append(_ipv4_udp(SBC, TEAMS, 5060, 5060, _sip(
+        "INVITE sip:+15553334444@pstnhub.microsoft.com SIP/2.0", cid, "1 INVITE",
+        extra_headers=contact, sdp=_sdp(SBC, [0, 8]))))
+    f.append(_ipv4_udp(TEAMS, SBC, 5060, 5060, _sip("SIP/2.0 100 Trying", cid, "1 INVITE")))
+    f.append(_ipv4_udp(TEAMS, SBC, 5060, 5060, _sip("SIP/2.0 180 Ringing", cid, "1 INVITE")))
+    f.append(_ipv4_udp(TEAMS, SBC, 5060, 5060, _sip(
+        "SIP/2.0 200 OK", cid, "1 INVITE", sdp=_sdp(TEAMS, [0]))))
+    f.append(_ipv4_udp(SBC, TEAMS, 5060, 5060, _sip("ACK sip:teams SIP/2.0", cid, "1 ACK")))
+    for i in range(4):
+        f.append(_ipv4_udp(SBC, TEAMS, 6000, 50000, _rtp(seq=i + 1)))
+        f.append(_ipv4_udp(TEAMS, SBC, 50000, 6000, _rtp(seq=i + 1, ssrc=0x55667788)))
+    write_pcap(HERE / "topology_leak.pcap", f)
+
+
 if __name__ == "__main__":
     clean_call()
     reject_488()
     one_way_audio()
+    topology_leak()

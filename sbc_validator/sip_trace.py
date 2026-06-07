@@ -59,6 +59,7 @@ class SipMsg:
     codecs: list[str] = field(default_factory=list)   # from SDP if present
     media_ip: Optional[str] = None                    # SDP c= line
     has_srtp: bool = False                             # SDP a=crypto present
+    leaked: list = field(default_factory=list)        # [(header, private_ip)] topology leaks
 
 
 def _parse_sip(pkt: Packet) -> Optional[SipMsg]:
@@ -116,8 +117,15 @@ def _parse_sip(pkt: Packet) -> Optional[SipMsg]:
         if c in ("telephone-event", "CN") or c in seen:
             continue
         seen.add(c); clean.append(c)
+    # topology-hiding check: private/internal IPs leaking in signaling headers
+    leaked = []
+    for hname in ("contact", "via", "record-route", "p-asserted-identity"):
+        for ip in re.findall(r"\d{1,3}(?:\.\d{1,3}){3}", hdr.get(hname, "")):
+            if _non_routable(ip):
+                leaked.append((hname, ip))
+
     return SipMsg(pkt.ts, pkt.src_ip, pkt.dst_ip, first, method, status,
-                  hdr.get("call-id", "?"), hdr.get("cseq", ""), clean, media_ip, has_srtp)
+                  hdr.get("call-id", "?"), hdr.get("cseq", ""), clean, media_ip, has_srtp, leaked)
 
 
 def _non_routable(ip: Optional[str]) -> bool:
@@ -260,6 +268,19 @@ def analyze(path: str) -> dict:
                     "SIP OPTIONS sent but not answered",
                     "Teams marks the SBC down when OPTIONS go unanswered.",
                     "Enable/repair OPTIONS keep-alive and check transport (domain B)."))
+
+        # topology hiding: private IPs exposed in signaling headers (domain F)
+        leaks = sorted({(h, ip) for m in msgs for (h, ip) in m.leaked})
+        if leaks:
+            diags.append(Diagnosis(
+                "TOPOLOGY_LEAK", "F",
+                "Internal/private IP exposed in SIP signaling (topology leak)",
+                "Private addresses appeared in signaling headers crossing the border: "
+                + ", ".join(f"{ip} in {h}" for h, ip in leaks)
+                + ". A B2BUA should hide internal topology; exposing it aids attackers "
+                "and can break routing.",
+                "Enable topology hiding / header manipulation so Contact, Via, and "
+                "Record-Route present only the public FQDN/IP."))
 
         analyses.append(CallAnalysis(cid, ladder, outcome, diags, offered, answered))
 
