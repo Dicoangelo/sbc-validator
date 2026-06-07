@@ -5,13 +5,13 @@
 set system fqdn sbc-ribbon-01.contoso.com
 #
 # --- trusted root CAs (all 7 required roots present) ---
+set system security pki certificate DigiCertGlobalRootCA type remote
 set system security pki certificate DigiCertGlobalRootG2 type remote
 set system security pki certificate DigiCertGlobalRootG3 type remote
-set system security pki certificate DigiCertGlobalRootCA type remote
-set system security pki certificate MicrosoftRSARootCA2017 type remote
+set system security pki certificate DigiCertTLSECCP384RootG5 type remote
+set system security pki certificate DigiCertTLSRSA4096RootG5 type remote
 set system security pki certificate MicrosoftECCRootCA2017 type remote
-set system security pki certificate BaltimoreCyberTrustRoot type remote
-set system security pki certificate MicrosoftRSARootCA2018 type remote
+set system security pki certificate MicrosoftRSARootCA2017 type remote
 #
 # --- TLS profile for the Teams leg (leaf is clientAuth-only -> C flags EKU) ---
 set profiles security tlsProfile TLS_TEAMS clientCertName sbc-ribbon-leaf

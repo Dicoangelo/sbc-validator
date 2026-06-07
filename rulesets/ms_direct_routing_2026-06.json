@@ -1,19 +1,59 @@
 {
   "ruleset_id": "ms_direct_routing",
-  "bundle_version": "2026-06-02",
-  "issued_at": "2026-06-02T00:00:00Z",
-  "source": "Microsoft Direct Routing Whats New + Azure CA details (operator-curated)",
+  "bundle_version": "2026-06-07",
+  "issued_at": "2026-06-07T00:00:00Z",
+  "source": "Microsoft Learn \u2014 Direct Routing What's New (2025-12-12 cert update) + Azure direct routing infrastructure requirements. See RULE_AUTHORITY.md for sourcing and re-sign workflow.",
+  "sources": [
+    "https://learn.microsoft.com/en-us/microsoftteams/direct-routing-whats-new",
+    "https://learn.microsoft.com/en-us/azure/communication-services/concepts/telephony/direct-routing-infrastructure"
+  ],
+  "verified_on": "2026-06-07",
   "C": {
     "required_root_ca_ids": [
-      "DigiCertGlobalRootG2",
-      "DigiCertGlobalRootG3",
-      "DigiCertGlobalRootCA",
-      "MicrosoftRSARootCA2017",
-      "MicrosoftECCRootCA2017",
-      "BaltimoreCyberTrustRoot",
-      "MicrosoftRSARootCA2018"
+      {
+        "name": "DigiCert Global Root CA",
+        "sha1": "A8985D3A65E5E5C4B2D7D66D40C6DD2FB19C5436"
+      },
+      {
+        "name": "DigiCert Global Root G2",
+        "sha1": "DF3C24F9BFD666761B268073FE06D1CC8D4F82A4"
+      },
+      {
+        "name": "DigiCert Global Root G3",
+        "sha1": "7E04DE896A3E666D00E687D33FFAD93BE83D349E"
+      },
+      {
+        "name": "DigiCert TLS ECC P384 Root G5",
+        "sha1": "17F3DE5E9F0F19E98EF61F32266E20C407AE30EE"
+      },
+      {
+        "name": "DigiCert TLS RSA 4096 Root G5",
+        "sha1": "A78849DC5D7C758C8CDE399856B3AAD0B2A57135"
+      },
+      {
+        "name": "Microsoft ECC Root Certificate Authority 2017",
+        "sha1": "999A64C37FF47D9FAB95F14769891460EEC4C3C5"
+      },
+      {
+        "name": "Microsoft RSA Root Certificate Authority 2017",
+        "sha1": "73A5E64A3BFF8316FF0EDCCC618A906E4EAE4D74"
+      }
     ],
-    "cert_expiry_warn_days": 30
+    "cert_expiry_warn_days": 30,
+    "require_server_auth_eku": true,
+    "server_auth_eku_enforced_date": "2026-06-01",
+    "tls_min_version": "1.2",
+    "allowed_sip_cipher_suites": [
+      "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+    ],
+    "srtp_crypto_supported": [
+      "AES_CM_128_HMAC_SHA1_80"
+    ],
+    "test_endpoint_fqdn": "sip.g1.pstnhub.microsoft.com",
+    "test_endpoint_port": 5061
   },
   "B": {
     "teams_required_transport": "tls"
@@ -26,9 +66,10 @@
       "PCMU",
       "PCMA",
       "G722",
-      "SILK"
+      "SILK",
+      "G729"
     ],
     "preferred_dtmf": "rfc2833"
   },
-  "signature": "pAlGlc3rtynRn0xp3ASFjTZXKu7PCJ3AOuAyn9cH4vLfIX7y5CU9jZpx9kIrwg2znIHaRCE+poAKP4Vj3zEsBg=="
+  "signature": "j6nKpzp0NYRznpfWPod0jjn1S9EsNITaKpyd3QnUQ+J+37zEorS66b9pO06KXSJY9ViQiQBH7+NeSphhaaxiCQ=="
 }

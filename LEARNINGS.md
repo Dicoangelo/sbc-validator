@@ -12,6 +12,30 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
 
 ## 1. Domain learnings (SBC / Direct Routing / the 2026 wedge)
 
+- **(2026-06-07) Rule authority is the deepest risk, and our placeholder was
+  wrong in the worst way.** When we sourced the real Microsoft list, the
+  placeholder ruleset had listed BaltimoreCyberTrustRoot (the *retired* root) and
+  MicrosoftRSARootCA2018 (not a real Teams DR root), and was *missing* the two new
+  DigiCert G5 roots Microsoft is migrating onto. A customer running it would have
+  been told to fix the wrong things while the tool stayed silent on the actual
+  2026 gap. A confident PASS on a wrong rule set is worse than no tool.
+  -> *Apply:* every rule is now sourced + thumbprinted + dated in
+  [[RULE_AUTHORITY.md]], a test guards against any wrong-but-still-7 list, and we
+  re-verify against Microsoft's live page before every pilot.
+
+- **(2026-06-07) The authoritative 7 roots** (with SHA-1) are: DigiCert Global
+  Root CA / G2 / G3, DigiCert TLS ECC P384 Root G5, DigiCert TLS RSA 4096 Root G5,
+  Microsoft ECC Root CA 2017, Microsoft RSA Root CA 2017. Plus: TLS 1.2, a 4-cipher
+  SIP allowlist, SRTP AES_CM_128_HMAC_SHA1_80, serverAuth-EKU enforced June 2026,
+  test endpoint sip.g1.pstnhub.microsoft.com:5061. Source: Microsoft Learn.
+
+- **(2026-06-07) Real-world identifier matching must be tolerant.** Trust stores
+  name the same CA inconsistently ("Certificate Authority" vs "CA", spaces, case).
+  We normalize + fold that synonym + accept SHA-1 thumbprints. This is a parser-
+  fidelity win as much as a CA-list win: the tool now matches what real configs
+  actually write, not just our canonical spelling.
+
+
 - **The 2026 Microsoft CA migration is a hard, dated forcing function.** Trust
   stores must carry all required Microsoft/DigiCert root CAs before Microsoft
   rotates onto them (remediation deadline ~end Feb 2026, rotation from April 2026,

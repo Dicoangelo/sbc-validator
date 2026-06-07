@@ -147,8 +147,19 @@ def test_ha_no_drift_when_identical():
 # ---- ruleset signing -------------------------------------------------------
 
 def test_signed_ruleset_verifies(ruleset):
-    assert ruleset["bundle_version"] == "2026-06-02"
-    assert len(ruleset["C"]["required_root_ca_ids"]) == 7
+    assert ruleset["bundle_version"] == "2026-06-07"
+    roots = ruleset["C"]["required_root_ca_ids"]
+    assert len(roots) == 7
+    names = {r["name"] for r in roots}
+    # Authority guard: the new DigiCert G5 pair MUST be present and the retired
+    # Baltimore root and the bogus 2018 placeholder MUST be absent. This catches a
+    # wrong-but-still-7 list (the exact pre-2026-06-07 bug).
+    assert "DigiCert TLS ECC P384 Root G5" in names
+    assert "DigiCert TLS RSA 4096 Root G5" in names
+    assert not any("Baltimore" in n for n in names)
+    assert not any("2018" in n for n in names)
+    # every required root carries a SHA-1 thumbprint
+    assert all(r.get("sha1") for r in roots)
 
 
 def test_tampered_ruleset_rejected(tmp_path):
@@ -180,13 +191,13 @@ def test_c_flags_missing_roots(ruleset):
 
 
 def test_c_all_roots_present_no_root_finding(ruleset):
-    roots = ruleset["C"]["required_root_ca_ids"]
+    root_names = [r["name"] for r in ruleset["C"]["required_root_ca_ids"]]
     cfg = NormalizedConfig(
         vendor="x", sbc_fqdn="sbc.example.com",
         sip_interfaces=[SipInterface(
             name="T", role="teams", fqdn="sbc.example.com",
             tls_context=TlsContext(
-                name="T", mtls_enabled=True, trusted_root_ids=list(roots),
+                name="T", mtls_enabled=True, trusted_root_ids=list(root_names),
                 presented_cert=Certificate(
                     subject_cn="sbc.example.com", sans=["sbc.example.com"],
                     ekus=[EKU.SERVER_AUTH], not_after="2030-01-01", chain_complete=True),
@@ -194,6 +205,29 @@ def test_c_all_roots_present_no_root_finding(ruleset):
     res = CaComplianceValidator(ruleset).validate(cfg)
     assert "C.CA.ROOT_MISSING" not in ids(res.findings)
     assert "C.CERT.FQDN_MISMATCH" not in ids(res.findings)
+
+
+def test_c_root_matching_is_naming_tolerant(ruleset):
+    """Abbreviated config tokens (CA) match authoritative names (Certificate
+    Authority), and thumbprints match too."""
+    cfg = NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc.example.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc.example.com",
+            tls_context=TlsContext(
+                name="T", mtls_enabled=True,
+                trusted_root_ids=[
+                    "DigiCertGlobalRootCA", "DigiCertGlobalRootG2", "DigiCertGlobalRootG3",
+                    "DigiCertTLSECCP384RootG5", "DigiCertTLSRSA4096RootG5",
+                    "MicrosoftECCRootCA2017",            # abbrev of '...Certificate Authority 2017'
+                    "73A5E64A3BFF8316FF0EDCCC618A906E4EAE4D74",  # MS RSA root by SHA-1 thumbprint
+                ],
+                presented_cert=Certificate(
+                    subject_cn="sbc.example.com", sans=["sbc.example.com"],
+                    ekus=[EKU.SERVER_AUTH], not_after="2030-01-01", chain_complete=True),
+            ))])
+    res = CaComplianceValidator(ruleset).validate(cfg)
+    assert "C.CA.ROOT_MISSING" not in ids(res.findings)
 
 
 # ---- D validator -----------------------------------------------------------

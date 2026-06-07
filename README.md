@@ -74,22 +74,29 @@ rulesets/                signed rule bundles
 samples/                 sample config (intentional misconfigs) for smoke test
 ```
 
-## Microsoft Direct Routing 2026 facts encoded (verified 2026-06)
+## Microsoft Direct Routing 2026 facts encoded (sourced + verified 2026-06-07)
 
-- Trust store must contain **all required Microsoft/DigiCert root CAs** for the
-  Teams mTLS context. The count (currently **7**) lives in the signed ruleset.
-- SBC leaf cert must include the **Server Authentication EKU**; dual-use /
-  clientAuth-only server certs are deprecated (Chrome Root Program) → warned.
-- Timeline that makes this urgent: trust-store remediation deadline end of
-  Feb 2026, server-side cert rotation from April 2026, full enforcement June 2026.
-  Failure mode is a hard TLS handshake stop — calls don't connect and Teams
-  shows nothing — i.e. the "scream test" this prevents.
+Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 
-> **Action required before production:** the exact root-CA *identifiers* in
-> `rulesets/*.json` are placeholders. Source the authoritative list from
-> Microsoft's Azure Certificate Authority details page and re-sign the bundle.
-> The 7-count and EKU rule are verified; the specific CA names must be confirmed
-> by your operator, not assumed.
+- Trust store must contain **all 7 required Microsoft/DigiCert root CAs**, each
+  with its SHA-1 thumbprint, in the signed ruleset. This now includes the new
+  **DigiCert TLS ECC P384 Root G5** and **DigiCert TLS RSA 4096 Root G5** that
+  Microsoft is migrating onto (the earlier placeholder list wrongly carried the
+  retired Baltimore root and a bogus 2018 root, and missed the G5 pair).
+- Root matching is **naming-tolerant**: `DigiCert Global Root G2`,
+  `DigiCertGlobalRootG2`, and the SHA-1 thumbprint all match.
+- SBC leaf cert must include the **Server Authentication EKU** (enforced June
+  2026); clientAuth-only / dual-use server certs are deprecated → warned.
+- **TLS 1.2**; SIP cipher allowlist and SRTP `AES_CM_128_HMAC_SHA1_80` are carried
+  in the ruleset (active cipher/TLS-version validation is roadmap).
+- Timeline: trust-store remediation by end of Feb 2026, server-side cert rotation
+  from April 2026, serverAuth-EKU enforcement June 2026. Failure mode is a hard
+  TLS handshake stop (the "scream test" this prevents). Microsoft test endpoint:
+  `sip.g1.pstnhub.microsoft.com:5061`.
+
+> **Before production:** re-verify the root list against Microsoft's live Azure
+> Certificate Authority details page and re-sign the bundle (see RULE_AUTHORITY.md).
+> The values here are sourced and dated, not frozen; CA lists change.
 
 ## What's deliberately NOT done yet (roadmap)
 

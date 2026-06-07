@@ -3,10 +3,11 @@ Domain C — TLS / SRTP & CA Compliance (primary wedge).
 
 Encodes the Microsoft Direct Routing 2026 mTLS/CA requirements as logic driven
 by a pulled rule bundle (so the authoritative root-CA list and counts live in
-the signed ruleset, not hardcoded here). Verified requirements as of 2026-06:
+the signed ruleset, not hardcoded here). Requirements sourced from Microsoft
+Learn and verified 2026-06-07 (see RULE_AUTHORITY.md):
 
-  * SBC trust store must contain ALL required Microsoft/DigiCert root CAs
-    (ruleset currently asserts 7) for the Teams mTLS context.
+  * SBC trust store must contain ALL 7 required Microsoft/DigiCert root CAs
+    (incl. the new DigiCert TLS ECC/RSA Root G5 pair) for the Teams mTLS context.
   * SBC leaf certificate must include the Server Authentication EKU.
     Dual-use / clientAuth-only server certs are being deprecated -> warn.
   * Leaf CN/SAN must match the SBC FQDN presented to Teams.
@@ -18,11 +19,22 @@ and nothing in Teams points at the cert — the classic "scream test".
 """
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from ..models import EKU, NormalizedConfig
 from .. import cert_inspect
 from .base import AbstractValidator, Finding, Severity, ValidatorResult
+
+
+def _norm(s) -> str:
+    """Normalize a CA identifier for tolerant matching: lowercase, strip every
+    non-alphanumeric, and fold the 'Certificate Authority' <-> 'CA' synonym. So
+    'Microsoft ECC Root Certificate Authority 2017' and 'MicrosoftECCRootCA2017'
+    compare equal, as do 'DigiCert Global Root G2' / 'DigiCertGlobalRootG2'; SHA-1
+    thumbprints compare with or without colons/spaces."""
+    n = re.sub(r"[^a-z0-9]", "", str(s or "").lower())
+    return n.replace("certificateauthority", "ca")
 
 
 class CaComplianceValidator(AbstractValidator):
@@ -72,16 +84,34 @@ class CaComplianceValidator(AbstractValidator):
             ))
 
         # --- required root CAs present (count + identity) ---
-        present = set(ctx.trusted_root_ids)
-        missing = [r for r in required_roots if r not in present]
+        # The ruleset lists each required root as {"name", "sha1"} (authoritative,
+        # sourced — see RULE_AUTHORITY.md). Older bundles may list plain name
+        # strings; both are handled. Matching is naming-tolerant: configs name the
+        # same root inconsistently ("DigiCert Global Root G2" vs "DigiCertGlobalRootG2"),
+        # so we compare on a normalized form and also accept a SHA-1 thumbprint match.
+        present_norm = {_norm(p) for p in ctx.trusted_root_ids}
+        missing = []
+        for r in required_roots:
+            name = r.get("name") if isinstance(r, dict) else r
+            sha1 = r.get("sha1") if isinstance(r, dict) else None
+            if _norm(name) in present_norm:
+                continue
+            if sha1 and _norm(sha1) in present_norm:
+                continue
+            missing.append(r)
         if missing:
+            def _label(r):
+                if isinstance(r, dict):
+                    return f"{r.get('name')} (SHA1 {r.get('sha1')})" if r.get("sha1") else r.get("name")
+                return str(r)
             res.add(Finding(
                 check_id="C.CA.ROOT_MISSING",
                 title=f"{len(missing)} of {len(required_roots)} required root CAs missing",
                 severity=Severity.CRITICAL,
-                detail="Trust store is missing root CAs Microsoft will present from "
-                       "April 2026 onward. Handshake will hard-fail once rotation "
-                       "reaches an untrusted root. Missing: " + ", ".join(missing),
+                detail="Trust store is missing root CAs Microsoft anchors Teams SIP "
+                       "certificates in (per the 2025-12 Direct Routing CA update). "
+                       "Handshake hard-fails once rotation reaches an untrusted root. "
+                       "Missing: " + "; ".join(_label(r) for r in missing),
                 remediation="Install the missing root CA chains into the Teams TLS "
                             "context trust store before the next Microsoft rotation.",
                 locator=f"TlsContext '{ctx.name}'",

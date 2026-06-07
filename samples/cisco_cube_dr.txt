@@ -12,27 +12,27 @@ crypto pki trustpoint TP-SBC-IDENTITY
  revocation-check none
  rsakeypair CUBE-KEY 2048
 !
-crypto pki trustpoint DigiCertGlobalRootG2
+crypto pki trustpoint DigiCertGlobalRootCA
  enrollment terminal
  revocation-check crl
+!
+crypto pki trustpoint DigiCertGlobalRootG2
+ enrollment terminal
 !
 crypto pki trustpoint DigiCertGlobalRootG3
  enrollment terminal
 !
-crypto pki trustpoint DigiCertGlobalRootCA
- enrollment terminal
-!
-crypto pki trustpoint MicrosoftRSARootCA2017
+crypto pki trustpoint DigiCertTLSECCP384RootG5
  enrollment terminal
 !
 crypto pki trustpoint MicrosoftECCRootCA2017
  enrollment terminal
 !
-crypto pki trustpoint BaltimoreCyberTrustRoot
+crypto pki trustpoint MicrosoftRSARootCA2017
  enrollment terminal
 !
-! NOTE: MicrosoftRSARootCA2018 trustpoint NOT installed -> 6 of 7 required roots.
-! Microsoft rotates onto this root from April 2026; handshake will hard-stop.
+! NOTE: DigiCert TLS RSA 4096 Root G5 trustpoint NOT installed -> 6 of 7 required roots.
+! Microsoft anchors Teams SIP certs in this root (2025-12 update); handshake hard-stops.
 !
 crypto signaling default trustpoint TP-SBC-IDENTITY
 !
