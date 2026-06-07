@@ -1,5 +1,7 @@
 # SBC-AutoOps — Local-First SBC Validator
 
+![CI](https://github.com/Dicoangelo/sbc-validator/actions/workflows/ci.yml/badge.svg)
+
 Vendor-agnostic, **local-first** pre-deployment validator for Session Border
 Controllers. Parses an exported config inside the customer trust boundary, runs
 A/B/C/D/E checks, and produces an explainable report + risk score + deploy
@@ -33,6 +35,23 @@ python -m sbc_validator.cli validate samples/ribbon_sbc.cli \
 # HA drift: compare an active node against its standby
 python -m sbc_validator.cli diff samples/clean_pass.ini samples/audiocodes_standby.ini
 ```
+
+### Use it as a CI/CD pre-deployment gate (shift-left)
+
+`validate` returns a non-zero exit code so it drops straight into a pipeline and
+blocks a broken Direct Routing config before it ships:
+
+```bash
+# fail the build on REVIEW or worse (default is BLOCK only)
+sbc-validator validate sbc-configs/teams.ini \
+    --ruleset rulesets/ms_direct_routing_2026-06.json --fail-on review
+```
+
+A ready-to-use GitHub Actions workflow is in
+[`examples/ci/sbc-pre-deploy-gate.yml`](examples/ci/sbc-pre-deploy-gate.yml):
+it validates changed configs on every PR (and runs an HA-drift check), failing
+the build on a bad config. Raw configs never leave the runner; only the exit code
+gates the PR.
 
 Add `--json` for machine output. Opt-in anonymized telemetry (off by default,
 double-gated):
@@ -154,7 +173,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 47 tests) covering all three parsers (incl. the real
+- **Test suite** (`pytest`, 49 tests) covering all three parsers (incl. the real
   AudioCodes table-`.ini`), the five validators, SRTP, HA drift, call-flow
   simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,

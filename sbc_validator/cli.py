@@ -103,7 +103,10 @@ def run(args) -> int:
             print("\n[anon] payload eligible for export (NOT sent by skeleton):")
             print(json.dumps(payload, indent=2))
 
-    return 1 if summary["verdict"] == "BLOCK" else 0
+    # CI gate: exit non-zero on the chosen verdict-or-worse (default: BLOCK only).
+    levels = {"PASS": 0, "REVIEW": 1, "BLOCK": 2}
+    threshold = {"block": 2, "review": 1}[getattr(args, "fail_on", "block")]
+    return 1 if levels.get(summary["verdict"], 0) >= threshold else 0
 
 
 def _write_result(out_dir: str, report: dict) -> str:
@@ -238,6 +241,8 @@ def main(argv=None) -> int:
                    help="build anonymized telemetry payload (off by default)")
     v.add_argument("--consent", action="store_true", help="explicit consent gate")
     v.add_argument("--org-salt", default=None)
+    v.add_argument("--fail-on", choices=["block", "review"], default="block",
+                   help="CI gate: exit non-zero on this verdict or worse (default: block)")
     v.set_defaults(func=run)
 
     d = sub.add_parser("diff", help="detect HA config drift between two node configs")

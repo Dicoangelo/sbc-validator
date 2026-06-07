@@ -1,0 +1,46 @@
+# Example: a pre-deployment SBC config gate for YOUR repo/pipeline.
+#
+# Drop this in .github/workflows/ of the repo where you keep SBC configs. On any
+# PR that touches a config, it validates the changed files and FAILS the build if
+# the verdict is REVIEW or worse, so a broken Direct Routing config can't merge.
+# This is the "shift-left" use of the validator: catch the misconfig in CI instead
+# of in a 2 a.m. scream test after deploy.
+name: SBC pre-deployment gate
+
+on:
+  pull_request:
+    paths:
+      - "sbc-configs/**"          # where your exported SBC .ini / CLI configs live
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Install from your internal package index / artifact, or vendor the wheel.
+      - name: Install SBC Validator
+        run: pip install sbc-autoops-validator
+
+      # Validate every changed config. --fail-on review = block REVIEW and BLOCK.
+      # Raw configs never leave the runner; only the exit code gates the PR.
+      - name: Validate SBC configs
+        run: |
+          set -e
+          for cfg in sbc-configs/*; do
+            echo "::group::$cfg"
+            sbc-validator validate "$cfg" \
+              --ruleset rulesets/ms_direct_routing_2026-06.json \
+              --fail-on review
+            echo "::endgroup::"
+          done
+
+      # Optional: also fail if an active/standby pair has drifted.
+      - name: HA drift check
+        run: |
+          if [ -f sbc-configs/active.ini ] && [ -f sbc-configs/standby.ini ]; then
+            sbc-validator diff sbc-configs/active.ini sbc-configs/standby.ini
+          fi

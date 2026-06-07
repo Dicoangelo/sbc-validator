@@ -549,6 +549,27 @@ def test_clean_passes():
     assert score([])["verdict"] == "PASS"
 
 
+# ---- CI gate (--fail-on threshold) -----------------------------------------
+
+from sbc_validator.cli import main as _cli_main
+
+_R = str(REPO / "rulesets" / "ms_direct_routing_2026-06.json")
+
+
+def _validate_rc(sample, *extra):
+    return _cli_main(["validate", str(REPO / "samples" / sample), "--ruleset", _R, *extra])
+
+
+def test_gate_default_blocks_only_on_block():
+    assert _validate_rc("review_high.ini") == 0          # REVIEW passes default gate
+    assert _validate_rc("audiocodes_min.ini") == 1       # BLOCK fails
+
+
+def test_gate_fail_on_review():
+    assert _validate_rc("review_high.ini", "--fail-on", "review") == 1
+    assert _validate_rc("clean_pass.ini", "--fail-on", "review") == 0
+
+
 # ---- HTML report -----------------------------------------------------------
 
 def test_html_report_renders_and_escapes():
