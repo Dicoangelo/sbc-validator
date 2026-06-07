@@ -67,10 +67,19 @@ def run(args) -> int:
         "findings": [vars(f) | {"severity": f.severity.name} for f in findings],
     }
 
+    # Predicted call outcome (deterministic, offline) — included on every report.
+    from .call_sim import simulate_call
+    sim = simulate_call(config, bundle, findings)
+    report["call_prediction"] = {
+        "outcome": sim.outcome, "dies_at": sim.dies_at, "summary": sim.summary,
+    }
+
     if args.json:
         print(json.dumps(report, indent=2))
     else:
         _print_human(report["vendor"], ruleset_version, summary, findings)
+        print(f"\nPredicted call: {sim.outcome}"
+              + (f" (dies at {sim.dies_at})" if sim.dies_at else "") + f" — {sim.summary}")
 
     if args.out:
         path = _write_result(args.out, report)
@@ -123,6 +132,41 @@ def _print_human(vendor, version, summary, findings):
         print("No findings. (Verify the parser actually populated the model.)")
 
 
+def run_simulate(args) -> int:
+    """Predict how far a real call would get, from static config alone."""
+    from .call_sim import simulate_call
+    config = detect_and_parse(_read(args.config))
+    bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
+    findings = []
+    for vcls in VALIDATORS:
+        findings.extend(vcls(bundle).validate(config).findings)
+    sim = simulate_call(config, bundle, findings)
+
+    if args.json:
+        print(json.dumps({
+            "sbc": config.sbc_fqdn, "vendor": config.vendor,
+            "outcome": sim.outcome, "dies_at": sim.dies_at, "summary": sim.summary,
+            "negotiated_codec": sim.negotiated_codec, "transcode_required": sim.transcode_required,
+            "stages": [vars(s) for s in sim.stages], "ladder": sim.ladder,
+        }, indent=2))
+        return 0
+
+    print(f"Call simulation — {config.sbc_fqdn or args.config}  (vendor={config.vendor})")
+    print(f"Predicted outcome: {sim.outcome}" +
+          (f"   (dies at: {sim.dies_at})" if sim.dies_at else ""))
+    print(sim.summary)
+    print("-" * 64)
+    glyph = {"ok": "[ok]  ", "warn": "[warn]", "fail": "[FAIL]"}
+    for s in sim.stages:
+        print(f"{glyph.get(s.status,'')} {s.name}: {s.detail}")
+        if s.symptom:
+            print(f"        symptom: {s.symptom}")
+    print("\nPredicted SIP ladder:")
+    for line in sim.ladder:
+        print("  " + line)
+    return 0
+
+
 def run_diff(args) -> int:
     """HA drift: compare an Active node config against its Standby."""
     from .validators.ha_drift import ha_diff
@@ -173,6 +217,13 @@ def main(argv=None) -> int:
     d.add_argument("standby", help="standby node config export")
     d.add_argument("--json", action="store_true")
     d.set_defaults(func=run_diff)
+
+    sm = sub.add_parser("simulate",
+                        help="predict the call flow (TLS->SIP->SDP->media) from config")
+    sm.add_argument("config")
+    sm.add_argument("--ruleset", required=True, help="path to a signed rule bundle")
+    sm.add_argument("--json", action="store_true")
+    sm.set_defaults(func=run_simulate)
 
     args = p.parse_args(argv)
     return args.func(args)

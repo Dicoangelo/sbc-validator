@@ -43,6 +43,21 @@ def render_html(report: dict) -> str:
         for s in ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
     )
 
+    pred = report.get("call_prediction") or {}
+    pred_html = ""
+    if pred:
+        good = pred.get("outcome") in ("STABLE", "DEGRADED")
+        pcolor = "#1e7e34" if pred.get("outcome") == "STABLE" else (
+            "#b8860b" if pred.get("outcome") == "DEGRADED" else "#b00020")
+        dies = pred.get("dies_at")
+        pred_html = (
+            f'<div class="pred" style="border-left:4px solid {pcolor}">'
+            f'<b>Predicted call outcome:</b> <span style="color:{pcolor};font-weight:700">'
+            f'{_esc(pred.get("outcome"))}</span>'
+            + (f' &middot; breaks at <b>{_esc(dies)}</b>' if dies else '')
+            + f'<div class="predsum">{_esc(pred.get("summary"))}</div></div>'
+        )
+
     rows = ""
     for f in findings:
         sev = f.get("severity", "INFO")
@@ -92,6 +107,9 @@ def render_html(report: dict) -> str:
   .why, .fix {{ font-size:13px; margin:4px 0; line-height:1.45; }}
   .fix {{ color:#1e4620; }}
   .foot {{ margin-top:28px; font-size:11px; color:#999; text-align:center; }}
+  .pred {{ margin:14px 0; padding:12px 16px; background:#fff; border:1px solid #e6e8eb;
+           border-radius:10px; font-size:14px; }}
+  .predsum {{ font-size:13px; color:#444; margin-top:4px; }}
 </style></head>
 <body><div class="wrap">
   <div class="top">
@@ -108,6 +126,7 @@ def render_html(report: dict) -> str:
     <div><b>Engine:</b> local-first (raw config never left this environment)</div>
   </div>
   <div class="chips">{chips}</div>
+  {pred_html}
   {rows}
   <div class="foot">SBC Validator &middot; Metaventions AI &middot; the independent truth layer for real-time voice</div>
 </div></body></html>"""

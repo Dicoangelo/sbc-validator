@@ -51,4 +51,10 @@ echo "== HA drift check (active vs standby) =="
 "$PY" -m sbc_validator.cli diff samples/clean_pass.ini samples/audiocodes_standby.ini || true
 
 echo
+echo "== predicted call flow: clean SBC vs the missing-root-CA SBC =="
+"$PY" -m sbc_validator.cli simulate samples/clean_pass.ini --ruleset "$RULESET" || true
+echo
+"$PY" -m sbc_validator.cli simulate samples/audiocodes_min.ini --ruleset "$RULESET" || true
+
+echo
 echo "Done. Open sbc_dashboard.html (Load dashboard_data.json) and reports/*.html"

@@ -66,6 +66,18 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
 
 ## 2. Architecture learnings
 
+- **(2026-06-07) Reframe findings as a call, not a checklist.** A 20-year SBC vet
+  thinks about a call as a chain of links (TLS -> SIP -> SDP -> media) that dies at
+  the first broken one, and diagnoses by mapping a symptom to a link. The
+  `simulate` command models exactly that from static config: predicted outcome,
+  the user-visible symptom (e.g. "Get-CsOnlinePSTNGateway shows it inactive"), and
+  the SIP ladder truncated at the failure. Deterministic, offline, no traffic.
+  -> *Apply:* this is the differentiator that reads as domain mastery, not lint.
+  It also surfaces TEMPORAL truth the static severity can't: a clientAuth-only leaf
+  is "REVIEW" statically but "DEGRADED / at-risk as of the June 2026 enforcement"
+  in the simulation. Same data, expert framing.
+
+
 - **The normalized model is the entire moat.** Every vendor parser emits one
   `NormalizedConfig`; validators only ever see the normalized form, never raw
   vendor syntax. This is what makes "vendor-agnostic" real instead of a slide.

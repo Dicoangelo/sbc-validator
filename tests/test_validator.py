@@ -144,6 +144,78 @@ def test_ha_no_drift_when_identical():
     assert ha_diff(a, a) == []
 
 
+# ---- call-flow simulation --------------------------------------------------
+
+from sbc_validator.call_sim import simulate_call
+from sbc_validator.validators.ca_compliance import CaComplianceValidator as _C
+from sbc_validator.validators.interop import InteropValidator as _B
+from sbc_validator.validators.nat_traversal import NatTraversalValidator as _D
+from sbc_validator.validators.codec import CodecValidator as _E
+
+
+def _all_findings(cfg, ruleset):
+    fs = []
+    for V in (SyntaxSemanticValidator, _B, _C, _D, _E):
+        fs.extend(V(ruleset).validate(cfg).findings)
+    return fs
+
+
+def test_sim_clean_call_is_stable(ruleset):
+    cfg = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    sim = simulate_call(cfg, ruleset, _all_findings(cfg, ruleset))
+    assert sim.outcome == "STABLE"
+    assert sim.dies_at is None
+    assert sim.negotiated_codec in ("PCMU", "G722")
+    assert any("RTP" in line for line in sim.ladder)
+
+
+def test_sim_missing_root_dies_at_tls(ruleset):
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_min.ini").read_text())
+    sim = simulate_call(cfg, ruleset, _all_findings(cfg, ruleset))
+    assert sim.outcome == "NO_CONNECT"
+    assert sim.dies_at == "TLS handshake"
+    # ladder truncates at the handshake; it never reaches INVITE
+    assert not any("INVITE" in line for line in sim.ladder)
+
+
+def test_sim_one_way_audio_from_private_media(ruleset):
+    # TLS/SIP/SDP all clean, but media advertises a private IP -> one-way audio
+    cfg = NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc.example.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc.example.com", transport="tls",
+            options_keepalive=True, offered_codecs=["PCMU", "G722"], dtmf_method="rfc2833",
+            tls_context=TlsContext(
+                name="T", mtls_enabled=True,
+                trusted_root_ids=[r["name"] for r in ruleset["C"]["required_root_ca_ids"]],
+                presented_cert=Certificate(
+                    subject_cn="sbc.example.com", sans=["sbc.example.com"],
+                    ekus=[EKU.SERVER_AUTH], not_after="2030-01-01", chain_complete=True)))],
+        media_realms=[MediaRealm(name="m", advertised_public_ip="10.20.30.40", symmetric_rtp=True)])
+    sim = simulate_call(cfg, ruleset, _all_findings(cfg, ruleset))
+    assert sim.outcome == "ONE_WAY_AUDIO"
+    assert sim.dies_at == "Media path"
+
+
+def test_sim_488_when_no_teams_codec_overlap(ruleset):
+    cfg = NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc.example.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc.example.com", transport="tls",
+            options_keepalive=True, offered_codecs=["G723"],  # not Teams-supported
+            tls_context=TlsContext(
+                name="T", mtls_enabled=True,
+                trusted_root_ids=[r["name"] for r in ruleset["C"]["required_root_ca_ids"]],
+                presented_cert=Certificate(
+                    subject_cn="sbc.example.com", sans=["sbc.example.com"],
+                    ekus=[EKU.SERVER_AUTH], not_after="2030-01-01", chain_complete=True)))],
+        media_realms=[MediaRealm(name="m", advertised_public_ip="80.0.0.5", symmetric_rtp=True)])
+    sim = simulate_call(cfg, ruleset, _all_findings(cfg, ruleset))
+    assert sim.outcome == "REJECTED"
+    assert sim.dies_at == "SDP negotiation"
+    assert any("488" in line for line in sim.ladder)
+
+
 # ---- ruleset signing -------------------------------------------------------
 
 def test_signed_ruleset_verifies(ruleset):

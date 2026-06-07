@@ -120,6 +120,11 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   clientAuth-only leaf (the EKU deprecation).
 - **HA drift detection** (`diff <active> <standby>`): compares the failover-critical
   fields between two node configs and rates trust-store drift CRITICAL.
+- **Predicted call-flow simulation** (`simulate <config>`): models a real call as
+  a chain (TLS handshake -> SIP signaling -> SDP offer/answer -> media path),
+  predicts how far it gets, names the user-visible symptom, and renders the SIP
+  ladder up to the failure. Deterministic and offline (originates no traffic).
+  Every `validate` report (text + HTML) also carries the predicted outcome.
 - **Real certificate inspection** (`cert_inspect.py`, via `cryptography`):
   EKU, SAN, expiry, issuer, local chain-build; C runs it on any referenced cert.
 - **Ed25519 bundle signing** with a pinned publisher public key; tampered
