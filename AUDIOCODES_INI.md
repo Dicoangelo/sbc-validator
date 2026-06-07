@@ -81,9 +81,18 @@ params), and the DR mapper (Teams-leg resolution, transport, SRTP, codecs,
 keep-alive, TLS context, FQDN from `SIPGatewayName`). Best-effort, alias-tolerant
 column lookups so version-to-version column differences degrade gracefully.
 
-Not yet mapped (roadmap, needs a real exported config to build against):
-NATTranslation / interface NAT for the true public media address, Message
-Manipulations (normalization detection), Classification / IP2IPRouting, and the
-richer IPProfile coder-negotiation fields. `samples/audiocodes_teams_real.ini` is
-a realistic abridged example; a full vendor config-note appendix `.ini` is the
-next fidelity test (see the sourcing notes in chat / project memory).
+Now mapped (grounded in the manual's real parameter names):
+- **NATTranslation** -> the SBC's public media address. Real configs put the
+  network-interface name in the MediaRealm and the public IP in NATTranslation
+  (`SourceIPAddress` -> `TargetIPAddress`); the mapper uses the global Target IP as
+  the advertised media address so domain D evaluates correctly.
+- **Message manipulation -> normalization.** An IP Group with an
+  `InboundManipulationSet` / `OutboundManipulationSet` (!= -1) has SIP
+  normalization, so domain B no longer false-flags `B.SIP.NO_NORMALIZATION` on a
+  real config that does header manipulation.
+
+Not yet mapped (roadmap, needs a full real exported config): Classification /
+IP2IPRouting (routing correctness), the richer IPProfile coder-negotiation fields,
+and SRD / multi-tenant topology. `samples/audiocodes_teams_real.ini` is a realistic
+abridged example mirroring the config note; a full Wizard-exported or customer
+`.ini` is the next fidelity test (see sourcing notes in project memory).

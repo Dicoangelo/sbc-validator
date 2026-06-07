@@ -29,6 +29,7 @@ line to enable the deep cert checks.
 """
 from __future__ import annotations
 
+import ipaddress
 import re
 
 from ..models import (
@@ -126,6 +127,13 @@ def parse_table_ini(text: str):
     return globals_, tables
 
 
+def _is_global_ip(s) -> bool:
+    try:
+        return ipaddress.ip_address(str(s)).is_global
+    except ValueError:
+        return False
+
+
 def _get(row: dict, *names, default=None):
     """Case-insensitive column lookup with aliases."""
     low = {k.lower(): v for k, v in row.items()}
@@ -210,6 +218,24 @@ def map_to_config(text: str) -> NormalizedConfig:
             if norm:
                 coders_by_group.setdefault(str(grp), []).append(norm)
 
+    # --- NAT: the SBC's public media address comes from the NATTranslation table
+    # (SourceIPAddress -> TargetIPAddress), not from a single MediaRealm field. ---
+    nat_public = None
+    for r in tables.get("NATTranslation", []):
+        tgt = _get(r, "TargetIPAddress", "NATIPAddress", "TargetIP", default="")
+        if _is_global_ip(tgt):
+            nat_public = tgt
+            break
+
+    def _manip_norm(ig):
+        """A leg with an in/out message-manipulation set has SIP normalization."""
+        for col in ("InboundManipulationSet", "InboundMessageManipulationSet",
+                    "OutboundManipulationSet", "OutboundMessageManipulationSet"):
+            v = _get(ig, col)
+            if v is not None and str(v).strip() not in ("", "-1"):
+                return f"MsgManip:{str(v).strip()}"
+        return None
+
     # --- IPGroup rows are the legs ---
     for ig in tables.get("IPGroup", []):
         name = _get(ig, "Name", "GroupName", default=ig.get("Index"))
@@ -240,15 +266,20 @@ def map_to_config(text: str) -> NormalizedConfig:
             tls_context=ctx,
             transport=transport,
             options_keepalive=ps_keepalive.get(psname, False),
+            normalization_profile=_manip_norm(ig),
             offered_codecs=coders_by_group.get(ipp_coders_ref.get(ippname) or "", []),
             srtp_enabled=ipp_srtp.get(ippname, False),
         ))
 
-    # --- media realms ---
+    # --- media realms: the advertised public address is the MediaRealm IP if it's
+    # globally routable, otherwise the NAT TargetIPAddress (real configs put the
+    # interface name in the MediaRealm and the public IP in NATTranslation). ---
     for r in tables.get("MediaRealm", []):
+        raw = _get(r, "IPAddress", "PublicIP", "IPv4IF", default="")
+        advertised = raw if _is_global_ip(raw) else nat_public
         cfg.media_realms.append(MediaRealm(
             name=str(_get(r, "MediaRealmName", "Name", default=r.get("Index"))),
-            advertised_public_ip=_get(r, "IPv4IF", "IPAddress", "PublicIP", default=None) or None,
+            advertised_public_ip=advertised,
             symmetric_rtp=True,
         ))
     return cfg

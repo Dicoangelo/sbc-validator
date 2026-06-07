@@ -320,6 +320,23 @@ def test_real_audiocodes_ini_no_false_critical(ruleset):
     assert "C.CERT.MISSING" not in found               # cert supplied via annotated PEM
 
 
+def test_real_ini_normalization_from_manipulation_set(ruleset):
+    """A leg with a message-manipulation set has normalization -> no false flag."""
+    cfg = detect_and_parse(REAL_AC.read_text())
+    assert cfg.teams_interface().normalization_profile  # e.g. "MsgManip:1"
+    res = InteropValidator(ruleset).validate(cfg)
+    assert "B.SIP.NO_NORMALIZATION" not in ids(res.findings)
+
+
+def test_real_ini_nat_public_media_ip(ruleset):
+    """Public media address comes from NATTranslation, not a MediaRealm IP field."""
+    cfg = detect_and_parse(REAL_AC.read_text())
+    assert cfg.media_realms and cfg.media_realms[0].advertised_public_ip == "80.0.0.30"
+    res = NatTraversalValidator(ruleset).validate(cfg)
+    found = ids(res.findings)
+    assert "D.NAT.PRIVATE_ADVERTISED" not in found and "D.NAT.NO_PUBLIC_IP" not in found
+
+
 def test_table_ini_reader_parses_format_and_data():
     from sbc_validator.parsers.audiocodes_ini import parse_table_ini
     g, tables = parse_table_ini(REAL_AC.read_text())
