@@ -261,8 +261,63 @@ class CaComplianceValidator(AbstractValidator):
             except ValueError:
                 pass
 
-        # Chain completeness
-        if not cert.chain_complete:
+        # Trust-anchor chain validation: when a real PEM is referenced, verify the
+        # chain's signatures and check it anchors to one of the required Microsoft
+        # roots. Falls back to the config-declared chain_complete flag otherwise.
+        chain = cert_inspect.verify_chain(cert.source_file) if cert.source_file else None
+        if chain is not None:
+            required_shas = {str(r.get("sha1", "")).upper().replace(":", "")
+                             for r in required_roots if isinstance(r, dict)}
+            loc = f"cert CN={cert.subject_cn}"
+            if chain["leaf_self_signed"] and chain["length"] == 1:
+                res.add(Finding(
+                    check_id="C.CERT.SELF_SIGNED",
+                    title="SBC certificate is self-signed",
+                    severity=Severity.HIGH,
+                    detail="Teams Direct Routing requires a certificate issued by a CA "
+                           "in the Microsoft Trusted Root Program; a self-signed leaf "
+                           "is rejected.",
+                    remediation="Obtain a CA-issued certificate whose chain anchors to a "
+                                "required Microsoft/DigiCert root.",
+                    locator=loc))
+            elif not chain["signatures_valid"]:
+                res.add(Finding(
+                    check_id="C.CERT.CHAIN_INVALID",
+                    title="Certificate chain signature does not verify",
+                    severity=Severity.HIGH,
+                    detail="A certificate in the supplied chain is not validly signed by "
+                           "its issuer; the chain is broken or tampered.",
+                    remediation="Re-export the correct leaf + intermediate chain.",
+                    locator=loc))
+            elif not chain["reached_root"]:
+                res.add(Finding(
+                    check_id="C.CERT.CHAIN_INCOMPLETE",
+                    title="Incomplete certificate chain (no root reached)",
+                    severity=Severity.MEDIUM,
+                    detail="Intermediate(s) are missing; the chain does not build to a "
+                           "self-signed root.",
+                    remediation="Install the full intermediate chain on the SBC.",
+                    locator=loc))
+            elif required_shas and chain["terminal_sha1"] not in required_shas:
+                res.add(Finding(
+                    check_id="C.CERT.UNTRUSTED_ANCHOR",
+                    title="Certificate chain anchors to a non-Microsoft-trusted root",
+                    severity=Severity.HIGH,
+                    detail=f"The chain terminates at root SHA-1 {chain['terminal_sha1']}, "
+                           "which is not one of the required Microsoft/DigiCert roots. "
+                           "Teams will reject a cert from a private/untrusted CA.",
+                    remediation="Re-issue the SBC cert from a CA whose root is in the "
+                                "Microsoft Trusted Root Program.",
+                    locator=loc))
+            else:
+                res.add(Finding(
+                    check_id="C.CERT.CHAIN_ANCHORED",
+                    title="Certificate chain anchors to a trusted root",
+                    severity=Severity.INFO,
+                    detail=f"Chain verified to root SHA-1 {chain['terminal_sha1']}.",
+                    remediation="None (informational).",
+                    locator=loc))
+        elif not cert.chain_complete:
             res.add(Finding(
                 check_id="C.CERT.CHAIN_INCOMPLETE",
                 title="Incomplete certificate chain",

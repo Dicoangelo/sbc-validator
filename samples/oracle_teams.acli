@@ -1,6 +1,6 @@
 # Oracle Communications SBC (Acme Packet) - show running-config (abridged)
 # Microsoft Teams Direct Routing
-# sbc-validator: leaf-cert samples/sbc01_leaf.pem
+# (certs are imported separately on Oracle SBCs; domain C verifies out-of-band)
 
 system-config
         hostname                       sbc01.contoso.com

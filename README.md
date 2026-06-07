@@ -122,8 +122,6 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 
 - **All four vendor parsers (AudioCodes, Cisco CUBE, Ribbon, Oracle/Acme) are
   implemented.** Deeper per-vendor construct coverage is ongoing.
-- Trust-anchor chain *validation* against a configured root store (current deep
-  pass builds the chain and checks it isn't broken, but doesn't verify the anchor).
 - Remote rule-fetch transport (resolution + cache + verify is in place; the HTTP
   call is the TODO).
 - Docker image (CI is wired: `.github/workflows/ci.yml`; a CI gate example for
@@ -146,6 +144,11 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   Because a real `.ini` carries no cert/trust-store, C reports LOW "verify
   out-of-band" instead of false-claiming CRITICAL — it distinguishes *absent* from
   *not-present-in-this-source*.
+- **Trust-anchor chain validation** (domain C): when a real leaf+chain PEM is
+  supplied, verifies each signature in the chain (real PKI, not name-matching),
+  walks to the self-signed root, and flags a self-signed leaf, a broken chain, or
+  a chain anchored to a root that is NOT one of the required Microsoft/DigiCert
+  roots (`C.CERT.SELF_SIGNED` / `CHAIN_INVALID` / `UNTRUSTED_ANCHOR` / anchored OK).
 - **HA drift detection** (`diff <active> <standby>`): compares the failover-critical
   fields between two node configs and rates trust-store drift CRITICAL.
 - **Predicted call-flow simulation** (`simulate <config>`): models a real call as
@@ -174,7 +177,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 50 tests) covering all three parsers (incl. the real
+- **Test suite** (`pytest`, 55 tests) covering all three parsers (incl. the real
   AudioCodes table-`.ini`), the five validators, SRTP, HA drift, call-flow
   simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,

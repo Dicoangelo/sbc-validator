@@ -504,6 +504,78 @@ def test_e_flags_no_cross_overlap(ruleset):
 
 # ---- cert inspection -------------------------------------------------------
 
+# ---- trust-anchor chain validation -----------------------------------------
+
+CHAIN = REPO / "samples" / "chain_fullchain.pem"
+ROOT = REPO / "samples" / "chain_root.pem"
+
+
+def _root_sha1():
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes
+    root = x509.load_pem_x509_certificate(ROOT.read_bytes())
+    return root.fingerprint(hashes.SHA1()).hex().upper()
+
+
+def test_verify_chain_real_signed_chain():
+    if not cert_inspect.available():
+        pytest.skip("cryptography not installed")
+    r = cert_inspect.verify_chain(str(CHAIN))
+    assert r["signatures_valid"] and r["reached_root"]
+    assert r["leaf_self_signed"] is False
+    assert r["terminal_sha1"] == _root_sha1()
+
+
+def test_verify_chain_self_signed_leaf():
+    if not cert_inspect.available():
+        pytest.skip("cryptography not installed")
+    r = cert_inspect.verify_chain(str(PEM))      # sbc01_leaf.pem (self-signed)
+    assert r["leaf_self_signed"] is True and r["length"] == 1
+
+
+def _ctx_with_cert(ruleset, pem_path):
+    return NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc01.contoso.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc01.contoso.com", transport="tls",
+            srtp_enabled=True, options_keepalive=True, offered_codecs=["PCMU"],
+            tls_context=TlsContext(
+                name="T", mtls_enabled=True,
+                trusted_root_ids=[r["name"] for r in ruleset["C"]["required_root_ca_ids"]],
+                presented_cert=Certificate(source_file=str(pem_path))))])
+
+
+def test_c_flags_untrusted_anchor(ruleset):
+    """Real chain to a non-Microsoft root -> UNTRUSTED_ANCHOR (production ruleset)."""
+    if not cert_inspect.available():
+        pytest.skip("cryptography not installed")
+    cfg = _ctx_with_cert(ruleset, CHAIN)
+    found = ids(CaComplianceValidator(ruleset).validate(cfg).findings)
+    assert "C.CERT.UNTRUSTED_ANCHOR" in found
+    assert "C.CERT.SELF_SIGNED" not in found
+
+
+def test_c_anchored_when_root_is_trusted(ruleset):
+    """Same chain, but with the test root's SHA-1 in the trusted set -> ANCHORED."""
+    if not cert_inspect.available():
+        pytest.skip("cryptography not installed")
+    import copy
+    rs = copy.deepcopy(ruleset)
+    rs["C"]["required_root_ca_ids"] = [{"name": "SBC Test Root CA", "sha1": _root_sha1()}]
+    cfg = _ctx_with_cert(rs, CHAIN)
+    found = ids(CaComplianceValidator(rs).validate(cfg).findings)
+    assert "C.CERT.CHAIN_ANCHORED" in found
+    assert "C.CERT.UNTRUSTED_ANCHOR" not in found
+
+
+def test_c_flags_self_signed_leaf(ruleset):
+    if not cert_inspect.available():
+        pytest.skip("cryptography not installed")
+    cfg = _ctx_with_cert(ruleset, PEM)
+    found = ids(CaComplianceValidator(ruleset).validate(cfg).findings)
+    assert "C.CERT.SELF_SIGNED" in found
+
+
 def test_cert_inspect_reads_real_pem():
     if not cert_inspect.available():
         pytest.skip("cryptography not installed")

@@ -115,3 +115,67 @@ def inspect_file(path: str) -> Optional[Certificate]:
         chain_complete=_chain_complete(certs),
         source_file=str(p),
     )
+
+
+def verify_chain(path: str) -> Optional[dict]:
+    """Real trust-anchor analysis of a PEM that may hold a full chain.
+
+    Verifies the signature of each cert against its issuer (real PKI, not just
+    name matching), walks to a self-signed root, and returns:
+
+      {leaf_self_signed, signatures_valid, reached_root, terminal_sha1, length}
+
+    terminal_sha1 is the SHA-1 fingerprint (hex, upper) of the self-signed root
+    the chain terminates at, or None if it never reaches one. Returns None if
+    cryptography is unavailable or the file can't be read.
+    """
+    if not _AVAILABLE:
+        return None
+    p = Path(path)
+    if not p.exists():
+        return None
+    try:
+        certs = _load_all(p.read_bytes())
+    except Exception:
+        return None
+    if not certs:
+        return None
+
+    by_subject = {c.subject.rfc4514_string(): c for c in certs}
+    leaf = certs[0]
+    leaf_self_signed = leaf.subject.rfc4514_string() == leaf.issuer.rfc4514_string()
+
+    signatures_valid = True
+    reached_root = False
+    terminal_sha1 = None
+    seen = set()
+    cur = leaf
+    while True:
+        subj = cur.subject.rfc4514_string()
+        iss = cur.issuer.rfc4514_string()
+        if subj == iss:                          # self-signed root reached
+            # verify the root's own signature too
+            issuer = cur
+            reached_root = True
+            terminal_sha1 = cur.fingerprint(hashes.SHA1()).hex().upper()
+        else:
+            issuer = by_subject.get(iss)
+            if issuer is None:
+                break                            # intermediate missing -> incomplete
+        try:
+            cur.verify_directly_issued_by(issuer)
+        except Exception:
+            signatures_valid = False
+            break
+        if reached_root or iss in seen:
+            break
+        seen.add(iss)
+        cur = issuer
+
+    return {
+        "leaf_self_signed": leaf_self_signed,
+        "signatures_valid": signatures_valid,
+        "reached_root": reached_root,
+        "terminal_sha1": terminal_sha1,
+        "length": len(certs),
+    }
