@@ -21,6 +21,7 @@ from .base import AbstractParser
 from .audiocodes_ini import is_table_ini, map_to_config  # real .ini table format
 from .cisco_cube import CiscoCubeParser  # real second-vendor parser (re-exported)
 from .ribbon import RibbonParser         # real third-vendor parser (re-exported)
+from .oracle import OracleAcmeParser     # real fourth-vendor parser (re-exported)
 
 
 def _ekus(raw: str) -> list[EKU]:
@@ -116,17 +117,6 @@ class AudioCodesParser(AbstractParser):
             ))
 
         return cfg
-
-
-class OracleAcmeParser(AbstractParser):
-    vendor = "oracle_acme"
-
-    @classmethod
-    def sniff(cls, text: str) -> bool:
-        return "sip-interface" in text and "realm-config" in text
-
-    def parse(self, text: str) -> NormalizedConfig:
-        raise NotImplementedError("Oracle/Acme parser: roadmap phase 2")
 
 
 ALL_PARSERS = [AudioCodesParser, CiscoCubeParser, RibbonParser, OracleAcmeParser]

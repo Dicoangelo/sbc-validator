@@ -1,0 +1,64 @@
+# Oracle Communications SBC (Acme Packet) - show running-config (abridged)
+# Microsoft Teams Direct Routing
+# sbc-validator: leaf-cert samples/sbc01_leaf.pem
+
+system-config
+        hostname                       sbc01.contoso.com
+
+realm-config
+        identifier                     Teams
+        media-sec-policy               msmTeams
+
+realm-config
+        identifier                     Carrier
+
+sip-interface
+        state                          enabled
+        realm-id                       Teams
+        sip-port
+                address                10.1.1.40
+                port                   5061
+                transport-protocol     TLS
+                tls-profile            TeamsTLS
+        options                        options-ping=60
+
+sip-interface
+        state                          enabled
+        realm-id                       Carrier
+        sip-port
+                address                10.1.2.40
+                port                   5060
+                transport-protocol     UDP
+
+session-agent
+        hostname                       sip.pstnhub.microsoft.com
+        realm-id                       Teams
+        transport-method               StaticTLS
+        ping-method                    OPTIONS;hops=0
+        ping-interval                  30
+
+session-agent
+        hostname                       sbc-trunk.carrier.example
+        realm-id                       Carrier
+        transport-method               UDP
+
+tls-profile
+        name                           TeamsTLS
+        end-entity-certificate         sbc-teams-cert
+
+media-sec-policy
+        name                           msmTeams
+        inbound
+                profile                sdesTeams
+        outbound
+                profile                sdesTeams
+
+sdes-profile
+        name                           sdesTeams
+        crypto-list                    AES_CM_128_HMAC_SHA1_80
+
+media-profile
+        name                           PCMU
+
+media-profile
+        name                           G722

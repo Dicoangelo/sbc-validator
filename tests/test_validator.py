@@ -51,11 +51,20 @@ def test_audiocodes_sniff_and_parse():
     assert cfg.teams_interface() is not None
 
 
-def test_unimplemented_parser_raises():
-    # AudioCodes, Cisco CUBE, and Ribbon are implemented; Oracle is still a stub.
-    p = OracleAcmeParser()
-    with pytest.raises(NotImplementedError):
-        p.parse("sip-interface\nrealm-config")
+def test_unknown_config_raises():
+    # All four vendors are implemented; unmatched text has no parser.
+    with pytest.raises(ValueError):
+        detect_and_parse("this is not any vendor's SBC config\n")
+
+
+def test_oracle_parses_fourth_vendor():
+    cfg = detect_and_parse((REPO / "samples" / "oracle_teams.acli").read_text())
+    assert cfg.vendor == "oracle_acme"
+    t = cfg.teams_interface()
+    assert t is not None and t.transport == "tls"
+    assert t.srtp_enabled is True          # realm media-sec-policy + sdes-profile
+    assert t.options_keepalive is True     # session-agent ping-method OPTIONS
+    assert "PCMU" in t.offered_codecs
 
 
 # ---- Cisco CUBE parser (second vendor — vendor-agnostic proof) --------------

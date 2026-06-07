@@ -10,9 +10,9 @@ anonymized findings can go out.
 
 It implements all five validators end-to-end (A syntax/semantic, B interop,
 C TLS/CA — the Microsoft Direct Routing wedge, D NAT / one-way audio, E codec)
-and ships **three real vendor parsers — AudioCodes, Cisco CUBE (IOS-XE), and
-Ribbon SBC Core** — running on a single normalized model, plus an honest stub
-for Oracle/Acme. Three vendors on one model is the proof that validation is
+and ships **four real vendor parsers — AudioCodes (`.ini`), Cisco CUBE (IOS-XE),
+Ribbon SBC Core (`set`-config), and Oracle/Acme (ACLI)** — running on a single
+normalized model. Four vendors on one model is the proof that validation is
 genuinely vendor-agnostic: the same C validator catches the 2026 root-CA gap on
 an AudioCodes `.ini` and a Cisco running-config, and the clientAuth-only EKU
 deprecation on a Ribbon `set`-config, all unmodified.
@@ -24,10 +24,10 @@ failover during the 2026 CA rotation onto a drifted standby hard-stops calls.
 ## Quickstart
 
 ```bash
-# one command runs the whole 3-vendor fleet demo + HA drift check:
+# one command runs the whole 4-vendor fleet demo + HA drift check:
 ./demo.sh
 
-# a single config (any of the three vendors auto-detected):
+# a single config (any of the four vendors auto-detected):
 python -m sbc_validator.cli validate samples/ribbon_sbc.cli \
     --ruleset rulesets/ms_direct_routing_2026-06.json \
     --html report.html          # self-contained customer report
@@ -81,7 +81,8 @@ sbc_validator/
   rules/client.py        signed, versioned rule-bundle client (offline-capable)
   parsers/
     base.py              parser contract
-    audiocodes.py        AudioCodes parser (complete) + Cisco/Ribbon/Oracle stubs
+    audiocodes.py        AudioCodes (.ini table + simple); cisco_cube.py;
+                         ribbon.py; oracle.py (4 real vendor parsers)
   validators/
     base.py              Finding / Severity / AbstractValidator
     ca_compliance.py     C — Microsoft DR TLS/CA wedge
@@ -119,8 +120,8 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 
 ## What's deliberately NOT done yet (roadmap)
 
-- Oracle/Acme parser — stub raises `NotImplementedError` (needs a real sample
-  export). **AudioCodes, Cisco CUBE, and Ribbon are implemented** (see below).
+- **All four vendor parsers (AudioCodes, Cisco CUBE, Ribbon, Oracle/Acme) are
+  implemented.** Deeper per-vendor construct coverage is ongoing.
 - Trust-anchor chain *validation* against a configured root store (current deep
   pass builds the chain and checks it isn't broken, but doesn't verify the anchor).
 - Remote rule-fetch transport (resolution + cache + verify is in place; the HTTP
@@ -135,10 +136,9 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   A = syntax/semantic baseline, B = interop, C = TLS/CA wedge (incl. an **SRTP**
   media-encryption check), D = NAT, E = codec, G = routing/classification (fires
   only when the config source carries routing info).
-- **Three real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
-  (IOS-XE running-config), and Ribbon SBC Core (`set`-config).** The same
-  validators run unmodified across all three — the vendor-agnostic claim,
-  demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
+- **Four real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
+  (IOS-XE), Ribbon SBC Core, and Oracle/Acme (ACLI).** The same validators run
+  unmodified across all four — the vendor-agnostic claim, demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
   clientAuth-only leaf (the EKU deprecation).
 - **AudioCodes parses the real parameter-table `.ini`** a Mediant actually exports
   (indexed `[ Table ]` / `FORMAT` / `[ \Table ]` tables with cross-references;
@@ -174,7 +174,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 49 tests) covering all three parsers (incl. the real
+- **Test suite** (`pytest`, 50 tests) covering all three parsers (incl. the real
   AudioCodes table-`.ini`), the five validators, SRTP, HA drift, call-flow
   simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,

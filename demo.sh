@@ -24,13 +24,14 @@ run () {  # $1 config  $2 sbc-label  $3 site
   echo "  validated $1  ->  $REPORTS/$2.html"
 }
 
-echo "== validating fleet (3 vendors) =="
+echo "== validating fleet (4 vendors) =="
 run samples/clean_pass.ini      sbc05_fabrikam   EU-West   # AudioCodes
 run samples/review_high.ini     sbc09_northwind  US-East   # AudioCodes
 run samples/broken_a.ini        broken_a         DR-Site   # AudioCodes
 run samples/audiocodes_min.ini  sbc01_contoso    EU-West   # AudioCodes
 run samples/cisco_cube_dr.txt   cube_sbc_01      US-West   # Cisco CUBE
 run samples/ribbon_sbc.cli      sbc_ribbon_01    EU-West   # Ribbon
+run samples/oracle_teams.acli   oracle_sbc_01    APAC      # Oracle Acme
 
 echo "== building dashboard payload =="
 "$PY" -m sbc_validator.tools.build_dashboard_data "$OUT" -o dashboard_data.json
