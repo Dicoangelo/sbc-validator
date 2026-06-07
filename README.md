@@ -125,7 +125,8 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   pass builds the chain and checks it isn't broken, but doesn't verify the anchor).
 - Remote rule-fetch transport (resolution + cache + verify is in place; the HTTP
   call is the TODO).
-- Docker image / CI pipeline wiring.
+- Docker image (CI is wired: `.github/workflows/ci.yml`; a CI gate example for
+  customers is in `examples/ci/`).
 - Everything in Phase 3/4 (agentic reasoning, live probing, SaaS).
 
 ## Now implemented
