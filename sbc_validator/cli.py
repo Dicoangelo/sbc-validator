@@ -1,0 +1,182 @@
+"""
+Local CLI entrypoint.
+
+    python -m sbc_validator.cli validate <config_file> \
+        --ruleset rulesets/ms_direct_routing_2026-06.json \
+        [--json] [--share-anon --org-salt <salt> --consent]
+
+Everything runs locally. The only data that can ever leave is the anonymized
+payload, and only when --share-anon AND --consent are both supplied.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+from .parsers.audiocodes import detect_and_parse
+from .rules.client import RuleClient
+from .validators.syntax_semantic import SyntaxSemanticValidator
+from .validators.ca_compliance import CaComplianceValidator
+from .validators.nat_traversal import NatTraversalValidator
+from .validators.interop import InteropValidator
+from .validators.codec import CodecValidator
+from .report.risk import score
+from .report.anonymize import anonymized_payload
+
+VALIDATORS = [SyntaxSemanticValidator, InteropValidator, CaComplianceValidator,
+              NatTraversalValidator, CodecValidator]
+
+
+def _read(path: str) -> str:
+    try:
+        return open(path, encoding="utf-8", errors="replace").read()
+    except FileNotFoundError:
+        print(f"error: config file not found: {path}", file=sys.stderr)
+        raise SystemExit(2)
+
+
+def run(args) -> int:
+    text = _read(args.config)
+
+    try:
+        config = detect_and_parse(text)
+    except (ValueError, NotImplementedError) as e:
+        print(f"parse error: {e}", file=sys.stderr)
+        return 2
+
+    bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
+    ruleset_version = bundle.get("bundle_version", "unknown")
+
+    findings = []
+    for vcls in VALIDATORS:
+        findings.extend(vcls(bundle).validate(config).findings)
+
+    summary = score(findings)
+
+    # Full report record — this is the per-SBC shape the dashboard consumes.
+    report = {
+        "sbc": config.sbc_fqdn or os.path.splitext(os.path.basename(args.config))[0],
+        "vendor": config.vendor,
+        "site": args.site or config.raw_meta.get("site") or "unspecified",
+        "ruleset_version": ruleset_version,   # freshness assertion stamped in
+        "validated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "summary": summary,
+        "findings": [vars(f) | {"severity": f.severity.name} for f in findings],
+    }
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        _print_human(report["vendor"], ruleset_version, summary, findings)
+
+    if args.out:
+        path = _write_result(args.out, report)
+        if not args.json:
+            print(f"\n[out] wrote {path}")
+
+    if args.html:
+        from .report.html import render_html
+        with open(args.html, "w", encoding="utf-8") as fh:
+            fh.write(render_html(report))
+        if not args.json:
+            print(f"[html] wrote {args.html}")
+
+    if args.share_anon:
+        if not args.consent:
+            print("\n[anon] refused: --share-anon requires explicit --consent", file=sys.stderr)
+        else:
+            payload = anonymized_payload(findings, config.vendor, ruleset_version,
+                                         args.org_salt or "unsalted")
+            print("\n[anon] payload eligible for export (NOT sent by skeleton):")
+            print(json.dumps(payload, indent=2))
+
+    return 1 if summary["verdict"] == "BLOCK" else 0
+
+
+def _write_result(out_dir: str, report: dict) -> str:
+    """Write one run as results/<sbc>/<timestamp>.json (history-preserving)."""
+    safe_sbc = report["sbc"].replace("/", "_").replace(" ", "_")
+    ts = report["validated_at"].replace(":", "").replace("-", "").replace("+0000", "Z")
+    d = os.path.join(out_dir, safe_sbc)
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, f"{ts}.json")
+    with open(path, "w") as fh:
+        json.dump(report, fh, indent=2)
+    return path
+
+
+def _print_human(vendor, version, summary, findings):
+    print(f"SBC Validator — vendor={vendor}  ruleset={version}")
+    print(f"Verdict: {summary['verdict']}   Risk score: {summary['risk_score']}/100")
+    print("-" * 60)
+    order = sorted(findings, key=lambda f: f.severity, reverse=True)
+    for f in order:
+        print(f"[{f.severity.name:8}] {f.check_id}  {f.title}")
+        if f.locator:
+            print(f"           where: {f.locator}")
+        print(f"           why  : {f.detail}")
+        print(f"           fix  : {f.remediation}")
+    if not findings:
+        print("No findings. (Verify the parser actually populated the model.)")
+
+
+def run_diff(args) -> int:
+    """HA drift: compare an Active node config against its Standby."""
+    from .validators.ha_drift import ha_diff
+    active = detect_and_parse(_read(args.active))
+    standby = detect_and_parse(_read(args.standby))
+    findings = ha_diff(active, standby)
+    summary = score(findings)
+
+    if args.json:
+        print(json.dumps({
+            "active": active.sbc_fqdn, "standby": standby.sbc_fqdn,
+            "summary": summary,
+            "findings": [vars(f) | {"severity": f.severity.name} for f in findings],
+        }, indent=2))
+    else:
+        print(f"HA Drift — active={active.sbc_fqdn}  standby={standby.sbc_fqdn}")
+        print(f"Verdict: {summary['verdict']}   Drift score: {summary['risk_score']}/100")
+        print("-" * 60)
+        for f in sorted(findings, key=lambda f: f.severity, reverse=True):
+            print(f"[{f.severity.name:8}] {f.check_id}  {f.title}")
+            print(f"           why  : {f.detail}")
+            print(f"           fix  : {f.remediation}")
+        if not findings:
+            print("No drift. Standby matches active on all failover-critical fields.")
+    return 1 if summary["verdict"] == "BLOCK" else 0
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(prog="sbc-validator")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    v = sub.add_parser("validate", help="validate a local SBC config export")
+    v.add_argument("config")
+    v.add_argument("--ruleset", required=True, help="path to a signed rule bundle")
+    v.add_argument("--json", action="store_true")
+    v.add_argument("--out", default=None,
+                   help="write this run to <out>/<sbc>/<timestamp>.json for the dashboard")
+    v.add_argument("--site", default=None, help="deployment site/region label for the dashboard")
+    v.add_argument("--html", default=None,
+                   help="write a self-contained customer-facing HTML report to this path")
+    v.add_argument("--share-anon", action="store_true",
+                   help="build anonymized telemetry payload (off by default)")
+    v.add_argument("--consent", action="store_true", help="explicit consent gate")
+    v.add_argument("--org-salt", default=None)
+    v.set_defaults(func=run)
+
+    d = sub.add_parser("diff", help="detect HA config drift between two node configs")
+    d.add_argument("active", help="active node config export")
+    d.add_argument("standby", help="standby node config export")
+    d.add_argument("--json", action="store_true")
+    d.set_defaults(func=run_diff)
+
+    args = p.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

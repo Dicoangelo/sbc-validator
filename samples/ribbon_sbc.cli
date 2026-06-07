@@ -1,0 +1,39 @@
+# Ribbon SBC Core — "show configuration" excerpt (flat set-path CLI)
+# Annotated export for sbc-validator (leaf cert exported alongside).
+# sbc-validator: leaf-cert samples/ribbon_sbc_leaf.pem
+#
+set system fqdn sbc-ribbon-01.contoso.com
+#
+# --- trusted root CAs (all 7 required roots present) ---
+set system security pki certificate DigiCertGlobalRootG2 type remote
+set system security pki certificate DigiCertGlobalRootG3 type remote
+set system security pki certificate DigiCertGlobalRootCA type remote
+set system security pki certificate MicrosoftRSARootCA2017 type remote
+set system security pki certificate MicrosoftECCRootCA2017 type remote
+set system security pki certificate BaltimoreCyberTrustRoot type remote
+set system security pki certificate MicrosoftRSARootCA2018 type remote
+#
+# --- TLS profile for the Teams leg (leaf is clientAuth-only -> C flags EKU) ---
+set profiles security tlsProfile TLS_TEAMS clientCertName sbc-ribbon-leaf
+set profiles security tlsProfile TLS_TEAMS authClient true
+set profiles security tlsProfile TLS_TEAMS v1_2 enable
+#
+# --- Teams zone ---
+set addressContext default zone TEAMS id 1
+set addressContext default zone TEAMS sipSigPort 1 ipInterfaceGroupName LIG_TEAMS portNumber 5061 transportProtocolsAllowed sip-tls tlsProfileName TLS_TEAMS
+set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS state enabled mode inService
+set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS signaling messageManipulation outputAdapterProfile NORMALIZE_TEAMS
+set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS signaling sipOptions enabled
+set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS media packetServiceProfile PSP_TEAMS codec PCMU
+set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS media packetServiceProfile PSP_TEAMS codec G722
+set addressContext default zone TEAMS sipTrunkGroup TG_TEAMS media dtmf rtp-nte
+#
+# --- Carrier zone ---
+set addressContext default zone CARRIER id 2
+set addressContext default zone CARRIER sipSigPort 2 portNumber 5060 transportProtocolsAllowed sip-udp
+set addressContext default zone CARRIER sipTrunkGroup TG_CARRIER state enabled mode inService
+set addressContext default zone CARRIER sipTrunkGroup TG_CARRIER media packetServiceProfile PSP_CAR codec PCMU
+set addressContext default zone CARRIER sipTrunkGroup TG_CARRIER media dtmf rtp-nte
+#
+# --- media / NAT ---
+set addressContext default media mediaAddress 80.0.0.20 symmetricRtp enabled

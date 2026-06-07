@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sbc-autoops-validator"
+version = "0.2.0"
+description = "Local-first, vendor-agnostic SBC pre-deployment validator (BCDE)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+authors = [
+    { name = "Dico Angelo" },
+    { name = "Philip Drammeh" },
+]
+dependencies = [
+    "cryptography>=42",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+sbc-validator = "sbc_validator.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sbc_validator*"]
+
+[tool.setuptools.package-data]
+sbc_validator = ["../rulesets/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

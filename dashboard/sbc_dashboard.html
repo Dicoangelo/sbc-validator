@@ -1,0 +1,510 @@
+<!--
+  SBC-AutoOps — Fleet Validation Dashboard
+  Single-file, dependency-light (Chart.js from CDN). Light enterprise theme
+  modeled on a NOC monitoring layout.
+
+  HOW TO FEED REAL DATA
+  ---------------------
+  Replace SAMPLE_FLEET below with the array your validator emits. Each entry is
+  one SBC's latest run, matching the CLI --json output shape:
+
+    {
+      sbc: "sbc01.contoso.com",
+      vendor: "audiocodes",
+      site: "EU-West",
+      ruleset_version: "2026-06-02",
+      summary: { risk_score: 100, verdict: "BLOCK",
+                 counts: { CRITICAL:2, HIGH:1, MEDIUM:4, LOW:1, INFO:1 } },
+      findings: [ { check_id:"C.CA.ROOT_MISSING", domain:"C", severity:"CRITICAL" }, ... ]
+    }
+
+  Then call renderAll(SAMPLE_FLEET, TREND). Verdict/risk are recomputed client
+  side with the same weights as report/risk.py, so tiles stay consistent.
+-->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SBC-AutoOps — Fleet Validation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  :root {
+    --ink:#1a1d23; --ink-soft:#525a66; --ink-faint:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --panel:#ffffff; --bg:#f4f6f8;
+    --rail:#1d2530; --rail-text:#aeb8c4; --rail-active:#fff;
+    --garnet:#9d1b54; --garnet-soft:#c14d80;
+    --crit:#c0392b; --high:#e07a1f; --med:#d4a017; --low:#5b85ad; --info:#9aa4b0;
+    --pass:#1f8a6d;
+    --domB:#5b85ad; --domC:#9d1b54; --domD:#e07a1f; --domE:#1f8a6d;
+    --shadow:0 1px 2px rgba(20,24,31,.04),0 2px 8px rgba(20,24,31,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:'IBM Plex Sans',sans-serif;color:var(--ink);background:var(--bg);
+    display:grid;grid-template-columns:212px 1fr;grid-template-rows:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+
+  /* ---------- left rail ---------- */
+  aside{background:var(--rail);color:var(--rail-text);overflow-y:auto;padding:0 0 24px}
+  .brand{display:flex;align-items:center;gap:9px;padding:18px 18px 16px;border-bottom:1px solid rgba(255,255,255,.07)}
+  .brand .dot{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--garnet),var(--garnet-soft));display:grid;place-items:center;color:#fff;font-family:'Archivo';font-weight:800;font-size:13px}
+  .brand b{font-family:'Archivo';font-weight:700;color:#fff;font-size:14px;letter-spacing:.2px}
+  .brand small{display:block;color:var(--rail-text);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:1px}
+  .navgroup{padding:14px 0 2px}
+  .navgroup h4{margin:0;padding:0 18px 6px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:#6c7785;font-weight:700}
+  .navgroup a{display:flex;align-items:center;gap:10px;padding:7px 18px;color:var(--rail-text);text-decoration:none;font-size:13px;border-left:2px solid transparent}
+  .navgroup a:hover{background:rgba(255,255,255,.04);color:#dfe6ee}
+  .navgroup a.active{background:rgba(157,27,84,.16);border-left-color:var(--garnet-soft);color:var(--rail-active);font-weight:600}
+  .navgroup a svg{width:15px;height:15px;opacity:.8;flex:none}
+
+  /* ---------- main ---------- */
+  main{overflow-y:auto;padding:0 22px 40px}
+  .topbar{display:flex;align-items:baseline;gap:12px;padding:18px 2px 12px}
+  .topbar h1{font-family:'Archivo';font-weight:700;font-size:22px;color:var(--garnet);margin:0;letter-spacing:.2px}
+  .crumb{color:var(--ink-faint);font-size:12.5px}
+  .crumb b{color:var(--ink-soft);font-weight:600}
+
+  .filters{display:flex;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow)}
+  .field{display:flex;flex-direction:column;gap:5px;min-width:180px}
+  .field label{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  select{appearance:none;font-family:inherit;font-size:13px;color:var(--ink);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b95a1' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid var(--line);border-radius:7px;padding:9px 30px 9px 11px;cursor:pointer}
+  select:focus{outline:none;border-color:var(--garnet-soft);box-shadow:0 0 0 3px rgba(157,27,84,.12)}
+  .grow{flex:1}
+  .ds-title{display:flex;align-items:center;gap:9px;margin:20px 2px 12px}
+  .ds-title svg{width:16px;height:16px;color:var(--garnet)}
+  .ds-title h2{font-family:'Archivo';font-weight:600;font-size:15px;margin:0;letter-spacing:.2px}
+  .ds-title .tools{margin-left:auto;display:flex;gap:3px}
+  .ds-title .tools i{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--ink-faint);cursor:default}
+  .ds-title .tools i:hover{background:var(--line-soft);color:var(--ink-soft)}
+
+  /* ---------- grid ---------- */
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .panel > header{display:flex;align-items:center;gap:8px;padding:12px 14px 10px}
+  .panel > header svg{width:14px;height:14px;color:var(--ink-faint);flex:none}
+  .panel > header h3{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:0;letter-spacing:.2px}
+  .panel .body{padding:4px 14px 14px;flex:1;min-height:0}
+  .panel .foot{border-top:1px solid var(--line-soft);padding:8px 14px;font-size:10.5px;color:var(--ink-faint);display:flex;gap:14px}
+  .panel .foot b{color:var(--ink-soft);font-weight:600}
+
+  .span3{grid-column:span 3}.span4{grid-column:span 4}.span5{grid-column:span 5}
+  .span6{grid-column:span 6}.span7{grid-column:span 7}.span8{grid-column:span 8}.span12{grid-column:span 12}
+  @media(max-width:1180px){.span3,.span4,.span5{grid-column:span 6}.span7,.span8{grid-column:span 12}}
+
+  /* stat tile */
+  .stat{background:var(--rail);color:#fff;border-radius:9px;padding:16px 16px 14px;margin:0 0 4px}
+  .stat .big{font-family:'Archivo';font-weight:800;font-size:40px;line-height:1;color:#fff}
+  .stat .big.warn{color:#ff8f6b}
+  .stat .lbl{font-size:12px;color:#aeb8c4;margin-top:8px}
+  .stat .sub{display:flex;gap:18px;margin-top:14px;border-top:1px solid rgba(255,255,255,.1);padding-top:11px}
+  .stat .sub div{font-size:11px;color:#aeb8c4}
+  .stat .sub b{display:block;font-family:'Archivo';font-size:18px;color:#fff;font-weight:700}
+  .stat .sub b.crit{color:#ff7a63}.stat .sub b.warn{color:#ffc24d}.stat .sub b.ok{color:#5fd1ad}
+
+  /* charts */
+  .chartwrap{position:relative;width:100%}
+  canvas{max-width:100%}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  thead th{text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:7px 10px;border-bottom:1px solid var(--line);background:#fafbfc;position:sticky;top:0}
+  thead th.num,td.num{text-align:right}
+  tbody td{padding:8px 10px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
+  tbody tr:hover{background:#fafbfc}
+  .vendor-pill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--line-soft);color:var(--ink-soft);font-weight:600}
+  .verdict{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:11.5px}
+  .verdict::before{content:"";width:8px;height:8px;border-radius:50%}
+  .verdict.BLOCK{color:var(--crit)}.verdict.BLOCK::before{background:var(--crit)}
+  .verdict.REVIEW{color:var(--high)}.verdict.REVIEW::before{background:var(--high)}
+  .verdict.PASS{color:var(--pass)}.verdict.PASS::before{background:var(--pass)}
+  .riskbar{display:inline-block;height:6px;border-radius:3px;background:var(--line);width:64px;vertical-align:middle;margin-right:7px;position:relative;overflow:hidden}
+  .riskbar span{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+
+  /* heatmap */
+  .heat{display:grid;grid-template-columns:54px repeat(5,1fr);gap:5px;align-items:center}
+  .heat .h-col{font-size:10.5px;font-weight:700;color:var(--ink-soft);text-align:center;letter-spacing:.04em}
+  .heat .h-row{font-size:10.5px;font-weight:700;color:var(--ink-soft)}
+  .heat .cell{height:38px;border-radius:6px;display:grid;place-items:center;font-family:'IBM Plex Mono';font-size:13px;font-weight:600;color:#fff}
+  .heat .legend{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10.5px;color:var(--ink-faint)}
+  .heat .legend .ramp{height:8px;flex:1;border-radius:4px;background:linear-gradient(90deg,#eef1f4,var(--garnet))}
+
+  .dot-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);margin-top:8px}
+  .dot-leg span{display:inline-flex;align-items:center;gap:6px}
+  .dot-leg i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+  .badge{display:inline-block;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--line-soft);color:var(--ink-soft);vertical-align:middle;margin-left:4px}
+  .badge.internal{background:#e7f3ee;color:var(--pass)}
+  .badge.anon{background:#fbeef0;color:var(--garnet)}
+  .loadbtn{display:inline-flex;align-items:center;gap:7px;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:9px 13px;cursor:pointer;color:var(--ink-soft);background:#fff;white-space:nowrap}
+  .loadbtn:hover{border-color:var(--garnet-soft);color:var(--garnet)}
+</style>
+
+<aside>
+  <div class="brand">
+    <div class="dot">S</div>
+    <div><b>SBC-AutoOps</b><small>Metaventions</small></div>
+  </div>
+  <nav>
+    <div class="navgroup">
+      <h4>Favorites</h4>
+      <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Fleet Overview</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports</a>
+    </div>
+    <div class="navgroup">
+      <h4>Home</h4>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboards</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M6 20v-4M18 20V8"/></svg>Custom Dashboards</a>
+    </div>
+    <div class="navgroup">
+      <h4>Operations</h4>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.6a2 2 0 0 1 3.4 0l7 12a2 2 0 0 1-1.7 3H5a2 2 0 0 1-1.7-3z"/><path d="M12 9v4M12 17h.01"/></svg>Incidents &amp; Policies</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z"/></svg>Validators (BCDE)</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="20" height="6" rx="1"/></svg>SBC Devices</a>
+    </div>
+    <div class="navgroup">
+      <h4>System</h4>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1l-.4-2.5H9.6L9.2 5a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5.1 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.5h4.8l.4-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6a7 7 0 0 0 .1-1z"/></svg>Settings</a>
+    </div>
+  </nav>
+</aside>
+
+<main>
+  <div class="topbar">
+    <h1>Dashboards</h1>
+    <span class="crumb">Home / <b>Fleet Validation</b></span>
+  </div>
+
+  <div class="filters">
+    <div class="field"><label>Account</label>
+      <select id="f-account"><option>Network Voice Estate</option><option>Lab / Staging</option></select>
+    </div>
+    <div class="field"><label>Dashboard</label>
+      <select id="f-dash"><option>SBC Pre-Deploy Validation</option><option>Microsoft DR Readiness</option></select>
+    </div>
+    <div class="field"><label>Vendor</label>
+      <select id="f-vendor"><option value="">All vendors</option></select>
+    </div>
+    <div class="field"><label>Verdict</label>
+      <select id="f-verdict"><option value="">All verdicts</option><option>BLOCK</option><option>REVIEW</option><option>PASS</option></select>
+    </div>
+    <div class="field grow"><label>Time range</label>
+      <select id="f-range"><option>Last 14 days</option><option>Last 7 days</option><option>Last 24 hours</option></select>
+    </div>
+    <div class="field"><label>Data source <span id="mode-badge" class="badge">sample</span></label>
+      <label for="f-file" class="loadbtn">⤓ Load dashboard_data.json</label>
+      <input id="f-file" type="file" accept="application/json,.json" hidden />
+    </div>
+  </div>
+
+  <div class="ds-title">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9v7l4 2v-9z"/></svg>
+    <h2>SBC Pre-Deploy Validation</h2>
+    <div class="tools">
+      <i title="Share">🔗</i><i title="Export">⤓</i><i title="Refresh">⟳</i><i title="Add panel">⊕</i>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- col 1: stat + domain bar -->
+    <section class="panel span3">
+      <div class="body" style="padding-bottom:0">
+        <div class="stat">
+          <div class="big warn" id="stat-block">—</div>
+          <div class="lbl">SBCs blocked from deploy</div>
+          <div class="sub">
+            <div><b id="stat-total">—</b>fleet</div>
+            <div><b class="warn" id="stat-review">—</b>review</div>
+            <div><b class="ok" id="stat-pass">—</b>pass</div>
+          </div>
+        </div>
+      </div>
+      <header style="padding-top:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg><h3>Open Findings by Domain</h3></header>
+      <div class="body"><div class="chartwrap" style="height:182px"><canvas id="c-domain"></canvas></div></div>
+      <div class="foot"><span><b>BCDE</b> validation domains</span></div>
+    </section>
+
+    <!-- col 2: findings trend -->
+    <section class="panel span5">
+      <header><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-4 4"/></svg><h3>Open Findings Trend by Severity</h3></header>
+      <div class="body"><div class="chartwrap" style="height:248px"><canvas id="c-trend"></canvas></div></div>
+      <div class="foot"><span>Trend: <b>day</b></span><span>Group: <b>Severity</b></span></div>
+    </section>
+
+    <!-- col 3: risk by vendor -->
+    <section class="panel span4">
+      <header><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-6"/></svg><h3>Avg Risk Score by Vendor</h3></header>
+      <div class="body"><div class="chartwrap" style="height:248px"><canvas id="c-vendor"></canvas></div></div>
+      <div class="foot"><span>Trend: <b>day</b></span><span>Group: <b>Vendor</b></span></div>
+    </section>
+
+    <!-- row 2 col 1: fleet table -->
+    <section class="panel span5">
+      <header><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg><h3>SBC Fleet — Latest Validation</h3></header>
+      <div class="body" style="padding:0;overflow:auto;max-height:300px">
+        <table id="fleet"><thead><tr>
+          <th>SBC</th><th>Vendor</th><th>Site</th><th class="num">Risk</th><th>Verdict</th><th>Top finding</th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="foot"><span><b id="fleet-count">—</b> SBCs shown</span><span>Ruleset <b id="rs-ver">—</b></span></div>
+    </section>
+
+    <!-- row 2 col 2: verdict donut -->
+    <section class="panel span3">
+      <header><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9h-9z"/></svg><h3>Deploy Verdict Mix</h3></header>
+      <div class="body"><div class="chartwrap" style="height:200px"><canvas id="c-verdict"></canvas></div>
+        <div class="dot-leg">
+          <span><i style="background:var(--crit)"></i>Block</span>
+          <span><i style="background:var(--high)"></i>Review</span>
+          <span><i style="background:var(--pass)"></i>Pass</span>
+        </div>
+      </div>
+      <div class="foot"><span>Group: <b>Verdict</b></span></div>
+    </section>
+
+    <!-- row 2 col 3: heatmap -->
+    <section class="panel span4">
+      <header><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><h3>Findings — Severity × Domain</h3></header>
+      <div class="body"><div class="heat" id="heat"></div></div>
+      <div class="foot"><span>Darker = more findings</span></div>
+    </section>
+  </div>
+</main>
+
+<script>
+/* ---------------- sample fleet (replace with validator JSON) ---------------- */
+const SEV = ["CRITICAL","HIGH","MEDIUM","LOW","INFO"];
+const SEV_COLOR = {CRITICAL:"#c0392b",HIGH:"#e07a1f",MEDIUM:"#d4a017",LOW:"#5b85ad",INFO:"#9aa4b0"};
+const SEV_WEIGHT = {CRITICAL:40,HIGH:15,MEDIUM:6,LOW:2,INFO:0};
+const DOM_COLOR = {A:"#7a8794",B:"#5b85ad",C:"#9d1b54",D:"#e07a1f",E:"#1f8a6d"};
+const DOM_NAME = {A:"Baseline (A)",B:"Interop (B)",C:"TLS / CA (C)",D:"NAT (D)",E:"Codec (E)"};
+
+// representative top findings per domain
+const TOPF = {
+  A:["A.SEM.MISSING_FQDN","A.SYN.FQDN_FORMAT","A.SEM.DANGLING_TLS"],
+  C:["C.CA.ROOT_MISSING","C.CERT.EXPIRY","C.TLS.MTLS_DISABLED","C.CERT.EKU_DUALUSE"],
+  D:["D.NAT.PRIVATE_ADVERTISED","D.NAT.NO_SYMMETRIC_RTP"],
+  B:["B.SIP.TRANSPORT","B.SIP.OPTIONS_KEEPALIVE","B.SIP.NO_NORMALIZATION"],
+  E:["E.CODEC.NO_CROSS_OVERLAP","E.DTMF.INCONSISTENT"]
+};
+const VENDORS=["audiocodes","cisco_cube","ribbon","oracle_acme"];
+const SITES=["EU-West","US-East","US-West","APAC","DR-Site"];
+
+// deterministic pseudo-random
+let _s=42; const rnd=()=>{_s=(_s*1103515245+12345)&0x7fffffff;return _s/0x7fffffff;};
+const pick=a=>a[Math.floor(rnd()*a.length)];
+
+function recompute(counts){
+  let raw=0; for(const s of SEV) raw+=SEV_WEIGHT[s]*(counts[s]||0);
+  const risk=Math.min(100,raw);
+  const verdict = counts.CRITICAL>0 ? "BLOCK" : counts.HIGH>0 ? "REVIEW" : "PASS";
+  return {risk_score:risk, verdict, counts};
+}
+
+function makeFleet(n){
+  const out=[];
+  for(let i=0;i<n;i++){
+    const vendor=pick(VENDORS), site=pick(SITES);
+    // skew: some clean, some broken
+    const tier=rnd();
+    const counts={CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0,INFO:Math.round(rnd())};
+    if(tier>0.62){counts.CRITICAL=1+Math.floor(rnd()*2);counts.HIGH=Math.floor(rnd()*2);counts.MEDIUM=1+Math.floor(rnd()*4);counts.LOW=Math.floor(rnd()*2);}
+    else if(tier>0.32){counts.HIGH=1+Math.floor(rnd()*2);counts.MEDIUM=Math.floor(rnd()*3);counts.LOW=Math.floor(rnd()*2);}
+    else {counts.MEDIUM=Math.floor(rnd()*2);counts.LOW=Math.floor(rnd()*2);}
+    // build findings list w/ domains
+    const findings=[];
+    const addDom=(dom,sev)=>findings.push({check_id:pick(TOPF[dom]),domain:dom,severity:sev});
+    const domsForSev=()=>pick(["A","B","C","C","D","D","E"]); // C/D weighted (wedge)
+    for(const s of SEV) for(let k=0;k<(counts[s]||0);k++) addDom(domsForSev(),s);
+    const sum=recompute(counts);
+    const top = findings.slice().sort((a,b)=>SEV.indexOf(a.severity)-SEV.indexOf(b.severity))[0];
+    out.push({
+      sbc:`sbc${String(i+1).padStart(2,"0")}.${pick(["contoso","fabrikam","northwind"])}.com`,
+      vendor, site, ruleset_version:"2026-06-02", summary:sum, findings,
+      top: top?top.check_id:"—"
+    });
+  }
+  return out;
+}
+const SAMPLE_FLEET = makeFleet(16);
+
+// 14-day open-findings trend by severity (gentle downward as fixes land)
+function makeTrend(){
+  const days=14, labels=[], series={CRITICAL:[],HIGH:[],MEDIUM:[],LOW:[]};
+  const base={CRITICAL:22,HIGH:34,MEDIUM:61,LOW:40};
+  for(let d=0;d<days;d++){
+    const dt=new Date(); dt.setDate(dt.getDate()-(days-1-d));
+    labels.push(dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}));
+    for(const s of Object.keys(series)){
+      const drift=1-(d/days)*0.4; // 40% reduction over window
+      series[s].push(Math.max(0,Math.round(base[s]*drift + (rnd()-0.5)*6)));
+    }
+  }
+  return {labels,series};
+}
+const TREND = makeTrend();
+
+/* ---------------- rendering ---------------- */
+let charts={};
+function destroyCharts(){Object.values(charts).forEach(c=>c&&c.destroy());charts={};}
+
+function applyFilters(fleet){
+  const v=document.getElementById("f-vendor").value;
+  const vd=document.getElementById("f-verdict").value;
+  return fleet.filter(s=>(!v||s.vendor===v)&&(!vd||s.summary.verdict===vd));
+}
+
+function renderAll(fleet, trend){
+  destroyCharts();
+  const f = applyFilters(fleet);
+
+  // tiles
+  const by=v=>f.filter(s=>s.summary.verdict===v).length;
+  document.getElementById("stat-block").textContent=by("BLOCK");
+  document.getElementById("stat-total").textContent=f.length;
+  document.getElementById("stat-review").textContent=by("REVIEW");
+  document.getElementById("stat-pass").textContent=by("PASS");
+  document.getElementById("rs-ver").textContent=(f[0]&&f[0].ruleset_version)||"—";
+
+  // domain bar
+  const domCount={A:0,B:0,C:0,D:0,E:0};
+  f.forEach(s=>s.findings.forEach(x=>{if(x.severity!=="INFO")domCount[x.domain]++;}));
+  charts.domain=new Chart(document.getElementById("c-domain"),{
+    type:"bar",
+    data:{labels:Object.keys(domCount).map(d=>DOM_NAME[d]),
+      datasets:[{data:Object.values(domCount),backgroundColor:Object.keys(domCount).map(d=>DOM_COLOR[d]),borderRadius:4,barThickness:18}]},
+    options:{indexAxis:"y",plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:"#eef1f4"},ticks:{font:{family:"IBM Plex Mono",size:10}}},
+              y:{grid:{display:false},ticks:{font:{family:"IBM Plex Sans",size:11}}}},
+      maintainAspectRatio:false}
+  });
+
+  // trend line
+  charts.trend=new Chart(document.getElementById("c-trend"),{
+    type:"line",
+    data:{labels:trend.labels,
+      datasets:Object.keys(trend.series).map(s=>({
+        label:s,data:trend.series[s],borderColor:SEV_COLOR[s],backgroundColor:SEV_COLOR[s],
+        tension:.32,borderWidth:2,pointRadius:0,pointHoverRadius:4}))},
+    options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,font:{size:10.5},usePointStyle:true,pointStyle:"rectRounded"}}},
+      interaction:{mode:"index",intersect:false},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"IBM Plex Mono",size:9.5},maxRotation:0,autoSkip:true,maxTicksLimit:8}},
+              y:{grid:{color:"#eef1f4"},ticks:{font:{family:"IBM Plex Mono",size:10}},title:{display:true,text:"open findings",font:{size:10},color:"#8b95a1"}}},
+      maintainAspectRatio:false}
+  });
+
+  // avg risk by vendor
+  const presentVendors=[...new Set(f.map(s=>s.vendor))];
+  const vAgg={}; presentVendors.forEach(v=>vAgg[v]={sum:0,n:0});
+  f.forEach(s=>{vAgg[s.vendor].sum+=s.summary.risk_score;vAgg[s.vendor].n++;});
+  const vLabels=presentVendors.filter(v=>vAgg[v].n>0);
+  charts.vendor=new Chart(document.getElementById("c-vendor"),{
+    type:"bar",
+    data:{labels:vLabels.map(v=>v.replace("_"," ")),
+      datasets:[{data:vLabels.map(v=>Math.round(vAgg[v].sum/vAgg[v].n)),
+        backgroundColor:vLabels.map(v=>{const r=vAgg[v].sum/vAgg[v].n;return r>=70?"#c0392b":r>=35?"#e07a1f":"#1f8a6d";}),
+        borderRadius:4,barThickness:30}]},
+    options:{plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"IBM Plex Sans",size:11}}},
+              y:{max:100,grid:{color:"#eef1f4"},ticks:{font:{family:"IBM Plex Mono",size:10}},title:{display:true,text:"risk score",font:{size:10},color:"#8b95a1"}}},
+      maintainAspectRatio:false}
+  });
+
+  // verdict donut
+  charts.verdict=new Chart(document.getElementById("c-verdict"),{
+    type:"doughnut",
+    data:{labels:["BLOCK","REVIEW","PASS"],
+      datasets:[{data:[by("BLOCK"),by("REVIEW"),by("PASS")],
+        backgroundColor:["#c0392b","#e07a1f","#1f8a6d"],borderWidth:2,borderColor:"#fff"}]},
+    options:{cutout:"62%",plugins:{legend:{display:false}},maintainAspectRatio:false}
+  });
+
+  // heatmap
+  const grid={}; SEV.filter(s=>s!=="INFO").forEach(s=>{grid[s]={A:0,B:0,C:0,D:0,E:0};});
+  f.forEach(s=>s.findings.forEach(x=>{if(grid[x.severity]&&grid[x.severity][x.domain]!==undefined)grid[x.severity][x.domain]++;}));
+  let max=1; Object.values(grid).forEach(r=>Object.values(r).forEach(v=>max=Math.max(max,v)));
+  const heat=document.getElementById("heat");
+  heat.innerHTML="";
+  heat.insertAdjacentHTML("beforeend",`<div></div>`+["A","B","C","D","E"].map(d=>`<div class="h-col">${d}</div>`).join(""));
+  SEV.filter(s=>s!=="INFO").forEach(s=>{
+    heat.insertAdjacentHTML("beforeend",`<div class="h-row">${s.slice(0,4)}</div>`);
+    ["A","B","C","D","E"].forEach(d=>{
+      const v=grid[s][d], t=v/max;
+      const bg=`color-mix(in srgb, #9d1b54 ${Math.round(t*100)}%, #eef1f4)`;
+      const col = t>0.45?"#fff":"#52606e";
+      heat.insertAdjacentHTML("beforeend",`<div class="cell" style="background:${bg};color:${col}" title="${s} · ${DOM_NAME[d]}: ${v}">${v||""}</div>`);
+    });
+  });
+
+  // fleet table
+  const tb=document.querySelector("#fleet tbody"); tb.innerHTML="";
+  f.slice().sort((a,b)=>b.summary.risk_score-a.summary.risk_score).forEach(s=>{
+    const r=s.summary.risk_score;
+    const col=r>=70?"#c0392b":r>=35?"#e07a1f":"#1f8a6d";
+    tb.insertAdjacentHTML("beforeend",`<tr>
+      <td class="mono">${s.sbc}</td>
+      <td><span class="vendor-pill">${s.vendor.replace("_"," ")}</span></td>
+      <td>${s.site}</td>
+      <td class="num"><span class="riskbar"><span style="width:${r}%;background:${col}"></span></span><b class="mono">${r}</b></td>
+      <td><span class="verdict ${s.summary.verdict}">${s.summary.verdict}</span></td>
+      <td class="mono" style="color:var(--ink-soft)">${s.top}</td>
+    </tr>`);
+  });
+  document.getElementById("fleet-count").textContent=f.length;
+}
+
+/* ---------------- data source ---------------- */
+let CURRENT = { fleet: SAMPLE_FLEET, trend: TREND, mode: "sample" };
+
+function setMode(mode){
+  const b=document.getElementById("mode-badge");
+  b.textContent = mode;
+  b.className = "badge" + (mode==="internal"?" internal":mode==="anon"?" anon":"");
+}
+
+function loadPayload(p){
+  // Accepts the combined {fleet, trend, mode} from build_dashboard_data.py,
+  // or a bare array of per-SBC reports (falls back to sample trend).
+  if(Array.isArray(p)) p = { fleet:p, trend:TREND, mode:"internal" };
+  if(!p.fleet || !p.fleet.length){ alert("No SBCs in that file."); return; }
+  // ensure each finding has a domain (older outputs may omit it)
+  p.fleet.forEach(s=>(s.findings||[]).forEach(f=>{ if(!f.domain && f.check_id) f.domain=f.check_id.split(".")[0]; }));
+  CURRENT = { fleet:p.fleet, trend:(p.trend&&p.trend.labels&&p.trend.labels.length)?p.trend:TREND, mode:p.mode||"internal" };
+  setMode(CURRENT.mode);
+  rebuildVendorFilter(CURRENT.fleet);
+  renderAll(CURRENT.fleet, CURRENT.trend);
+}
+
+function rebuildVendorFilter(fleet){
+  const vf=document.getElementById("f-vendor");
+  const cur=vf.value;
+  const vendors=[...new Set(fleet.map(s=>s.vendor))].sort();
+  vf.innerHTML='<option value="">All vendors</option>';
+  vendors.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v.replace("_"," ");vf.appendChild(o);});
+  if([...vf.options].some(o=>o.value===cur)) vf.value=cur;
+}
+
+document.getElementById("f-file").addEventListener("change",e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ loadPayload(JSON.parse(r.result)); }catch(err){ alert("Couldn't parse JSON: "+err.message); } };
+  r.readAsText(file);
+});
+
+["f-vendor","f-verdict","f-range","f-account","f-dash"].forEach(id=>
+  document.getElementById(id).addEventListener("change",()=>renderAll(CURRENT.fleet,CURRENT.trend)));
+
+// initial: try a sibling dashboard_data.json (works when served over http),
+// otherwise fall back to the built-in sample.
+rebuildVendorFilter(SAMPLE_FLEET);
+setMode("sample");
+renderAll(SAMPLE_FLEET, TREND);
+fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadPayload(p); }).catch(()=>{});
+
+</script>

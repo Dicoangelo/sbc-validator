@@ -1,0 +1,34 @@
+{
+  "ruleset_id": "ms_direct_routing",
+  "bundle_version": "2026-06-02",
+  "issued_at": "2026-06-02T00:00:00Z",
+  "source": "Microsoft Direct Routing Whats New + Azure CA details (operator-curated)",
+  "C": {
+    "required_root_ca_ids": [
+      "DigiCertGlobalRootG2",
+      "DigiCertGlobalRootG3",
+      "DigiCertGlobalRootCA",
+      "MicrosoftRSARootCA2017",
+      "MicrosoftECCRootCA2017",
+      "BaltimoreCyberTrustRoot",
+      "MicrosoftRSARootCA2018"
+    ],
+    "cert_expiry_warn_days": 30
+  },
+  "B": {
+    "teams_required_transport": "tls"
+  },
+  "D": {
+    "require_symmetric_rtp": true
+  },
+  "E": {
+    "teams_supported_codecs": [
+      "PCMU",
+      "PCMA",
+      "G722",
+      "SILK"
+    ],
+    "preferred_dtmf": "rfc2833"
+  },
+  "signature": "pAlGlc3rtynRn0xp3ASFjTZXKu7PCJ3AOuAyn9cH4vLfIX7y5CU9jZpx9kIrwg2znIHaRCE+poAKP4Vj3zEsBg=="
+}

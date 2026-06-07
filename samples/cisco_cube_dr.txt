@@ -1,0 +1,90 @@
+! Cisco CUBE (IOS-XE) running-config export — Microsoft Teams Direct Routing
+! Annotated export for sbc-validator (leaf cert exported alongside).
+! sbc-validator: leaf-cert samples/cube_sbc_leaf.pem
+!
+hostname CUBE-SBC-01
+!
+ip domain name contoso.com
+!
+crypto pki trustpoint TP-SBC-IDENTITY
+ enrollment terminal
+ subject-name cn=cube-sbc-01.contoso.com
+ revocation-check none
+ rsakeypair CUBE-KEY 2048
+!
+crypto pki trustpoint DigiCertGlobalRootG2
+ enrollment terminal
+ revocation-check crl
+!
+crypto pki trustpoint DigiCertGlobalRootG3
+ enrollment terminal
+!
+crypto pki trustpoint DigiCertGlobalRootCA
+ enrollment terminal
+!
+crypto pki trustpoint MicrosoftRSARootCA2017
+ enrollment terminal
+!
+crypto pki trustpoint MicrosoftECCRootCA2017
+ enrollment terminal
+!
+crypto pki trustpoint BaltimoreCyberTrustRoot
+ enrollment terminal
+!
+! NOTE: MicrosoftRSARootCA2018 trustpoint NOT installed -> 6 of 7 required roots.
+! Microsoft rotates onto this root from April 2026; handshake will hard-stop.
+!
+crypto signaling default trustpoint TP-SBC-IDENTITY
+!
+voice service voip
+ ip address trusted list
+  ipv4 52.112.0.0 255.252.0.0
+ media-address 80.0.0.10
+ mode border-element
+ sip
+  options-keepalive up-interval 60
+  asserted-id pai
+!
+voice class codec 1
+ codec preference 1 g722-64
+ codec preference 2 g711ulaw
+!
+voice class codec 2
+ codec preference 1 g711ulaw
+ codec preference 2 g729r8
+!
+voice class sip-profiles 100
+ request ANY sip-header Diversion modify "carrier.example" "contoso.com"
+!
+voice class tenant 100
+ description TEAMS
+ sip-server dns:sip.pstnhub.microsoft.com
+ session transport tcp tls
+ srtp-crypto 1
+ options-keepalive
+ sip-profiles 100
+ voice-class codec 1
+ dtmf-relay rtp-nte
+ bind control source-interface GigabitEthernet0/0/0
+ bind media source-interface GigabitEthernet0/0/0
+!
+voice class tenant 200
+ description CARRIER
+ sip-server ipv4:198.51.100.5
+ session transport udp
+ voice-class codec 2
+ dtmf-relay rtp-nte
+!
+dial-peer voice 100 voip
+ description Outbound to Teams
+ session protocol sipv2
+ voice-class sip tenant 100
+ voice-class codec 1
+!
+dial-peer voice 200 voip
+ description Inbound from Carrier
+ session protocol sipv2
+ voice-class sip tenant 200
+ voice-class codec 2
+!
+end

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Generated runtime artifacts (produced by demo.sh / the CLI)
+results/
+reports/
+dashboard_data.json
+
+# OS
+.DS_Store
