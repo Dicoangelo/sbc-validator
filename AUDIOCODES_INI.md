@@ -49,6 +49,15 @@ by following that IPGroup's references.
 - `SBCMediaSecurityBehaviour` (per IP Profile): 0=as-is, 1=SRTP/secured, 2=RTP,
   3=both. SRTP is negotiated for 1 or 3. The mapper sets `srtp_enabled = (global
   EnableMediaSecurity) and behaviour in {1,3,...}`.
+- **Verified against the AudioCodes Teams DR config note** (Enterprise model): the
+  GUI labels this "SBC Media Security Mode" with values **Secured** (Teams leg)
+  and **Not Secured** (SIP-trunk leg), so the mapper accepts the named values too.
+  The Teams coder group is `AudioCodersGroups_Teams` (AMR-WB, SILK-NB/WB, G.711
+  A/U-law, G.729), bound to the IP Profile via the **Extension Coders Group**
+  (`SBCExtensionCodersGroupName`). Note: published config notes are GUI walkthroughs
+  with screenshots, not raw `.ini` dumps; a verbatim raw `.ini` comes from the SBC
+  Configuration Wizard export or a customer config. `samples/audiocodes_teams_real.ini`
+  mirrors the config note's parameter names and values.
 
 ## The correctness insight: certs and roots are NOT in the .ini
 

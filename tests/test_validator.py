@@ -306,7 +306,8 @@ def test_real_audiocodes_ini_parses_and_resolves_teams_leg():
     assert teams.transport == "tls"
     assert teams.srtp_enabled is True             # EnableMediaSecurity=1 + behaviour 1
     assert teams.options_keepalive is True
-    assert "G722" in teams.offered_codecs and "PCMU" in teams.offered_codecs
+    # AudioCodersGroups_Teams from the config note: PCMU/PCMA/G729/SILK (AMR-WB ignored)
+    assert {"PCMU", "SILK"} <= set(teams.offered_codecs)
 
 
 def test_real_audiocodes_ini_no_false_critical(ruleset):

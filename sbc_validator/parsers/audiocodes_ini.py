@@ -191,8 +191,12 @@ def map_to_config(text: str) -> NormalizedConfig:
         beh = str(_get(r, "SBCMediaSecurityBehaviour", "SBCMediaSecurityBehavior",
                        default="0")).strip().lower()
         ipp_srtp[str(name)] = enable_ms and beh in _SRTP_BEHAVIOURS
-        ipp_coders_ref[str(name)] = _get(r, "SBCAllowedAudioCodersGroupName",
-                                         "AllowedAudioCodersGroupName", "CodersGroupName")
+        # AudioCodes Teams DR uses the IP Profile "Extension Coders Group"
+        # (SBCExtensionCodersGroupName); older/other configs use the allowed group.
+        ipp_coders_ref[str(name)] = _get(
+            r, "SBCExtensionCodersGroupName", "ExtensionCodersGroupName",
+            "SBCAllowedAudioCodersGroupName", "AllowedAudioCodersGroupName",
+            "CodersGroupName")
 
     # --- coders groups: group name -> [normalized codec] ---
     coders_by_group = {}
