@@ -12,6 +12,21 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
 
 ## 1. Domain learnings (SBC / Direct Routing / the 2026 wedge)
 
+> Canonical domain model lives in **[[DOMAIN_REFERENCE.md]]** (distilled from
+> *SBCs For Dummies, 7th Ribbon ed.* + the MS DR docs). It maps every standard
+> SBC function to our coverage and ranks the gaps. Read it before adding a domain.
+
+- **(2026-06-07) Our framing matches the canonical SBC reference, which is
+  reassuring and useful with Philip.** B2BUA topology hiding, SIP normalization,
+  transcoding, NAT traversal, CAC, SIPRec, TLS+SRTP, three-dimensional scaling
+  (signaling / media / transcoding scale independently). The biggest gap the
+  reference exposes: **topology hiding** is a core SBC job and we only check
+  private *media* IPs (domain D), not private addresses/headers leaked on the
+  *signaling* plane. That is the recommended next security build (a new domain F),
+  because it reads as "obviously an SBC concern" to a 20-year vet. Second:
+  **SRTP media-encryption** validation (we carry the suite in the ruleset but
+  don't yet check the media leg actually encrypts). See DOMAIN_REFERENCE.md §gaps.
+
 - **(2026-06-07) Rule authority is the deepest risk, and our placeholder was
   wrong in the worst way.** When we sourced the real Microsoft list, the
   placeholder ruleset had listed BaltimoreCyberTrustRoot (the *retired* root) and
