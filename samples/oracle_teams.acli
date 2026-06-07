@@ -3,7 +3,7 @@
 # (certs are imported separately on Oracle SBCs; domain C verifies out-of-band)
 
 system-config
-        hostname                       sbc01.contoso.com
+        hostname                       oracle-sbc-01.contoso.com
 
 realm-config
         identifier                     Teams
