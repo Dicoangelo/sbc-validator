@@ -410,6 +410,39 @@ def test_tampered_ruleset_rejected(tmp_path):
         RuleClient(cache_dir=tmp_path).fetch("x", local_path=str(p))
 
 
+def test_remote_fetch_verifies_and_caches(tmp_path):
+    """Remote transport: a signed bundle from the API is verified, then cached."""
+    raw = RULESET.read_bytes()
+    client = RuleClient(api_base="https://rules.example", cache_dir=tmp_path,
+                        fetcher=lambda url: raw)
+    bundle = client.fetch("ms_direct_routing")
+    assert bundle["bundle_version"] == "2026-06-07"
+    assert (tmp_path / "ms_direct_routing.json").exists()    # cached for offline reuse
+
+
+def test_remote_fetch_rejects_tampered(tmp_path):
+    bundle = json.loads(RULESET.read_text())
+    bundle["C"]["cert_expiry_warn_days"] = 9999              # tamper after signing
+    tampered = json.dumps(bundle).encode()
+    client = RuleClient(api_base="https://rules.example", cache_dir=tmp_path,
+                        fetcher=lambda url: tampered)
+    with pytest.raises(RuleVerificationError):
+        client.fetch("ms_direct_routing")
+
+
+def test_remote_fetch_falls_back_to_cache_on_network_error(tmp_path):
+    # seed the cache with a verified bundle
+    RuleClient(cache_dir=tmp_path).fetch("ms_direct_routing", local_path=str(RULESET))
+
+    def boom(url):
+        raise OSError("network down")
+
+    client = RuleClient(api_base="https://rules.example", cache_dir=tmp_path, fetcher=boom)
+    bundle = client.fetch("ms_direct_routing")               # network fails -> cache
+    assert bundle["bundle_version"] == "2026-06-07"
+    assert any("cache" in w for w in bundle.get("_warnings", []))
+
+
 def test_resign_roundtrip(tmp_path):
     bundle = json.loads(RULESET.read_text())
     bundle.pop("signature")

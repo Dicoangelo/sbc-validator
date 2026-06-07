@@ -137,8 +137,6 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 
 - **All four vendor parsers (AudioCodes, Cisco CUBE, Ribbon, Oracle/Acme) are
   implemented.** Deeper per-vendor construct coverage is ongoing.
-- Remote rule-fetch transport (resolution + cache + verify is in place; the HTTP
-  call is the TODO).
 - (Done) CI wired (`.github/workflows/ci.yml`), customer CI gate example in
   `examples/ci/`, and a local-first Docker image (air-gapped smoke in CI).
 - Everything in Phase 3/4 (agentic reasoning, live probing, SaaS).
@@ -189,6 +187,11 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 - **Ed25519 bundle signing** with a pinned publisher public key; tampered
   bundles are rejected before use. Sign/re-sign via
   `python -m sbc_validator.tools.sign_ruleset <bundle> <key.pem>`.
+- **Remote signed-rule transport**: `RuleClient` can pull a bundle from a central
+  rule API over a stdlib HTTPS GET, verifying the signature BEFORE caching/using
+  it and falling back to the last verified cache on network failure (never falling
+  back on a tampered bundle). `python -m sbc_validator.tools.fetch_ruleset <api>
+  <ruleset_id>` pulls + verifies into the local cache, so `validate` stays offline.
 - **Customer-facing HTML report** (`--html <path>`): self-contained, no JS/network,
   severity chips + verdict banner + per-finding why/fix. Internal artifact only.
 - **Turnkey demo** (`./demo.sh`): validates the 3-vendor fleet, writes an HTML
@@ -196,7 +199,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 57 tests) covering all three parsers (incl. the real
+- **Test suite** (`pytest`, 60 tests) covering all three parsers (incl. the real
   AudioCodes table-`.ini`), the five validators, SRTP, HA drift, call-flow
   simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,

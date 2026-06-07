@@ -73,13 +73,23 @@ def sign_bundle(bundle: dict, private_key: Ed25519PrivateKey) -> dict:
 
 
 class RuleClient:
-    def __init__(self, api_base: Optional[str] = None, cache_dir: Path = DEFAULT_CACHE_DIR):
+    def __init__(self, api_base: Optional[str] = None, cache_dir: Path = DEFAULT_CACHE_DIR,
+                 fetcher=None, timeout: float = 10.0):
         self.api_base = api_base
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        # fetcher(url) -> bytes. Injectable so the transport is testable offline.
+        self._fetch_bytes = fetcher or self._http_get
+        self.timeout = timeout
 
     def _cache_path(self, ruleset_id: str) -> Path:
         return self.cache_dir / f"{ruleset_id}.json"
+
+    def _http_get(self, url: str) -> bytes:
+        """Default transport: a plain stdlib HTTPS GET (no third-party deps)."""
+        import urllib.request
+        with urllib.request.urlopen(url, timeout=self.timeout) as resp:  # noqa: S310
+            return resp.read()
 
     def fetch(self, ruleset_id: str, local_path: Optional[str] = None) -> dict:
         """
@@ -87,8 +97,12 @@ class RuleClient:
 
         Resolution order:
           1. explicit local_path (offline / air-gapped operation)
-          2. remote API (not implemented in skeleton — wire your transport here)
-          3. last cached verified bundle
+          2. remote API (self.api_base) over the injectable transport
+          3. last cached verified bundle (with a freshness warning)
+
+        Rule bundles are the ONLY inbound channel and are treated as
+        untrusted-until-verified: whatever the source, the Ed25519 signature is
+        checked against the pinned key BEFORE the bundle is cached or used.
         """
         if local_path:
             bundle = json.loads(Path(local_path).read_text())
@@ -96,9 +110,19 @@ class RuleClient:
             self._cache_path(ruleset_id).write_text(json.dumps(bundle))
             return bundle
 
-        # --- remote fetch would go here ---
-        # resp = http_get(f"{self.api_base}/rulesets/{ruleset_id}/latest")
-        # bundle = resp.json(); _verify(bundle); cache; return bundle
+        if self.api_base:
+            url = f"{self.api_base.rstrip('/')}/rulesets/{ruleset_id}/latest"
+            try:
+                raw = self._fetch_bytes(url)
+                bundle = json.loads(raw)
+                _verify(bundle)                 # verify BEFORE trusting/caching
+            except RuleVerificationError:
+                raise                           # tampered: never fall back silently
+            except Exception:
+                bundle = None                   # network/parse failure -> try cache
+            if bundle is not None:
+                self._cache_path(ruleset_id).write_text(json.dumps(bundle))
+                return bundle
 
         cached = self._cache_path(ruleset_id)
         if cached.exists():
