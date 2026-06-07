@@ -28,7 +28,8 @@ SIP interworking, media handling, and policy/routing.
 | **Call admission control (CAC)** | Cap concurrent sessions; protect against overload and toll/TDoS abuse | ○ |
 | **DDoS / TDoS protection** | Survive floods and rogue endpoints while admitting legitimate calls | — (runtime; monitor-mode roadmap) |
 | **Access lists** | allow / block / grey lists of endpoints | ○ |
-| **Routing & policy** | Least-cost routing, dial plans, emergency/911, LNP, caller-name, screening | — (business policy, not our wedge) |
+| **Routing & classification** | Classify inbound traffic to an IP Group; route both directions Teams<->trunk | ✅ (domain G, when the source carries routing info) |
+| **Routing & policy (advanced)** | Least-cost routing, dial plans, emergency/911, LNP, caller-name, screening | — (business policy, not our wedge) |
 | **HA / resiliency** | No single point of failure; N:1 / N:M / active-active; session + media continuity on failover | ◐ (HA drift `diff` compares two nodes) |
 | **SIPRec recording** | Fork signaling+media to a recorder without consuming switch ports | — |
 | **Dual-stack / IPv4-IPv6 interworking** | Bridge IPv4 and IPv6 segments | — |

@@ -237,6 +237,9 @@ def map_to_config(text: str) -> NormalizedConfig:
         return None
 
     # --- IPGroup rows are the legs ---
+    ig_role: dict[str, str] = {}          # IP Group name -> role (for routing map)
+    teams_group = None
+    teams_classify_by_proxy = False
     for ig in tables.get("IPGroup", []):
         name = _get(ig, "Name", "GroupName", default=ig.get("Index"))
         psname = str(_get(ig, "ProxySetName", "ProxySet", default=""))
@@ -246,6 +249,11 @@ def map_to_config(text: str) -> NormalizedConfig:
         fqdns = ps_fqdns.get(psname, [])
         is_teams = any("pstnhub.microsoft.com" in (f or "").lower() for f in fqdns)
         role = "teams" if is_teams else "carrier"
+        ig_role[str(name)] = role
+        if is_teams:
+            teams_group = str(name)
+            cbp = str(_get(ig, "ClassifyByProxySet", default="")).strip().lower()
+            teams_classify_by_proxy = cbp in ("1", "enable", "true")
 
         transport = ps_transport.get(psname) or si_transport.get(siname)
         tls_ctx_name = ps_tls.get(psname) or si_tls.get(siname)
@@ -270,6 +278,25 @@ def map_to_config(text: str) -> NormalizedConfig:
             offered_codecs=coders_by_group.get(ipp_coders_ref.get(ippname) or "", []),
             srtp_enabled=ipp_srtp.get(ippname, False),
         ))
+
+    # --- routing + classification (only when the source carries them) ---
+    if teams_group is not None:
+        # classified if the Teams IP Group classifies by proxy set, OR a
+        # Classification rule names the Teams group as source.
+        classif_rule = any(
+            str(_get(r, "SrcIPGroupName", "SourceIPGroupName", default="")) == teams_group
+            for r in tables.get("Classification", []))
+        cfg.teams_classified = bool(teams_classify_by_proxy or classif_rule)
+
+    for r in tables.get("IP2IPRouting", []):
+        src = str(_get(r, "SrcIPGroupName", "SourceIPGroupName", default=""))
+        dst = str(_get(r, "DestIPGroupName", "DestinationIPGroupName", default=""))
+        dtype = str(_get(r, "DestType", "DestinationType", default="")).strip().lower()
+        # only map IP-Group destinations (named dest groups); skip address/URI dests
+        if dst and dtype in ("", "0", "ipgroup", "ip group", "dest ip group"):
+            s_role, d_role = ig_role.get(src), ig_role.get(dst)
+            if s_role and d_role:
+                cfg.routes.append((s_role, d_role))
 
     # --- media realms: the advertised public address is the MediaRealm IP if it's
     # globally routable, otherwise the NAT TargetIPAddress (real configs put the

@@ -113,7 +113,8 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 
 - **A/B/C/D/E** validators all live and (B/C/D/E) ruleset-driven:
   A = syntax/semantic baseline, B = interop, C = TLS/CA wedge (incl. an **SRTP**
-  media-encryption check), D = NAT, E = codec.
+  media-encryption check), D = NAT, E = codec, G = routing/classification (fires
+  only when the config source carries routing info).
 - **Three real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
   (IOS-XE running-config), and Ribbon SBC Core (`set`-config).** The same
   validators run unmodified across all three — the vendor-agnostic claim,

@@ -23,11 +23,12 @@ from .validators.ca_compliance import CaComplianceValidator
 from .validators.nat_traversal import NatTraversalValidator
 from .validators.interop import InteropValidator
 from .validators.codec import CodecValidator
+from .validators.routing import RoutingValidator
 from .report.risk import score
 from .report.anonymize import anonymized_payload
 
 VALIDATORS = [SyntaxSemanticValidator, InteropValidator, CaComplianceValidator,
-              NatTraversalValidator, CodecValidator]
+              NatTraversalValidator, CodecValidator, RoutingValidator]
 
 
 def _read(path: str) -> str:

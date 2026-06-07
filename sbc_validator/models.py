@@ -75,6 +75,12 @@ class NormalizedConfig:
     sbc_fqdn: Optional[str] = None
     sip_interfaces: list[SipInterface] = field(default_factory=list)
     media_realms: list[MediaRealm] = field(default_factory=list)
+    # SBC routing rules as (src_role, dst_role) pairs (e.g. ("teams","carrier")).
+    # Empty => the source didn't carry routing info (don't assess routing).
+    routes: list[tuple] = field(default_factory=list)
+    # Whether incoming Teams traffic is classified to an IP Group. None = unknown
+    # (source carried no classification info); validators stay silent on None.
+    teams_classified: Optional[bool] = None
     # Free-form, vendor-specific leftovers kept for explainability in findings.
     raw_meta: dict = field(default_factory=dict)
 

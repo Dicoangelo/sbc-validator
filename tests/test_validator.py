@@ -337,6 +337,33 @@ def test_real_ini_nat_public_media_ip(ruleset):
     assert "D.NAT.PRIVATE_ADVERTISED" not in found and "D.NAT.NO_PUBLIC_IP" not in found
 
 
+def test_real_ini_routing_and_classification_resolved(ruleset):
+    from sbc_validator.validators.routing import RoutingValidator
+    cfg = detect_and_parse(REAL_AC.read_text())
+    assert cfg.teams_classified is True
+    assert ("teams", "carrier") in cfg.routes and ("carrier", "teams") in cfg.routes
+    res = RoutingValidator(ruleset).validate(cfg)
+    assert res.findings == []                          # fully routable + classified
+
+
+def test_routing_silent_without_routing_info(ruleset):
+    """Simplified/other-vendor configs carry no routing info -> validator stays silent."""
+    from sbc_validator.validators.routing import RoutingValidator
+    cfg = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    assert cfg.routes == [] and cfg.teams_classified is None
+    assert RoutingValidator(ruleset).validate(cfg).findings == []
+
+
+def test_routing_flags_missing_route_and_unclassified(ruleset):
+    from sbc_validator.validators.routing import RoutingValidator
+    cfg = detect_and_parse(REAL_AC.read_text())
+    cfg.routes = [("teams", "carrier")]                # drop inbound route
+    cfg.teams_classified = False
+    found = {f.check_id for f in RoutingValidator(ruleset).validate(cfg).findings}
+    assert "G.ROUTE.NO_TO_TEAMS" in found
+    assert "G.CLASS.UNCLASSIFIED" in found
+
+
 def test_table_ini_reader_parses_format_and_data():
     from sbc_validator.parsers.audiocodes_ini import parse_table_ini
     g, tables = parse_table_ini(REAL_AC.read_text())

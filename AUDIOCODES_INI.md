@@ -91,8 +91,14 @@ Now mapped (grounded in the manual's real parameter names):
   normalization, so domain B no longer false-flags `B.SIP.NO_NORMALIZATION` on a
   real config that does header manipulation.
 
-Not yet mapped (roadmap, needs a full real exported config): Classification /
-IP2IPRouting (routing correctness), the richer IPProfile coder-negotiation fields,
-and SRD / multi-tenant topology. `samples/audiocodes_teams_real.ini` is a realistic
+- **Classification + IP2IPRouting -> routing correctness (domain G).** The Teams
+  IP Group's `ClassifyByProxySet` (or a `Classification` rule) sets
+  `teams_classified`; the `IP2IPRouting` rows (`SrcIPGroupName` -> `DestIPGroupName`)
+  map to `(src_role, dst_role)` routes. Domain G flags an unclassified Teams leg
+  and a missing direction (Teams->trunk or trunk->Teams), but only when the source
+  carries routing info, so it never false-fires on a format that lacks it.
+
+Not yet mapped (roadmap, needs a full real exported config): the richer IPProfile
+coder-negotiation fields, and SRD / multi-tenant topology. `samples/audiocodes_teams_real.ini` is a realistic
 abridged example mirroring the config note; a full Wizard-exported or customer
 `.ini` is the next fidelity test (see sourcing notes in project memory).
