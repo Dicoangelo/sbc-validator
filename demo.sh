@@ -48,6 +48,10 @@ for x in sorted(d["fleet"], key=lambda r: r["summary"]["risk_score"], reverse=Tr
 PYEOF
 
 echo
+echo "== fleet readiness report (are the SBCs ready for the 2026 CA migration?) =="
+"$PY" -m sbc_validator.cli fleet samples --ruleset "$RULESET" 2>/dev/null | sed -n '1,12p' || true
+
+echo
 echo "== HA drift check (active vs standby) =="
 "$PY" -m sbc_validator.cli diff samples/clean_pass.ini samples/audiocodes_standby.ini || true
 

@@ -198,6 +198,29 @@ def run_explain(args) -> int:
     return 0
 
 
+def run_fleet(args) -> int:
+    """Validate a directory of configs and roll up a fleet readiness report."""
+    import glob
+    from .fleet import run_fleet as _run_fleet, render_markdown
+    bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
+    paths = sorted(p for p in glob.glob(os.path.join(args.directory, "*"))
+                   if os.path.isfile(p))
+    result = _run_fleet(paths, bundle)
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        md = render_markdown(result)
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as fh:
+                fh.write(md)
+            print(f"[fleet] wrote {args.out}  ({result['total']} SBCs, "
+                  f"{result['ca_2026_not_ready']} not 2026-ready)")
+        else:
+            print(md)
+    # gate: non-zero if any SBC isn't ready for the 2026 migration
+    return 1 if result["ca_2026_not_ready"] else 0
+
+
 def run_diff(args) -> int:
     """HA drift: compare an Active node config against its Standby."""
     from .validators.ha_drift import ha_diff
@@ -263,6 +286,14 @@ def main(argv=None) -> int:
     ex.add_argument("capture", help="path to a classic .pcap capture")
     ex.add_argument("--json", action="store_true")
     ex.set_defaults(func=run_explain)
+
+    fl = sub.add_parser("fleet",
+                        help="validate a directory of configs -> fleet readiness report")
+    fl.add_argument("directory", help="directory of SBC config exports")
+    fl.add_argument("--ruleset", required=True, help="path to a signed rule bundle")
+    fl.add_argument("--out", default=None, help="write the Markdown report to this path")
+    fl.add_argument("--json", action="store_true")
+    fl.set_defaults(func=run_fleet)
 
     args = p.parse_args(argv)
     return args.func(args)

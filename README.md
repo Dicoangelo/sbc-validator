@@ -164,6 +164,10 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   walks to the self-signed root, and flags a self-signed leaf, a broken chain, or
   a chain anchored to a root that is NOT one of the required Microsoft/DigiCert
   roots (`C.CERT.SELF_SIGNED` / `CHAIN_INVALID` / `UNTRUSTED_ANCHOR` / anchored OK).
+- **Fleet readiness report** (`fleet <dir>`): validates a directory of configs and
+  rolls them up into one executive answer - "X of N SBCs ready for the 2026 CA
+  migration" - as Markdown (or JSON), with per-SBC verdicts and the most common
+  findings. Exits non-zero if any SBC isn't 2026-ready (gateable).
 - **HA drift detection** (`diff <active> <standby>`): compares the failover-critical
   fields between two node configs and rates trust-store drift CRITICAL.
 - **Predicted call-flow simulation** (`simulate <config>`): models a real call as
@@ -192,7 +196,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 55 tests) covering all three parsers (incl. the real
+- **Test suite** (`pytest`, 57 tests) covering all three parsers (incl. the real
   AudioCodes table-`.ini`), the five validators, SRTP, HA drift, call-flow
   simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,

@@ -651,6 +651,28 @@ def test_gate_fail_on_review():
     assert _validate_rc("clean_pass.ini", "--fail-on", "review") == 0
 
 
+# ---- fleet readiness report ------------------------------------------------
+
+def test_fleet_rollup_and_markdown(ruleset):
+    import glob, os
+    from sbc_validator.fleet import run_fleet, render_markdown
+    paths = sorted(p for p in glob.glob(str(REPO / "samples" / "*")) if os.path.isfile(p))
+    result = run_fleet(paths, ruleset)
+    assert result["total"] >= 6
+    assert result["ca_2026_not_ready"] >= 1            # some configs carry CA/cert blockers
+    assert result["ca_2026_ready"] + result["ca_2026_not_ready"] == result["total"]
+    assert sum(result["verdicts"].values()) == result["total"]
+    md = render_markdown(result)
+    assert "SBC Fleet Readiness Report" in md
+    assert "2026 Microsoft CA migration readiness" in md
+
+
+def test_fleet_cli_gates_on_not_ready():
+    # samples/ contains configs that aren't 2026-ready -> fleet exits non-zero
+    rc = _cli_main(["fleet", str(REPO / "samples"), "--ruleset", _R, "--json"])
+    assert rc == 1
+
+
 # ---- HTML report -----------------------------------------------------------
 
 def test_html_report_renders_and_escapes():
