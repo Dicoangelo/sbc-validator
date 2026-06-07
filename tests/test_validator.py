@@ -723,3 +723,63 @@ def test_html_report_renders_and_escapes():
     assert "BLOCK" in out and "sbc01.contoso.com" in out
     assert "C.CA.ROOT_MISSING" in out
     assert "<missing>" not in out and "&lt;missing&gt;" in out  # escaped, no injection
+
+
+# ---- hardening: trust-boundary + input safety (first-principles sweep) ------
+
+def test_rollback_signed_but_stale_rejected(tmp_path):
+    """A validly-signed but OLDER bundle must be refused (freshness != authenticity).
+
+    This is the deepest gap: the pre-2026-06-07 CA list is still a valid
+    signature, so without a version floor the tool would happily screen against
+    a retired-root list. Seed the cache with the current bundle, then offer a
+    correctly re-signed older one and expect a hard refusal.
+    """
+    key = load_private_key(str(REPO / "dev" / "dev_signing_key.pem"))
+    client = RuleClient(cache_dir=tmp_path)
+    client.fetch("ms_direct_routing", local_path=str(RULESET))      # caches 2026-06-07
+
+    older = {k: v for k, v in json.loads(RULESET.read_text()).items() if k != "signature"}
+    older["bundle_version"] = "2026-06-06"
+    older = sign_bundle(older, key)                                 # genuinely valid signature
+    p = tmp_path / "older.json"
+    p.write_text(json.dumps(older))
+
+    _verify_ok = RuleClient(cache_dir=tmp_path / "empty")
+    assert _verify_ok.fetch("ms_direct_routing", local_path=str(p))  # valid against a clean floor
+    with pytest.raises(RuleVerificationError):
+        client.fetch("ms_direct_routing", local_path=str(p))        # but rolled back vs. cache
+
+
+def test_env_min_version_floor(tmp_path, monkeypatch):
+    monkeypatch.setenv("SBC_RULE_MIN_VERSION", "2027-01-01")
+    with pytest.raises(RuleVerificationError):
+        RuleClient(cache_dir=tmp_path).fetch("ms_direct_routing", local_path=str(RULESET))
+
+
+def test_non_https_transport_refused():
+    with pytest.raises(RuleVerificationError):
+        RuleClient(api_base="http://rules.example")._http_get("http://rules.example/x")
+    with pytest.raises(RuleVerificationError):
+        RuleClient()._http_get("file:///etc/passwd")
+
+
+def test_unsafe_ruleset_id_rejected(tmp_path):
+    with pytest.raises(RuleVerificationError):
+        RuleClient(cache_dir=tmp_path)._cache_path("../escape")
+
+
+def test_pcap_rejects_oversized(monkeypatch):
+    from sbc_validator import pcap
+    monkeypatch.setattr(pcap, "_MAX_PCAP_BYTES", 10)
+    with pytest.raises(ValueError):
+        pcap.read_packets(str(REPO / "samples" / "clean_call.pcap"))
+
+
+def test_cli_malformed_config_clean_exit(tmp_path):
+    from sbc_validator.cli import main
+    bad = tmp_path / "bad.ini"
+    bad.write_text("@@@ not any known vendor format @@@")
+    with pytest.raises(SystemExit) as ei:
+        main(["validate", str(bad), "--ruleset", str(RULESET)])
+    assert ei.value.code == 2

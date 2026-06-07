@@ -260,3 +260,26 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
   the HTTP call is the TODO); CI/CD integration (the exit-code gate already works).
 - **Master pitch dossier** still reads single-vendor; refresh on the next Desktop
   pass (focused one/two-pager + slides are current as of V6).
+
+---
+
+## 7. Hardening sweep (first-principles, trust-boundary + untrusted input)
+
+A "harden everything / close loose gaps" pass framed by the only two failure
+modes that can kill this product: **a customer acting on a wrong verdict**, and
+**the tool crashing in front of a domain expert**. Five real gaps closed (tests
+60 -> 66). `report/html.py` was audited and found genuinely injection-safe
+(all dynamic text through `html.escape(quote=True)`, all style/attr values from
+fixed dicts) — left untouched.
+
+| Gap | First-principles violation | Fix |
+|---|---|---|
+| **Rule rollback / no freshness floor** (critical) | A signature proves *authenticity, not freshness*. `bundle_version` was read but never compared, so a validly-signed *stale* bundle (the pre-2026-06-07 retired-Baltimore / no-G5 list) would be accepted and re-cached. | `_reject_rollback()` floors every fetched bundle at `max(SBC_RULE_MIN_VERSION, cached version)`; ISO-date `bundle_version` compares chronologically. Refuses signed-but-stale. |
+| **Rule transport accepts any scheme** | The rule channel is *the* inbound trust boundary; `urlopen` would take `http/file/ftp`. | Default transport refuses non-HTTPS unless `SBC_RULE_ALLOW_INSECURE=1` (explicit air-gap mirror opt-in). Sig + rollback still run regardless. |
+| **Unbounded reads of untrusted input** | PCAP/bundle read fully into memory with no cap (`open().read()`, no `with`). | `pcap.read_packets` size-caps at `SBC_MAX_PCAP_BYTES` (512 MiB default) + context manager; rule fetch caps at 8 MiB. |
+| **CLI error boundary too narrow** | `run()` caught only `ValueError/NotImplementedError`; `simulate/explain/diff` caught nothing — a `struct.error`/`KeyError` on a real export = full traceback. | One `_parse()` guard converts *any* parser fault to a one-line `parse error` + exit 2; `explain` wraps the pcap read the same way. |
+| **`ruleset_id` -> cache filename** | `../` would traverse out of the cache dir. | `_RULESET_ID_RE` charset gate in `_cache_path`. |
+
+Principle reinforced: **a signature is not a freshness proof.** For a tool whose
+entire value is "you are checking against the *current* CA set", version-flooring
+the signed channel is as load-bearing as the signature itself.

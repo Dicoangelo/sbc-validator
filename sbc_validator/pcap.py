@@ -10,8 +10,13 @@ parse is skipped rather than crashing. Checksums are ignored.
 from __future__ import annotations
 
 import ipaddress
+import os
 import struct
 from dataclasses import dataclass
+
+# A capture is untrusted input read fully into memory. Cap it so a hostile or
+# accidental multi-GB file can't exhaust memory. Generous default; overridable.
+_MAX_PCAP_BYTES = int(os.environ.get("SBC_MAX_PCAP_BYTES", 512 * 1024 * 1024))
 
 # link-layer header types (libpcap)
 LINKTYPE_NULL = 0
@@ -78,7 +83,14 @@ def _parse_link(linktype: int, data: bytes) -> bytes | None:
 
 
 def read_packets(path: str) -> list[Packet]:
-    raw = open(path, "rb").read()
+    size = os.path.getsize(path)
+    if size > _MAX_PCAP_BYTES:
+        raise ValueError(
+            f"capture is {size} bytes, over the {_MAX_PCAP_BYTES}-byte limit "
+            "(set SBC_MAX_PCAP_BYTES to raise it)"
+        )
+    with open(path, "rb") as fh:
+        raw = fh.read()
     if len(raw) < 24:
         raise ValueError("not a pcap file (too short)")
     magic = raw[:4]

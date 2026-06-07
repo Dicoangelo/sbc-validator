@@ -33,20 +33,35 @@ VALIDATORS = [SyntaxSemanticValidator, InteropValidator, CaComplianceValidator,
 
 def _read(path: str) -> str:
     try:
-        return open(path, encoding="utf-8", errors="replace").read()
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read()
     except FileNotFoundError:
         print(f"error: config file not found: {path}", file=sys.stderr)
         raise SystemExit(2)
 
 
-def run(args) -> int:
-    text = _read(args.config)
+def _parse(path: str):
+    """Read + parse a config, converting ANY parser failure into a clean exit.
 
+    A real customer export can be malformed in ways no parser fully anticipates
+    (truncated tables, odd encodings, vendor quirks). The product's credibility
+    rests on never spilling a Python traceback — degrade to a one-line diagnosis
+    and exit 2 instead.
+    """
+    text = _read(path)               # already exits 2 on missing file
     try:
-        config = detect_and_parse(text)
+        return detect_and_parse(text)
     except (ValueError, NotImplementedError) as e:
         print(f"parse error: {e}", file=sys.stderr)
-        return 2
+        raise SystemExit(2)
+    except Exception as e:           # defensive: unknown parser fault, no traceback
+        print(f"parse error: could not parse {path} ({type(e).__name__}: {e})",
+              file=sys.stderr)
+        raise SystemExit(2)
+
+
+def run(args) -> int:
+    config = _parse(args.config)
 
     bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
     ruleset_version = bundle.get("bundle_version", "unknown")
@@ -139,7 +154,7 @@ def _print_human(vendor, version, summary, findings):
 def run_simulate(args) -> int:
     """Predict how far a real call would get, from static config alone."""
     from .call_sim import simulate_call
-    config = detect_and_parse(_read(args.config))
+    config = _parse(args.config)
     bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
     findings = []
     for vcls in VALIDATORS:
@@ -174,7 +189,15 @@ def run_simulate(args) -> int:
 def run_explain(args) -> int:
     """Post-mortem: reconstruct the SIP ladder from a pcap and explain failures."""
     from .sip_trace import analyze
-    result = analyze(args.capture)
+    try:
+        result = analyze(args.capture)
+    except FileNotFoundError:
+        print(f"error: capture file not found: {args.capture}", file=sys.stderr)
+        return 2
+    except Exception as e:           # malformed pcap must not spill a traceback
+        print(f"error: could not read capture {args.capture} "
+              f"({type(e).__name__}: {e})", file=sys.stderr)
+        return 2
     if args.json:
         print(json.dumps(result, indent=2))
         return 0
@@ -224,8 +247,8 @@ def run_fleet(args) -> int:
 def run_diff(args) -> int:
     """HA drift: compare an Active node config against its Standby."""
     from .validators.ha_drift import ha_diff
-    active = detect_and_parse(_read(args.active))
-    standby = detect_and_parse(_read(args.standby))
+    active = _parse(args.active)
+    standby = _parse(args.standby)
     findings = ha_diff(active, standby)
     summary = score(findings)
 
