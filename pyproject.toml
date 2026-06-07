@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sbc-autoops-validator"
-version = "0.10.0"
+version = "0.11.0"
 description = "Local-first, vendor-agnostic SBC validator (real AudioCodes/Cisco/Ribbon parsers, A-E, SRTP, HA drift, call-flow simulation, pcap explainer)"
 readme = "README.md"
 requires-python = ">=3.10"

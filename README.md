@@ -53,6 +53,21 @@ it validates changed configs on every PR (and runs an HA-drift check), failing
 the build on a bad config. Raw configs never leave the runner; only the exit code
 gates the PR.
 
+### Run as a local-first container
+
+The validation engine ships as a container that runs inside the customer
+environment. `validate` needs no network (the signed rule bundle is baked in), so
+it runs fully air-gapped, which is the proof that raw configs never leave:
+
+```bash
+docker build -t sbc-validator .
+docker run --rm --network none -v "$PWD/configs:/work" sbc-validator \
+    validate /work/teams.ini --ruleset rulesets/ms_direct_routing_2026-06.json
+```
+
+`--network none` is the point: the container has no path to exfiltrate anything.
+The image runs as a non-root user; CI builds it and runs the air-gapped smoke.
+
 Add `--json` for machine output. Opt-in anonymized telemetry (off by default,
 double-gated):
 
@@ -124,8 +139,8 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   implemented.** Deeper per-vendor construct coverage is ongoing.
 - Remote rule-fetch transport (resolution + cache + verify is in place; the HTTP
   call is the TODO).
-- Docker image (CI is wired: `.github/workflows/ci.yml`; a CI gate example for
-  customers is in `examples/ci/`).
+- (Done) CI wired (`.github/workflows/ci.yml`), customer CI gate example in
+  `examples/ci/`, and a local-first Docker image (air-gapped smoke in CI).
 - Everything in Phase 3/4 (agentic reasoning, live probing, SaaS).
 
 ## Now implemented
