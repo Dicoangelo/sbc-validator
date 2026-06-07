@@ -104,6 +104,23 @@ class CaComplianceValidator(AbstractValidator):
         # same root inconsistently ("DigiCert Global Root G2" vs "DigiCertGlobalRootG2"),
         # so we compare on a normalized form and also accept a SHA-1 thumbprint match.
         present_norm = {_norm(p) for p in ctx.trusted_root_ids}
+        if not present_norm:
+            # No trust info in this source. On a real AudioCodes .ini the root CAs
+            # are imported certificate files, not config text, so we cannot enumerate
+            # them. Say so (don't false-claim every root is missing).
+            res.add(Finding(
+                check_id="C.CA.TRUST_STORE_UNAVAILABLE",
+                title="Trust store not present in this config source",
+                severity=Severity.LOW,
+                detail="The Teams TLS context lists no root CAs. On exports where the "
+                       "trust store is imported separately (e.g. AudioCodes .ini), this "
+                       "is expected; the 7 required 2026 root CAs must be verified "
+                       "out-of-band.",
+                remediation="Confirm the Teams TLS trust store contains all 7 required "
+                            "root CAs (see RULE_AUTHORITY.md), or supply trusted-root ids.",
+                locator=f"TlsContext '{ctx.name}'",
+            ))
+            required_roots = []      # skip the per-root missing check below
         missing = []
         for r in required_roots:
             name = r.get("name") if isinstance(r, dict) else r
@@ -157,6 +174,23 @@ class CaComplianceValidator(AbstractValidator):
                     remediation="pip install cryptography",
                 ))
         if cert is None:
+            if not ctx.introspectable:
+                # The source references a cert that's imported separately (e.g. an
+                # AudioCodes .ini TLSContext). We can't inspect it here; don't claim
+                # it's missing. Supplying the PEM (annotated leaf-cert) enables the
+                # deep EKU/SAN/expiry/chain checks.
+                res.add(Finding(
+                    check_id="C.CERT.UNAVAILABLE",
+                    title="SBC certificate not present in this config source",
+                    severity=Severity.LOW,
+                    detail="The Teams TLS context references a certificate that is "
+                           "imported separately and isn't in this export, so EKU, SAN, "
+                           "expiry, and chain cannot be inspected here.",
+                    remediation="Supply the leaf PEM (annotated leaf-cert) or verify the "
+                                "serverAuth EKU, SAN=FQDN, and expiry out-of-band.",
+                    locator=f"TlsContext '{ctx.name}'",
+                ))
+                return res
             res.add(Finding(
                 check_id="C.CERT.MISSING",
                 title="No SBC certificate bound to Teams TLS context",

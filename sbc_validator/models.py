@@ -38,6 +38,10 @@ class TlsContext:
     # Identifiers of root CAs present in this context's trust store.
     # We carry identifiers (CN / fingerprint), never raw key material.
     trusted_root_ids: list[str] = field(default_factory=list)
+    # False when the source (e.g. an AudioCodes .ini) references certs/roots that
+    # are imported separately and are NOT present in this export. Lets validators
+    # say "verify out-of-band" instead of false-claiming a missing cert/trust store.
+    introspectable: bool = True
 
 
 @dataclass

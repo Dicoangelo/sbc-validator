@@ -114,11 +114,17 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 - **A/B/C/D/E** validators all live and (B/C/D/E) ruleset-driven:
   A = syntax/semantic baseline, B = interop, C = TLS/CA wedge (incl. an **SRTP**
   media-encryption check), D = NAT, E = codec.
-- **Three real vendor parsers on one normalized model: AudioCodes (`.ini`),
-  Cisco CUBE (IOS-XE running-config), and Ribbon SBC Core (`set`-config).** The
-  same validators run unmodified across all three — the vendor-agnostic claim,
+- **Three real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
+  (IOS-XE running-config), and Ribbon SBC Core (`set`-config).** The same
+  validators run unmodified across all three — the vendor-agnostic claim,
   demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
   clientAuth-only leaf (the EKU deprecation).
+- **AudioCodes parses the real parameter-table `.ini`** a Mediant actually exports
+  (indexed `[ Table ]` / `FORMAT` / `[ \Table ]` tables with cross-references;
+  Teams leg resolved via ProxySet -> pstnhub). See [AUDIOCODES_INI.md](AUDIOCODES_INI.md).
+  Because a real `.ini` carries no cert/trust-store, C reports LOW "verify
+  out-of-band" instead of false-claiming CRITICAL — it distinguishes *absent* from
+  *not-present-in-this-source*.
 - **HA drift detection** (`diff <active> <standby>`): compares the failover-critical
   fields between two node configs and rates trust-store drift CRITICAL.
 - **Predicted call-flow simulation** (`simulate <config>`): models a real call as
@@ -147,9 +153,11 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 39 tests) covering all three parsers, the five validators,
-  SRTP, HA drift, call-flow simulation, the pcap explainer (incl. topology leak),
-  signing verify/tamper, cert inspection, risk scoring, and HTML rendering.
+- **Test suite** (`pytest`, 42 tests) covering all three parsers (incl. the real
+  AudioCodes table-`.ini`), the five validators, SRTP, HA drift, call-flow
+  simulation, the pcap explainer (incl. topology leak), the real-config
+  no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,
+  and HTML rendering.
 
 ## Note on demo certificates
 

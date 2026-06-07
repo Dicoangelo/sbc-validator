@@ -291,6 +291,44 @@ def test_cube_and_ribbon_parse_srtp():
     assert ribbon.teams_interface().srtp_enabled is True
 
 
+# ---- real AudioCodes parameter-table .ini ----------------------------------
+
+REAL_AC = REPO / "samples" / "audiocodes_teams_real.ini"
+
+
+def test_real_audiocodes_ini_parses_and_resolves_teams_leg():
+    cfg = detect_and_parse(REAL_AC.read_text())
+    assert cfg.vendor == "audiocodes"
+    assert cfg.raw_meta.get("parser") == "audiocodes/table-ini"
+    assert cfg.sbc_fqdn == "sbc01.contoso.com"
+    teams = cfg.teams_interface()                 # resolved via ProxySet -> pstnhub
+    assert teams is not None
+    assert teams.transport == "tls"
+    assert teams.srtp_enabled is True             # EnableMediaSecurity=1 + behaviour 1
+    assert teams.options_keepalive is True
+    assert "G722" in teams.offered_codecs and "PCMU" in teams.offered_codecs
+
+
+def test_real_audiocodes_ini_no_false_critical(ruleset):
+    """A real .ini has no trust store / cert in it; C must NOT scream CRITICAL."""
+    cfg = detect_and_parse(REAL_AC.read_text())
+    res = CaComplianceValidator(ruleset).validate(cfg)
+    found = ids(res.findings)
+    assert "C.CA.TRUST_STORE_UNAVAILABLE" in found     # honest "verify out-of-band"
+    assert "C.CA.ROOT_MISSING" not in found            # no false "all roots missing"
+    assert "C.CERT.MISSING" not in found               # cert supplied via annotated PEM
+
+
+def test_table_ini_reader_parses_format_and_data():
+    from sbc_validator.parsers.audiocodes_ini import parse_table_ini
+    g, tables = parse_table_ini(REAL_AC.read_text())
+    assert g["EnableMediaSecurity"] == "1"
+    assert len(tables["ProxyIP"]) == 3
+    assert tables["IPGroup"][0]["Name"] == "Teams"
+    # naming-tolerant: pstnhub FQDN captured verbatim
+    assert any("pstnhub.microsoft.com" in r["IPAddress"] for r in tables["ProxyIP"])
+
+
 # ---- ruleset signing -------------------------------------------------------
 
 def test_signed_ruleset_verifies(ruleset):

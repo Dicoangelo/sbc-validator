@@ -18,6 +18,7 @@ from ..models import (
     EKU, Certificate, MediaRealm, NormalizedConfig, SipInterface, TlsContext,
 )
 from .base import AbstractParser
+from .audiocodes_ini import is_table_ini, map_to_config  # real .ini table format
 from .cisco_cube import CiscoCubeParser  # real second-vendor parser (re-exported)
 from .ribbon import RibbonParser         # real third-vendor parser (re-exported)
 
@@ -38,10 +39,19 @@ class AudioCodesParser(AbstractParser):
 
     @classmethod
     def sniff(cls, text: str) -> bool:
-        head = text[:2000].lower()
-        return "[audiocodes]" in head or "vendor = audiocodes" in head
+        head = text[:4000]
+        low = head.lower()
+        if "[audiocodes]" in low or "vendor = audiocodes" in low:
+            return True
+        # real AudioCodes .ini: parameter tables + AudioCodes-specific globals
+        return is_table_ini(text) or "SBCMediaSecurityBehaviour" in head \
+            or "EnableMediaSecurity" in head
 
     def parse(self, text: str) -> NormalizedConfig:
+        # Real AudioCodes export = parameter-table .ini; dispatch to that mapper.
+        if is_table_ini(text):
+            return map_to_config(text)
+
         cp = configparser.ConfigParser()
         cp.read_string(text)
 

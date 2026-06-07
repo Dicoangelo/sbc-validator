@@ -150,6 +150,25 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
 
 ## 3. Per-vendor parser learnings
 
+- **(2026-06-07) The real AudioCodes .ini is parameter tables, and it does NOT
+  contain the certs or trust store.** Studied the Mediant ver-7.6 manual (1736pp,
+  mined with pdftotext + grep, not read linearly). Real config is scalar params +
+  indexed `[ Table ]` / `FORMAT Index = ...;` / `Table 0 = ...;` / `[ \Table ]`
+  tables that cross-reference (IPGroup -> ProxySet + IPProfile + SIPInterface; the
+  Teams leg is the IPGroup whose ProxySet's ProxyIP rows contain pstnhub). Built a
+  real table-ini parser + DR mapper for it (`audiocodes_ini.py`), see
+  [[AUDIOCODES_INI.md]]. **The correctness landmine:** the leaf cert and root CAs
+  are imported certificate FILES, not in the .ini. Our C validator would have
+  screamed CRITICAL (cert missing, all roots missing) on every real config. Fix:
+  a TlsContext.introspectable flag + C emits LOW "verify out-of-band"
+  (TRUST_STORE_UNAVAILABLE / CERT.UNAVAILABLE) when the source can't carry that
+  material, never a false CRITICAL. SRTP comes from EnableMediaSecurity (global) +
+  SBCMediaSecurityBehaviour (per IP Profile).
+  -> *Apply:* a validator must distinguish "absent" from "not-present-in-this-source."
+  Mining a 1700pp manual with pdftotext+grep beats reading it; find the format
+  spec + the parameter names, then build.
+
+
 - **Start one vendor end-to-end, then widen. Do not build four shallow parsers at
   once.** AudioCodes first proved the model held; Cisco and Ribbon then dropped in
   against the same validators. This sequencing is the reason the model is clean.
