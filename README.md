@@ -116,6 +116,8 @@ samples/                 sample configs (intentional misconfigs) for smoke test
 | Doc | For |
 |---|---|
 | **[REVIEW.md](REVIEW.md)** | 5-minute orientation: what's built/proven, the 60-second demo, honest gaps |
+| **[ONE-PAGER.md](ONE-PAGER.md)** | the product at a glance (8 domains x 4 vendors, the wedge, the ask) |
+| **[MEETING-QA.md](MEETING-QA.md)** | anticipated vet-level questions + honest answers |
 | **[DASHBOARD.md](DASHBOARD.md)** | the local dashboard: panels, data flow, controls |
 | **[RUNBOOK.md](RUNBOOK.md)** | operator guide: install + run air-gapped, fleet readiness, leave-behind report |
 | **[CONFIG-REQUEST.md](CONFIG-REQUEST.md)** | exactly what real config to export per vendor (the unlock for routing + security) |
