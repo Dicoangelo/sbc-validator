@@ -27,6 +27,12 @@ RUN pip install --no-cache-dir . \
 # Drop privileges: the engine never needs root.
 USER sbc
 
-# `sbc-validator <subcommand> ...`  (validate / simulate / explain / diff)
+# The local dashboard (`serve`) listens here. validate/simulate/explain/diff/fleet
+# need no ports. To run the dashboard in-container, publish the port and bind 0.0.0.0:
+#   docker run --rm -p 8787:8787 -v "$PWD/results:/app/results" sbc-validator \
+#       serve --results /app/results --host 0.0.0.0
+EXPOSE 8787
+
+# `sbc-validator <subcommand> ...`  (validate / simulate / explain / diff / fleet / serve)
 ENTRYPOINT ["sbc-validator"]
 CMD ["--help"]

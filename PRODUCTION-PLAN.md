@@ -22,9 +22,11 @@ small signed-rule service the publisher runs.
 1. **Signing key.** [DONE 2026-06-07] Dev private key was committed and pinned =
    anyone could forge a "valid" ruleset. Rotated to an offline publisher keypair
    (`~/.sbc-validator/keys/publisher_ed25519.pem`, chmod 600, outside git); pin
-   updated; ruleset re-signed; tests moved to ephemeral keys. **REMAINING: scrub
-   the old dev key from git history (irreversible force-push) + migrate the
-   private key to an HSM before GA.**
+   updated; ruleset re-signed; tests moved to ephemeral keys. The old key is now
+   DEAD (pinned nowhere). **History-scrub DECISION: deferred.** Rewriting history
+   to remove an already-neutralized key from a private, single-user, no-clones
+   repo is pure downside (irreversible force-push). Correct trigger: scrub
+   immediately BEFORE the repo is ever made public. HSM migration before GA.
 2. **Parser fidelity.** Need one real customer / SBC Config Wizard `.ini` to
    prove the AudioCodes parser against full production grammar. External input.
 3. **No pilot yet.** Pre-engagement. The design partner defines real requirements;
@@ -37,18 +39,22 @@ Goal: a design partner can `docker run` it air-gapped in their environment.
 - [x] **0.1 Key rotation** — offline publisher keypair, pin rotated, ruleset
   re-signed, dev key removed from working tree, tests use an ephemeral `signing_key`
   fixture. (commit: this change)
-- [ ] **0.2 Git-history scrub** of the old dev key (separate, explicitly confirmed
-  — force-push rewrite; coordinate per parallel-session rules).
-- [ ] **0.3 Clean packaging** — fix `pyproject` package-data path (`../rulesets`
-  won't ship in a wheel), refresh the stale "A-E" description to A-G, verify
-  `pip install .` + `sbc-validator` entrypoint works from a clean venv.
-- [ ] **0.4 `sbc-validator serve`** — local web command that serves the dashboard
-  + reads `results/` live (auto-refresh), bundled in the container. Kills the
-  Desktop-copy drift; the dashboard stays local (never hosted).
-- [ ] **0.5 Published Docker image** — tag + push `v0.14.0` to a registry (CI
-  already builds and air-gap-tests it).
-- [ ] **0.6 VPC runbook** — one page: install, run air-gapped, read reports,
-  gate a pipeline. Partner-facing.
+- [x] **0.1 Key rotation** (commit f5b7ae5).
+- [~] **0.2 Git-history scrub** — DEFERRED by decision (dead key, private repo,
+  no users). Trigger: before going public. See gate 1 above.
+- [x] **0.3 Clean packaging** (commit 3721ec8) — broken package-data removed,
+  description A-G, clean-venv wheel install verified.
+- [x] **0.4 `sbc-validator serve`** (commit 7045ecf) — loopback local dashboard,
+  live rebuild from results/, viewer packaged in the wheel + container.
+- [x] **0.5 Release pipeline** — `.github/workflows/release.yml` builds + pushes
+  the image to ghcr.io ON A TAG only (nothing publishes on ordinary commits),
+  with an air-gap smoke on the published image. Cut `vX.Y.Z` to publish.
+- [x] **0.6 VPC runbook** — `RUNBOOK.md`, partner-facing: install, air-gapped
+  validate, fleet readiness, live dashboard, predict/explain, pre-GA notes.
+
+Phase 0 is functionally complete. What is intentionally NOT done because there
+is no pilot yet: the history scrub (0.2), HSM migration, and any Plane B/C infra.
+The next real driver is a design partner; everything past Phase 0 waits on one.
 
 ## Phase 1 — trust backbone (Plane B)
 
