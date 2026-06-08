@@ -57,18 +57,29 @@ the Teams leg is blind to half the device. Current per-leg coverage:
 - SIP unknown-peer IPACL exposure → 🟡 S.ACL.NO_DEFAULT_DENY (same posture)
 - RTP source-address validation disabled → 🟡 S.RTP.SOURCE_VALIDATION_OFF
 
-## What "🟡 domain S" means
+## Domain S status (per vendor)
 
-The domain-S validator and its logic are implemented and unit-tested, but it
-stays **silent until a parser populates `access_controls` / `rtp_source_validation`**
-from a real config (same "absent vs. not-in-this-source" discipline as routing and
-the trust store). Lighting it up on real configs is per-vendor extraction work:
-AudioCodes Firewall / IP Access List, Oracle access-control / ACLI, Cisco/Ribbon ACLs.
+- **AudioCodes: ✅ FIRING.** The table parser extracts the real Mediant
+  `[ AccessList ]` firewall table (Source_IP + PrefixLen + port window + Allow_Type)
+  into the access-control model. Proven both ways: secure posture -> clean,
+  exposed posture -> 4 findings. AudioCodes AccessList governs both signaling and
+  media per interface, so the plane mapping is clean.
+- **Oracle / Cisco / Ribbon: ⛔ deliberately not mapped yet.** Their ACL models are
+  *plane-specific* and differ from AudioCodes: Oracle controls media via
+  steering-pools (not access-control), Cisco's "ip address trusted list" is
+  call-control/signaling only, Ribbon uses ipAccessControlList per address-context.
+  A naive map would false-fire `MEDIA_PLANE_MISSING` on every config. Correct
+  mapping needs per-vendor plane semantics (don't tell customers to fix the wrong
+  thing). This is real modeling work, not a quick add.
+
+For any vendor without ACL extraction, domain S stays **silent** (absent vs.
+not-in-this-source), so there are zero false positives in the meantime.
 
 ## Prioritized backlog (grounded in the corpus)
 
-1. **ACL extraction per vendor** → turns domain S from "ready" to "firing" on real
-   configs. Highest security value; the corpus treats ACL posture as first-class.
+1. **ACL extraction per vendor** → AudioCodes ✅ done. Oracle/Cisco/Ribbon need
+   plane-aware mapping (steering-pool vs trusted-list vs ipACL) to avoid false
+   positives. Highest remaining security value.
 2. **Routing extraction for Cisco / Ribbon / Oracle** → domain G currently only
    engages for AudioCodes.
 3. **Cipher-suite / mTLS assertion** (domain C) → ciphers are in the ruleset; assert
