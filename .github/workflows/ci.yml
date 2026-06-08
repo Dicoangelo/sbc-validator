@@ -34,3 +34,6 @@ jobs:
           docker run --rm --network none sbc-validator \
             validate samples/clean_pass.ini \
             --ruleset rulesets/ms_direct_routing_2026-06.json
+      - name: Air-gapped demo as non-root (catches read-only-path regressions)
+        run: |
+          docker run --rm --network none sbc-validator demo

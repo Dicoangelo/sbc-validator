@@ -22,9 +22,13 @@ COPY sbc_validator ./sbc_validator
 COPY rulesets ./rulesets
 COPY samples ./samples
 RUN pip install --no-cache-dir . \
-    && useradd --create-home --uid 10001 sbc
+    && useradd --create-home --uid 10001 sbc \
+    && mkdir -p /app/results \
+    && chown -R sbc:sbc /app/results
 
-# Drop privileges: the engine never needs root.
+# Drop privileges: the engine never needs root. /app/results is writable so the
+# default `demo` / `validate --out results` work without mounting a volume;
+# everything else under /app stays read-only to the engine.
 USER sbc
 
 # The local dashboard (`serve`) listens here. validate/simulate/explain/diff/fleet

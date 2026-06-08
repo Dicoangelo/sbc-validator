@@ -65,6 +65,7 @@ def run_demo(args) -> int:
 
     from .cli import _write_result   # function-level: cli is fully loaded by now
     rows = []
+    write_failed = False
     for fname, site, vendor in _FLEET:
         p = samples / fname
         if not p.exists():
@@ -84,7 +85,10 @@ def run_demo(args) -> int:
             "summary": summary,
             "findings": [vars(f) | {"severity": f.severity.name} for f in findings],
         }
-        _write_result(out, report)
+        try:
+            _write_result(out, report)        # for the live dashboard; not required to show results
+        except OSError:
+            write_failed = True
         rows.append((report["sbc"], vendor, summary["verdict"], summary["risk_score"]))
 
     print(f"  {'SBC':26} {'VENDOR':12} {'VERDICT':8} RISK")
@@ -126,5 +130,9 @@ def run_demo(args) -> int:
     print(f"\n  2026 CA readiness: {fleet['ca_2026_ready']} of {fleet['total']} SBCs ready"
           f"  ({fleet['ca_2026_not_ready']} carry a TLS/CA/cert/SRTP blocker)")
 
-    print(f"\nDone. See the live dashboard:  sbc-validator serve --results {out}")
+    if write_failed:
+        print(f"\nDone. (Could not write results to {out}/ - read-only path; pass "
+              "--out to a writable dir to feed the live dashboard.)")
+    else:
+        print(f"\nDone. See the live dashboard:  sbc-validator serve --results {out}")
     return 0
