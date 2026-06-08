@@ -33,7 +33,8 @@ import ipaddress
 import re
 
 from ..models import (
-    Certificate, MediaRealm, NormalizedConfig, SipInterface, TlsContext,
+    AccessControlEntry, Certificate, MediaRealm, NormalizedConfig, SipInterface,
+    TlsContext,
 )
 
 # AudioCodes coder token -> normalized codec name
@@ -309,4 +310,30 @@ def map_to_config(text: str) -> NormalizedConfig:
             advertised_public_ip=advertised,
             symmetric_rtp=True,
         ))
+
+    # --- access-control / firewall (AudioCodes AccessList table) -> domain S ---
+    # Real Mediant firewall is the [ AccessList ] table: per-row Source_IP +
+    # PrefixLen + port window + Allow_Type. We project it onto the vendor-neutral
+    # access-control model so the security validator can run.
+    for r in tables.get("AccessList", []):
+        ip = _get(r, "AccessList_Source_IP", "Source_IP", "SourceIP")
+        if not ip:
+            continue
+        prefix = str(_get(r, "AccessList_PrefixLen", "Prefix_Length", "PrefixLen",
+                          default="32")).strip()
+        allow = str(_get(r, "AccessList_Allow_Type", "Allow_Type", "Action",
+                         default="allow")).strip().lower()
+        action = "deny" if allow in ("deny", "block", "0") else "permit"
+        end_port = str(_get(r, "AccessList_End_Port", "End_Port", default="65535")).strip()
+        try:                                   # signaling-only if the window stops at SIP ports
+            plane = "both" if int(end_port) > 5067 else "signaling"
+        except ValueError:
+            plane = "both"
+        try:
+            ver = ipaddress.ip_network(f"{ip}/{prefix}", strict=False).version
+        except ValueError:
+            ver = 4
+        cfg.access_controls.append(AccessControlEntry(
+            plane=plane, ip_version=ver, action=action, cidr=f"{ip}/{prefix}"))
+
     return cfg

@@ -871,3 +871,19 @@ def test_carrier_leg_keepalive_advisory(ruleset):
     assert "B.SIP.CARRIER_NO_KEEPALIVE" in ids(InteropValidator(ruleset).validate(absent).findings)
     present = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
     assert "B.SIP.CARRIER_NO_KEEPALIVE" not in ids(InteropValidator(ruleset).validate(present).findings)
+
+
+def test_audiocodes_acl_extracted_secure_posture():
+    """Domain S now fires through the real AudioCodes AccessList table (clean case)."""
+    from sbc_validator.validators.access_control import AccessControlValidator
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_teams_real.ini").read_text())
+    assert len(cfg.access_controls) >= 4          # default-deny + carrier allow-list
+    assert AccessControlValidator({}).validate(cfg).findings == []   # secure -> silent
+
+
+def test_audiocodes_exposed_acl_fires_domain_s():
+    from sbc_validator.validators.access_control import AccessControlValidator
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_exposed.ini").read_text())
+    got = {f.check_id for f in AccessControlValidator({}).validate(cfg).findings}
+    assert {"S.ACL.NO_DEFAULT_DENY", "S.ACL.BROAD_CIDR",
+            "S.ACL.MEDIA_PLANE_MISSING", "S.ACL.IPV6_NEGLECT"} <= got
