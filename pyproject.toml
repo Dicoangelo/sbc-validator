@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sbc-autoops-validator"
 version = "0.14.0"
-description = "Local-first, vendor-agnostic SBC validator (real AudioCodes/Cisco/Ribbon parsers, A-E, SRTP, HA drift, call-flow simulation, pcap explainer)"
+description = "Local-first, vendor-agnostic SBC validator (real AudioCodes/Cisco/Ribbon/Oracle parsers, validators A-G, SRTP, trust-anchor chain validation, HA drift, call-flow simulation, pcap explainer)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Proprietary" }
@@ -26,8 +26,9 @@ sbc-validator = "sbc_validator.cli:main"
 [tool.setuptools.packages.find]
 include = ["sbc_validator*"]
 
-[tool.setuptools.package-data]
-sbc_validator = ["../rulesets/*.json"]
+# Rule bundles are intentionally NOT packaged in the wheel: they ship through the
+# signed-rule channel (RuleClient fetch/cache) so rule updates are decoupled from
+# code releases. Pass a bundle with --ruleset, or fetch one from the rule service.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
