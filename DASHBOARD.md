@@ -42,9 +42,11 @@ python -m sbc_validator.tools.build_dashboard_data results -o dashboard_data.jso
 - **Verdict** filter - BLOCK / REVIEW / PASS; scopes every panel.
 - **Load dashboard_data.json** - load a payload by hand (for the `file://` case).
 
-The left sidebar (Fleet Overview, Findings, Settings, etc.) is **presentational
-framing only** - it sets the operations-console look but is not wired to
-sub-pages. The data panels, the two filters, and the loader are the live surface.
+The left sidebar (Fleet Overview, Findings, Settings, etc.) is **scaffolding for
+a planned buildout** - it sets the operations-console layout, and those entries
+(Findings drill-down, Rule Bundles, Reports, SBC Devices) are the roadmap for
+real sub-pages. Today the live surface is the data panels, the two filters, and
+the loader; the sidebar is intentional framing, not abandoned cruft.
 
 ## Where the data comes from
 
