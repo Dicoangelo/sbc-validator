@@ -804,3 +804,14 @@ def test_cli_malformed_config_clean_exit(tmp_path):
     with pytest.raises(SystemExit) as ei:
         main(["validate", str(bad), "--ruleset", str(RULESET)])
     assert ei.value.code == 2
+
+
+def test_demo_runs_and_writes_results(tmp_path):
+    """The packaged showcase runs end-to-end and records per-SBC results."""
+    from sbc_validator.cli import main
+    out = tmp_path / "out"
+    rc = main(["demo", "--samples", str(REPO / "samples"),
+               "--ruleset", str(RULESET), "--out", str(out)])
+    assert rc == 0
+    results = list(out.glob("*/*.json"))
+    assert len(results) >= 4          # four-vendor fleet recorded

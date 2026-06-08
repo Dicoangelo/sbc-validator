@@ -24,16 +24,19 @@ failover during the 2026 CA rotation onto a drifted standby hard-stops calls.
 ## Quickstart
 
 ```bash
-# one command runs the whole 4-vendor fleet demo + HA drift check:
-./demo.sh
+# one packaged command runs the whole 4-vendor showcase
+# (validate the fleet -> predict a call -> explain a capture -> 2026 readiness):
+sbc-validator demo
+# then open the live dashboard it just populated:
+sbc-validator serve --results results        # http://127.0.0.1:8787
 
 # a single config (any of the four vendors auto-detected):
-python -m sbc_validator.cli validate samples/ribbon_sbc.cli \
+sbc-validator validate samples/ribbon_sbc.cli \
     --ruleset rulesets/ms_direct_routing_2026-06.json \
     --html report.html          # self-contained customer report
 
 # HA drift: compare an active node against its standby
-python -m sbc_validator.cli diff samples/clean_pass.ini samples/audiocodes_standby.ini
+sbc-validator diff samples/clean_pass.ini samples/audiocodes_standby.ini
 ```
 
 ### Use it as a CI/CD pre-deployment gate (shift-left)

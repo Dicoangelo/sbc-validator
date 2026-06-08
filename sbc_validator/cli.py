@@ -330,6 +330,13 @@ def main(argv=None) -> int:
     sv.add_argument("--org-salt", default="unsalted")
     sv.set_defaults(func=lambda a: __import__("sbc_validator.serve", fromlist=["run_serve"]).run_serve(a))
 
+    dm = sub.add_parser("demo",
+                        help="one-command multi-vendor showcase (validate + predict + explain + readiness)")
+    dm.add_argument("--samples", default=None, help="sample config dir (default: samples)")
+    dm.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
+    dm.add_argument("--out", default="results", help="where to write per-run results (default: results)")
+    dm.set_defaults(func=lambda a: __import__("sbc_validator.demo", fromlist=["run_demo"]).run_demo(a))
+
     args = p.parse_args(argv)
     return args.func(args)
 

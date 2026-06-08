@@ -40,6 +40,17 @@ pip install .            # from the repo
 sbc-validator --help
 ```
 
+## See everything in one command
+
+```bash
+docker run --rm --network none ghcr.io/dicoangelo/sbc-validator:latest demo
+```
+
+Runs the full four-vendor showcase: validates a mixed fleet, predicts a call
+that dies at the TLS handshake, explains a rejected call from a capture, and
+rolls up 2026 CA-migration readiness. Good for a first look before pointing it
+at your own configs.
+
 ## Validate one SBC (air-gapped)
 
 ```bash
