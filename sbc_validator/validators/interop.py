@@ -56,6 +56,23 @@ class InteropValidator(AbstractValidator):
                 locator=f"iface '{teams.name}'",
             ))
 
+        # The B2BUA has two legs: the carrier/trunk leg also needs OPTIONS
+        # keep-alive so the SBC detects a dead trunk and busies it out, instead of
+        # routing calls into a black hole. Advisory (some ITSPs don't answer OPTIONS).
+        carrier = config.carrier_interface()
+        if carrier is not None and not carrier.options_keepalive:
+            res.add(Finding(
+                check_id="B.SIP.CARRIER_NO_KEEPALIVE",
+                title="SIP OPTIONS keep-alive not enabled on the carrier leg",
+                severity=Severity.INFO,
+                detail="Without OPTIONS keep-alive toward the carrier/trunk, the SBC "
+                       "cannot tell when the trunk goes dead; calls are routed to a "
+                       "black hole instead of failing over.",
+                remediation="Enable SIP OPTIONS keep-alive toward the carrier if the "
+                            "ITSP supports it.",
+                locator=f"iface '{carrier.name}'",
+            ))
+
         # Bridging two legs of different roles without normalization is risky.
         roles = {i.role for i in config.sip_interfaces}
         bridging = "teams" in roles and ("carrier" in roles or "internal" in roles)

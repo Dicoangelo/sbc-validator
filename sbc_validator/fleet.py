@@ -21,9 +21,10 @@ from .validators.ca_compliance import CaComplianceValidator
 from .validators.nat_traversal import NatTraversalValidator
 from .validators.codec import CodecValidator
 from .validators.routing import RoutingValidator
+from .validators.access_control import AccessControlValidator
 
 _VALIDATORS = [SyntaxSemanticValidator, InteropValidator, CaComplianceValidator,
-               NatTraversalValidator, CodecValidator, RoutingValidator]
+               NatTraversalValidator, CodecValidator, RoutingValidator, AccessControlValidator]
 
 # A "2026 CA migration blocker": a TLS/CA/cert/SRTP problem at HIGH or worse.
 _CA_PREFIXES = ("C.CA.", "C.CERT.", "C.TLS.", "C.SRTP")

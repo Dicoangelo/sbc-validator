@@ -69,6 +69,21 @@ class MediaRealm:
 
 
 @dataclass
+class AccessControlEntry:
+    """One IP access-control rule on the SBC perimeter.
+
+    plane:   "signaling" | "media" | "both"   (what the rule governs)
+    ip_version: 4 | 6
+    action:  "permit" | "deny"
+    cidr:    e.g. "203.0.113.0/28"  (None for a catch-all default rule)
+    """
+    plane: str = "both"
+    ip_version: int = 4
+    action: str = "permit"
+    cidr: Optional[str] = None
+
+
+@dataclass
 class NormalizedConfig:
     """The single object validators consume."""
     vendor: str
@@ -81,11 +96,23 @@ class NormalizedConfig:
     # Whether incoming Teams traffic is classified to an IP Group. None = unknown
     # (source carried no classification info); validators stay silent on None.
     teams_classified: Optional[bool] = None
+    # Perimeter access-control rules (domain S). Empty => source carried no ACL
+    # info; the security validator stays silent rather than false-claiming exposure.
+    access_controls: list[AccessControlEntry] = field(default_factory=list)
+    # Whether the SBC validates that inbound RTP source matches the SDP-negotiated
+    # peer (anti media-injection). None => unknown / not in this source.
+    rtp_source_validation: Optional[bool] = None
     # Free-form, vendor-specific leftovers kept for explainability in findings.
     raw_meta: dict = field(default_factory=dict)
 
     def teams_interface(self) -> Optional[SipInterface]:
         for iface in self.sip_interfaces:
             if iface.role == "teams":
+                return iface
+        return None
+
+    def carrier_interface(self) -> Optional[SipInterface]:
+        for iface in self.sip_interfaces:
+            if iface.role in ("carrier", "internal"):
                 return iface
         return None

@@ -835,3 +835,39 @@ def test_validate_autodiscovers_ruleset(monkeypatch):
     monkeypatch.chdir(REPO)
     rc = main(["validate", str(SAMPLE)])     # no --ruleset; audiocodes_min -> BLOCK
     assert rc == 1
+
+
+# ---- domain S: security / access-control (B2BUA carrier-leg perimeter) ------
+
+def test_access_control_flags_exposure():
+    from sbc_validator.models import NormalizedConfig, AccessControlEntry as ACE
+    from sbc_validator.validators.access_control import AccessControlValidator
+    cfg = NormalizedConfig(
+        vendor="x",
+        access_controls=[ACE(plane="signaling", ip_version=4, action="permit",
+                             cidr="198.51.0.0/16")],   # broad, signaling-only, ipv4-only, no deny
+        rtp_source_validation=False,
+    )
+    got = {f.check_id for f in AccessControlValidator({}).validate(cfg).findings}
+    assert {"S.ACL.NO_DEFAULT_DENY", "S.ACL.BROAD_CIDR", "S.ACL.MEDIA_PLANE_MISSING",
+            "S.ACL.IPV6_NEGLECT", "S.RTP.SOURCE_VALIDATION_OFF"} <= got
+
+
+def test_access_control_silent_without_acl_info():
+    from sbc_validator.models import NormalizedConfig
+    from sbc_validator.validators.access_control import AccessControlValidator
+    cfg = NormalizedConfig(vendor="x")            # no ACL info -> say nothing
+    assert AccessControlValidator({}).validate(cfg).findings == []
+
+
+def test_codec_wideband_downgrade(ruleset):
+    cfg = detect_and_parse((REPO / "samples" / "cisco_cube_dr.txt").read_text())
+    res = CodecValidator(ruleset).validate(cfg)   # teams wideband G722, common only PCMU
+    assert "E.CODEC.WIDEBAND_DOWNGRADE" in ids(res.findings)
+
+
+def test_carrier_leg_keepalive_advisory(ruleset):
+    absent = detect_and_parse((REPO / "samples" / "oracle_teams.acli").read_text())
+    assert "B.SIP.CARRIER_NO_KEEPALIVE" in ids(InteropValidator(ruleset).validate(absent).findings)
+    present = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    assert "B.SIP.CARRIER_NO_KEEPALIVE" not in ids(InteropValidator(ruleset).validate(present).findings)

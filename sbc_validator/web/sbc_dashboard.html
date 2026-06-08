@@ -126,7 +126,7 @@
   .riskbar span{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
 
   /* heatmap */
-  .heat{display:grid;grid-template-columns:54px repeat(7,1fr);gap:5px;align-items:center}
+  .heat{display:grid;grid-template-columns:54px repeat(8,1fr);gap:5px;align-items:center}
   .heat .h-col{font-size:10.5px;font-weight:700;color:var(--ink-soft);text-align:center;letter-spacing:.04em}
   .heat .h-row{font-size:10.5px;font-weight:700;color:var(--ink-soft)}
   .heat .cell{height:38px;border-radius:6px;display:grid;place-items:center;font-family:'IBM Plex Mono';font-size:13px;font-weight:600;color:#fff}
@@ -282,8 +282,8 @@
 const SEV = ["CRITICAL","HIGH","MEDIUM","LOW","INFO"];
 const SEV_COLOR = {CRITICAL:"#c0392b",HIGH:"#e07a1f",MEDIUM:"#d4a017",LOW:"#5b85ad",INFO:"#9aa4b0"};
 const SEV_WEIGHT = {CRITICAL:40,HIGH:15,MEDIUM:6,LOW:2,INFO:0};
-const DOM_COLOR = {A:"#7a8794",B:"#5b85ad",C:"#9d1b54",D:"#e07a1f",E:"#1f8a6d",F:"#8e44ad",G:"#c79100"};
-const DOM_NAME = {A:"Baseline (A)",B:"Interop (B)",C:"TLS / CA (C)",D:"NAT (D)",E:"Codec (E)",F:"Topology (F)",G:"Routing (G)"};
+const DOM_COLOR = {A:"#7a8794",B:"#5b85ad",C:"#9d1b54",D:"#e07a1f",E:"#1f8a6d",F:"#8e44ad",G:"#c79100",S:"#c0392b"};
+const DOM_NAME = {A:"Baseline (A)",B:"Interop (B)",C:"TLS / CA (C)",D:"NAT (D)",E:"Codec (E)",F:"Topology (F)",G:"Routing (G)",S:"Security (S)"};
 
 // representative top findings per domain
 const TOPF = {
@@ -293,7 +293,8 @@ const TOPF = {
   B:["B.SIP.TRANSPORT","B.SIP.OPTIONS_KEEPALIVE","B.SIP.NO_NORMALIZATION"],
   E:["E.CODEC.NO_CROSS_OVERLAP","E.DTMF.INCONSISTENT"],
   F:["F.TOPOLOGY.PRIVATE_IP_LEAK","F.TOPOLOGY.VIA_INTERNAL"],
-  G:["G.CLASS.UNCLASSIFIED","G.ROUTE.NO_FROM_TEAMS","G.ROUTE.NO_TO_TEAMS"]
+  G:["G.CLASS.UNCLASSIFIED","G.ROUTE.NO_FROM_TEAMS","G.ROUTE.NO_TO_TEAMS"],
+  S:["S.ACL.NO_DEFAULT_DENY","S.ACL.BROAD_CIDR","S.ACL.MEDIA_PLANE_MISSING","S.ACL.IPV6_NEGLECT"]
 };
 const VENDORS=["audiocodes","cisco_cube","ribbon","oracle_acme"];
 const SITES=["EU-West","US-East","US-West","APAC","DR-Site"];

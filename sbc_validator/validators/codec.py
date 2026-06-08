@@ -46,7 +46,10 @@ class CodecValidator(AbstractValidator):
                     locator=f"iface '{teams.name}'",
                 ))
 
-        # Cross-leg overlap (teams vs carrier) — transcode check is future work.
+        # Cross-leg overlap (teams vs carrier): the B2BUA must bridge two codec
+        # worlds. No overlap => the SBC must transcode (DSP cost) or there is no
+        # audio; overlap only on a narrowband codec => a silent wideband downgrade.
+        _WIDEBAND = {"G722", "G722.2", "AMR-WB", "SILK", "OPUS"}
         legs = [i for i in config.sip_interfaces if i.offered_codecs]
         if len(legs) >= 2:
             common = set(legs[0].offered_codecs)
@@ -57,9 +60,26 @@ class CodecValidator(AbstractValidator):
                     check_id="E.CODEC.NO_CROSS_OVERLAP",
                     title="No common codec across SIP legs",
                     severity=Severity.MEDIUM,
-                    detail="Legs share no codec; without transcoding this yields no audio.",
-                    remediation="Align codec lists or enable transcoding on the SBC.",
+                    detail="Legs share no codec, so the SBC must transcode in real time. "
+                           "If transcoding/DSP capacity is not provisioned for the call "
+                           "volume, calls drop or audio degrades (DSP exhaustion); if it "
+                           "is unavailable, there is no audio at all.",
+                    remediation="Align codec lists, or confirm transcoding is licensed and "
+                                "DSP capacity is sized for peak concurrent calls.",
                 ))
+            else:
+                offered_union = set().union(*(set(l.offered_codecs) for l in legs))
+                if (offered_union & _WIDEBAND) and not (common & _WIDEBAND):
+                    res.add(Finding(
+                        check_id="E.CODEC.WIDEBAND_DOWNGRADE",
+                        title="Cross-leg codec forces a narrowband downgrade",
+                        severity=Severity.INFO,
+                        detail="A leg offers a wideband codec but the only codec common to "
+                               "both legs is narrowband, so calls connect at reduced audio "
+                               "quality (or the SBC transcodes, adding DSP load).",
+                        remediation="Add a shared wideband codec to both legs if HD audio "
+                                    "is required end to end.",
+                    ))
 
         # DTMF consistency
         dtmf_methods = {i.dtmf_method for i in config.sip_interfaces if i.dtmf_method}

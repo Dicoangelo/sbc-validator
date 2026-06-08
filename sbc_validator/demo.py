@@ -22,9 +22,10 @@ from .validators.nat_traversal import NatTraversalValidator
 from .validators.interop import InteropValidator
 from .validators.codec import CodecValidator
 from .validators.routing import RoutingValidator
+from .validators.access_control import AccessControlValidator
 
 _VALIDATORS = [SyntaxSemanticValidator, InteropValidator, CaComplianceValidator,
-               NatTraversalValidator, CodecValidator, RoutingValidator]
+               NatTraversalValidator, CodecValidator, RoutingValidator, AccessControlValidator]
 
 # curated showcase: one per vendor, mixed verdicts (PASS -> BLOCK)
 _FLEET = [
