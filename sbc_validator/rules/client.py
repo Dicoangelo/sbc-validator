@@ -14,9 +14,13 @@ are treated as untrusted-until-verified:
 
 Configs never travel this channel. Only rules come IN.
 
-The pinned key below is a DEV key (matching dev/dev_signing_key.pem). In
-production, replace _PINNED_PUBLIC_KEY_B64 with your real publisher key and keep
-the private key in an offline signer / HSM.
+_PINNED_PUBLIC_KEY_B64 is the publisher's PUBLIC key. The matching PRIVATE key
+lives offline, outside this repo (default `~/.sbc-validator/keys/publisher_ed25519.pem`,
+chmod 600), and is used only by the offline signer (tools/sign_ruleset.py). The
+verifier never holds the private key. Migrate the private key to an HSM before GA.
+The pin is a code constant on purpose: it is NOT environment-overridable, so a
+hostile env cannot swap in an attacker key. Tests override it in-process with an
+ephemeral key (see the `signing_key` fixture); they never need the real private key.
 """
 from __future__ import annotations
 
@@ -36,8 +40,9 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 
 DEFAULT_CACHE_DIR = Path(os.environ.get("SBC_RULE_CACHE", "~/.cache/sbc_validator")).expanduser()
 
-# Pinned publisher public key (raw Ed25519, base64). DEV value — replace in prod.
-_PINNED_PUBLIC_KEY_B64 = "2b+tAmJiIbYfoMbHj7K2hn1YkyWnCZehbPdJJwmeHwk="
+# Pinned publisher public key (raw Ed25519, base64). Private half is offline,
+# outside this repo. Rotate here (and re-sign rulesets) when the publisher key changes.
+_PINNED_PUBLIC_KEY_B64 = "ws41rVVX8tKIKPWJDSZc8XS6y5oRTBXske1ufHiHky8="
 
 # A signed bundle is small JSON; cap the inbound read so a hostile/runaway
 # endpoint can't exhaust memory before we ever get to verify it.

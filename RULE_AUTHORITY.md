@@ -56,13 +56,14 @@ identifiers (lowercase, strip non-alphanumerics, fold "Certificate Authority" to
 
 1. Edit `rulesets/ms_direct_routing_2026-06.json`. Bump `bundle_version` and
    `verified_on`. Update `sources` if needed.
-2. Re-sign:
+2. Re-sign with the offline publisher key (kept outside the repo):
    ```bash
    python -m sbc_validator.tools.sign_ruleset \
-       rulesets/ms_direct_routing_2026-06.json dev/dev_signing_key.pem
+       rulesets/ms_direct_routing_2026-06.json ~/.sbc-validator/keys/publisher_ed25519.pem
    ```
-   (Production: use the real publisher key from an offline signer / HSM, not the
-   committed dev key. Replace `_PINNED_PUBLIC_KEY_B64` in `rules/client.py`.)
+   The private key never lives in git. If you rotate the publisher key, also
+   update `_PINNED_PUBLIC_KEY_B64` in `rules/client.py` to the new public half.
+   (Migrate the private key to an HSM before GA.)
 3. Run `pytest`. The authority guard test will fail if the root set regressed.
 4. Run `./demo.sh` and confirm the fleet verdicts still make sense.
 5. Commit with a message naming the source and date of the change.

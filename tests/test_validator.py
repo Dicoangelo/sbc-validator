@@ -21,6 +21,7 @@ from sbc_validator.validators.syntax_semantic import SyntaxSemanticValidator
 from sbc_validator.rules.client import (
     RuleClient, RuleVerificationError, sign_bundle, load_private_key,
 )
+from sbc_validator.rules import client as rules_client
 from sbc_validator import cert_inspect
 from sbc_validator.report.risk import score
 from sbc_validator.validators.base import Severity
@@ -34,6 +35,22 @@ PEM = REPO / "samples" / "sbc01_leaf.pem"
 @pytest.fixture
 def ruleset():
     return RuleClient().fetch("ms_direct_routing", local_path=str(RULESET))
+
+
+@pytest.fixture
+def signing_key(monkeypatch):
+    """Ephemeral publisher key for tests that must re-sign a bundle.
+
+    Pins the verifier to this key's public half in-process, so the real
+    production private key never has to live in the repo. Opt-in per test;
+    tests that verify the real shipped ruleset do NOT use this fixture.
+    """
+    import base64
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    k = Ed25519PrivateKey.generate()
+    pub = base64.b64encode(k.public_key().public_bytes_raw()).decode()
+    monkeypatch.setattr(rules_client, "_PINNED_PUBLIC_KEY_B64", pub)
+    return k
 
 
 def ids(findings):
@@ -443,11 +460,11 @@ def test_remote_fetch_falls_back_to_cache_on_network_error(tmp_path):
     assert any("cache" in w for w in bundle.get("_warnings", []))
 
 
-def test_resign_roundtrip(tmp_path):
+def test_resign_roundtrip(tmp_path, signing_key):
     bundle = json.loads(RULESET.read_text())
     bundle.pop("signature")
     bundle["C"]["cert_expiry_warn_days"] = 45
-    resigned = sign_bundle(bundle, load_private_key(str(REPO / "dev" / "dev_signing_key.pem")))
+    resigned = sign_bundle(bundle, signing_key)
     p = tmp_path / "resigned.json"
     p.write_text(json.dumps(resigned))
     out = RuleClient(cache_dir=tmp_path).fetch("x", local_path=str(p))
@@ -727,7 +744,7 @@ def test_html_report_renders_and_escapes():
 
 # ---- hardening: trust-boundary + input safety (first-principles sweep) ------
 
-def test_rollback_signed_but_stale_rejected(tmp_path):
+def test_rollback_signed_but_stale_rejected(tmp_path, signing_key):
     """A validly-signed but OLDER bundle must be refused (freshness != authenticity).
 
     This is the deepest gap: the pre-2026-06-07 CA list is still a valid
@@ -735,20 +752,24 @@ def test_rollback_signed_but_stale_rejected(tmp_path):
     a retired-root list. Seed the cache with the current bundle, then offer a
     correctly re-signed older one and expect a hard refusal.
     """
-    key = load_private_key(str(REPO / "dev" / "dev_signing_key.pem"))
+    def mk(version):  # minimal validly-signed bundle at a given version
+        return sign_bundle(
+            {"ruleset_id": "ms_direct_routing", "bundle_version": version, "C": {}},
+            signing_key,
+        )
+
     client = RuleClient(cache_dir=tmp_path)
-    client.fetch("ms_direct_routing", local_path=str(RULESET))      # caches 2026-06-07
+    cur = tmp_path / "cur.json"
+    cur.write_text(json.dumps(mk("2026-06-07")))
+    client.fetch("ms_direct_routing", local_path=str(cur))          # caches 2026-06-07
 
-    older = {k: v for k, v in json.loads(RULESET.read_text()).items() if k != "signature"}
-    older["bundle_version"] = "2026-06-06"
-    older = sign_bundle(older, key)                                 # genuinely valid signature
-    p = tmp_path / "older.json"
-    p.write_text(json.dumps(older))
+    old = tmp_path / "old.json"
+    old.write_text(json.dumps(mk("2026-06-06")))
 
-    _verify_ok = RuleClient(cache_dir=tmp_path / "empty")
-    assert _verify_ok.fetch("ms_direct_routing", local_path=str(p))  # valid against a clean floor
+    _clean = RuleClient(cache_dir=tmp_path / "empty")
+    assert _clean.fetch("ms_direct_routing", local_path=str(old))   # valid against a clean floor
     with pytest.raises(RuleVerificationError):
-        client.fetch("ms_direct_routing", local_path=str(p))        # but rolled back vs. cache
+        client.fetch("ms_direct_routing", local_path=str(old))      # but rolled back vs. cache
 
 
 def test_env_min_version_floor(tmp_path, monkeypatch):

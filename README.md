@@ -213,10 +213,13 @@ trust-anchor validation against a configured root store is the next deepening of
 domain C (the current pass confirms the chain isn't broken, not that it terminates
 at a trusted anchor).
 
-## Security note (skeleton)
+## Security note
 
-`dev/dev_signing_key.pem` and the pinned public key in `rules/client.py` are
-**development** keys. In production, generate a real publisher keypair, keep the
-private key offline / in an HSM, and replace `_PINNED_PUBLIC_KEY_B64`.
+The rule-bundle signing key is split: the **public** half is pinned in
+`rules/client.py` (`_PINNED_PUBLIC_KEY_B64`); the **private** half lives offline,
+outside this repo (`~/.sbc-validator/keys/publisher_ed25519.pem`, chmod 600) and
+is used only by the offline signer (`tools/sign_ruleset.py`). The verifier never
+holds the private key. Migrate the private key to an HSM before GA. To rotate:
+generate a new keypair, update `_PINNED_PUBLIC_KEY_B64`, and re-sign the rulesets.
 ```
 ```

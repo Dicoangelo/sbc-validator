@@ -20,3 +20,8 @@ dashboard_data.json
 
 # OS
 .DS_Store
+
+# Never commit signing keys (publisher private key lives offline, ~/.sbc-validator/keys/)
+*signing_key*.pem
+*publisher*.pem
+dev/
