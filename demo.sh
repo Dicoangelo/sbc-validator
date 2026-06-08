@@ -70,4 +70,5 @@ echo
 "$PY" -m sbc_validator.cli explain samples/topology_leak.pcap || true
 
 echo
-echo "Done. Open sbc_dashboard.html (Load dashboard_data.json) and reports/*.html"
+echo "Done. Live dashboard:  sbc-validator serve --results $OUT   (http://127.0.0.1:8787)"
+echo "      Per-SBC reports:  $REPORTS/*.html"

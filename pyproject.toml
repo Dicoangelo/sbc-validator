@@ -26,9 +26,12 @@ sbc-validator = "sbc_validator.cli:main"
 [tool.setuptools.packages.find]
 include = ["sbc_validator*"]
 
-# Rule bundles are intentionally NOT packaged in the wheel: they ship through the
-# signed-rule channel (RuleClient fetch/cache) so rule updates are decoupled from
-# code releases. Pass a bundle with --ruleset, or fetch one from the rule service.
+# The dashboard viewer IS a code asset and ships in the wheel (so `serve` works
+# from an installed package). Rule bundles are intentionally NOT packaged: they
+# ship through the signed-rule channel (RuleClient fetch/cache) so rule updates
+# stay decoupled from code releases. Pass a bundle with --ruleset, or fetch one.
+[tool.setuptools.package-data]
+"sbc_validator.web" = ["*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

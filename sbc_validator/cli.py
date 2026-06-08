@@ -318,6 +318,18 @@ def main(argv=None) -> int:
     fl.add_argument("--json", action="store_true")
     fl.set_defaults(func=run_fleet)
 
+    sv = sub.add_parser("serve",
+                        help="serve the local dashboard over a live results directory")
+    sv.add_argument("--results", default="results",
+                    help="directory of per-run JSON (validate --out wrote these)")
+    sv.add_argument("--host", default="127.0.0.1",
+                    help="bind address (default loopback; widen only deliberately)")
+    sv.add_argument("--port", type=int, default=8787)
+    sv.add_argument("--anon", action="store_true",
+                    help="serve the redacted cross-tenant view (tokens, no FQDN/site)")
+    sv.add_argument("--org-salt", default="unsalted")
+    sv.set_defaults(func=lambda a: __import__("sbc_validator.serve", fromlist=["run_serve"]).run_serve(a))
+
     args = p.parse_args(argv)
     return args.func(args)
 

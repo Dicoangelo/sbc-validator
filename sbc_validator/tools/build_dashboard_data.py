@@ -100,6 +100,30 @@ def _build_trend(runs: list[dict]) -> dict:
     return {"labels": labels, "series": series}
 
 
+def build_payload(results_dir, anon: bool = False, org_salt: str = "unsalted") -> dict | None:
+    """Build the dashboard payload dict from a results directory.
+
+    Returns None if the directory has no result files yet. Factored out so the
+    local `serve` command can rebuild the payload in-memory on every request
+    (live dashboard) without writing a file.
+    """
+    rdir = Path(results_dir)
+    if not rdir.exists():
+        return None
+    runs = _load_runs(rdir)
+    if not runs:
+        return None
+    latest = _latest_per_sbc(runs)
+    fleet = [_anonymize(r, org_salt) if anon else _fleet_entry(r) for r in latest]
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "ruleset_version": (latest[0].get("ruleset_version") if latest else "unknown"),
+        "mode": "anon" if anon else "internal",
+        "fleet": fleet,
+        "trend": _build_trend(runs),
+    }
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="build_dashboard_data")
     ap.add_argument("results_dir")
@@ -108,27 +132,15 @@ def main(argv=None) -> int:
     ap.add_argument("--org-salt", default="unsalted")
     args = ap.parse_args(argv)
 
-    rdir = Path(args.results_dir)
-    if not rdir.exists():
-        print(f"no such results dir: {rdir}", file=sys.stderr)
+    if not Path(args.results_dir).exists():
+        print(f"no such results dir: {args.results_dir}", file=sys.stderr)
         return 2
-
-    runs = _load_runs(rdir)
-    if not runs:
+    payload = build_payload(args.results_dir, anon=args.anon, org_salt=args.org_salt)
+    if payload is None:
         print("no result files found (run the validator with --out first)", file=sys.stderr)
         return 1
-
-    latest = _latest_per_sbc(runs)
-    fleet = [_anonymize(r, args.org_salt) if args.anon else _fleet_entry(r) for r in latest]
-    payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "ruleset_version": (latest[0].get("ruleset_version") if latest else "unknown"),
-        "mode": "anon" if args.anon else "internal",
-        "fleet": fleet,
-        "trend": _build_trend(runs),
-    }
     Path(args.out).write_text(json.dumps(payload, indent=2))
-    print(f"wrote {args.out}: {len(fleet)} SBCs, {len(runs)} runs, mode={payload['mode']}")
+    print(f"wrote {args.out}: {len(payload['fleet'])} SBCs, mode={payload['mode']}")
     return 0
 
 
