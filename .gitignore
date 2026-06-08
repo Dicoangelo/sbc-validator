@@ -25,3 +25,6 @@ dashboard_data.json
 *signing_key*.pem
 *publisher*.pem
 dev/
+
+# Scraped reference pages (scratch)
+.firecrawl/

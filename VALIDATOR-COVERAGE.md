@@ -86,5 +86,11 @@ not-in-this-source), so there are zero false positives in the meantime.
    the config's TLS context offers an approved suite and mTLS is on.
 4. **SRTP↔RTP interworking awareness** → external SRTP + internal RTP is normal, but
    flag Teams-leg-without-SRTP and inconsistent media-security across legs.
-5. **Exact MS Direct Routing protocol values** (cipher list, ports, OPTIONS interval)
-   are NOT in the corpus — pull from Microsoft Learn (Firecrawl) to harden the ruleset.
+5. **Exact MS Direct Routing protocol values** — pulled from Microsoft Learn
+   (direct-routing-protocols-sip). Confirmed: OPTIONS to sip.pstnhub.microsoft.com:5061,
+   port 5061/TLS, Contact-header FQDN must match cert CN/SAN, **wildcard certs
+   supported** (RFC 2818), IP in Contact -> 403. ✅ Fixed: domain C now does
+   wildcard-aware CN/SAN matching (was exact-only -> false-flagged real wildcard
+   Teams certs). Still open: per-config cipher-suite/mTLS assertion needs the parser
+   to expose the TLS context's offered suites (the ruleset already lists the
+   required suites; the model doesn't yet carry per-config ciphers).

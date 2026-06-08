@@ -37,6 +37,25 @@ def _norm(s) -> str:
     return n.replace("certificateauthority", "ca")
 
 
+def _name_covers(cert_name: str, fqdn: str) -> bool:
+    """Does one cert name (CN or SAN) cover the FQDN? Wildcard-aware per RFC 2818:
+    '*.a.com' matches 'foo.a.com' (exactly one label) but not 'bar.foo.a.com'
+    and not 'a.com' itself. Microsoft Direct Routing supports these wildcards."""
+    cert_name = (cert_name or "").strip().lower().rstrip(".")
+    fqdn = (fqdn or "").strip().lower().rstrip(".")
+    if not cert_name or not fqdn:
+        return False
+    if cert_name.startswith("*."):
+        suffix = cert_name[2:]                       # the part after '*.'
+        host, _, rest = fqdn.partition(".")
+        return bool(host) and rest == suffix         # exactly one label replaces '*'
+    return cert_name == fqdn
+
+
+def _fqdn_matches(fqdn: str, names: list) -> bool:
+    return any(_name_covers(n, fqdn) for n in names)
+
+
 class CaComplianceValidator(AbstractValidator):
     domain = "C"
 
@@ -226,15 +245,21 @@ class CaComplianceValidator(AbstractValidator):
                     locator=f"cert CN={cert.subject_cn}",
                 ))
 
-        # FQDN match
+        # FQDN match. Microsoft Direct Routing supports WILDCARD certs: a name
+        # like *.adatum.biz matches sbc1.adatum.biz (one label only, per RFC 2818
+        # and the MS Direct Routing SIP spec). Exact-only matching here would
+        # false-flag the very common wildcard Teams cert -> "re-issue" noise.
         names = ([cert.subject_cn] if cert.subject_cn else []) + cert.sans
-        if config.sbc_fqdn and config.sbc_fqdn not in names:
+        if config.sbc_fqdn and not _fqdn_matches(config.sbc_fqdn, names):
             res.add(Finding(
                 check_id="C.CERT.FQDN_MISMATCH",
                 title="Certificate CN/SAN does not match SBC FQDN",
                 severity=Severity.HIGH,
-                detail=f"SBC FQDN '{config.sbc_fqdn}' not found in cert names {names}.",
-                remediation="Re-issue the cert with the SBC FQDN in the SAN list.",
+                detail=f"SBC FQDN '{config.sbc_fqdn}' is not covered by cert names "
+                       f"{names} (wildcards allowed). Teams matches the Contact-header "
+                       "FQDN to the cert CN/SAN; a mismatch is rejected at TLS.",
+                remediation="Re-issue the cert with the SBC FQDN (or a covering wildcard) "
+                            "in the SAN list.",
                 locator=f"cert CN={cert.subject_cn}",
             ))
 

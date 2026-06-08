@@ -887,3 +887,29 @@ def test_audiocodes_exposed_acl_fires_domain_s():
     got = {f.check_id for f in AccessControlValidator({}).validate(cfg).findings}
     assert {"S.ACL.NO_DEFAULT_DENY", "S.ACL.BROAD_CIDR",
             "S.ACL.MEDIA_PLANE_MISSING", "S.ACL.IPV6_NEGLECT"} <= got
+
+
+def test_wildcard_cert_fqdn_match():
+    """MS Direct Routing supports wildcard certs; exact-match would false-flag."""
+    from sbc_validator.validators.ca_compliance import _name_covers, _fqdn_matches
+    assert _name_covers("*.adatum.biz", "sbc1.adatum.biz")        # one label -> match
+    assert not _name_covers("*.adatum.biz", "a.b.adatum.biz")     # two labels -> no
+    assert not _name_covers("*.adatum.biz", "adatum.biz")         # bare domain -> no
+    assert _name_covers("sbc1.adatum.biz", "sbc1.adatum.biz")     # exact
+    assert _fqdn_matches("sbc1.adatum.biz", ["*.adatum.biz"])     # via SAN wildcard
+
+
+def test_wildcard_cert_no_false_fqdn_mismatch(ruleset):
+    """A wildcard leaf covering the SBC FQDN must NOT raise C.CERT.FQDN_MISMATCH."""
+    from sbc_validator.models import NormalizedConfig, SipInterface, TlsContext, Certificate, EKU
+    leaf = Certificate(subject_cn="*.contoso.com", sans=["*.contoso.com"],
+                       ekus=[EKU.SERVER_AUTH], not_after="2027-01-01",
+                       chain_complete=True, source_file="x.pem")
+    ctx = TlsContext(name="t", mtls_enabled=True, presented_cert=leaf,
+                     trusted_root_ids=[], introspectable=True)
+    cfg = NormalizedConfig(vendor="x", sbc_fqdn="sbc1.contoso.com",
+                           sip_interfaces=[SipInterface(name="Teams", role="teams",
+                                           fqdn="sbc1.contoso.com", tls_context=ctx,
+                                           transport="tls")])
+    ids_found = {f.check_id for f in CaComplianceValidator(ruleset).validate(cfg).findings}
+    assert "C.CERT.FQDN_MISMATCH" not in ids_found
