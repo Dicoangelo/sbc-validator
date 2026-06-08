@@ -94,6 +94,16 @@ docker run --rm -p 8787:8787 -v "$PWD/results:/app/results" \
 
 The dashboard is local only. It is never hosted off your environment.
 
+## Executive leave-behind (one forwardable file)
+
+```bash
+sbc-validator report --results results --out fleet-report.html
+```
+
+A single self-contained HTML page (no server): 2026 CA-migration readiness,
+deploy verdicts, security-posture (access-control) exposure count, and the most
+common findings across the fleet. The artifact you forward after a walkthrough.
+
 ## Predict and explain
 
 ```bash

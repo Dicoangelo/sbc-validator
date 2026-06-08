@@ -266,6 +266,24 @@ def run_explain(args) -> int:
     return 0
 
 
+def run_report(args) -> int:
+    """Build a consolidated executive report from a results directory."""
+    from .tools.build_dashboard_data import build_payload
+    from .report.exec import render_html, render_markdown as _md
+    payload = build_payload(args.results)
+    if payload is None:
+        print(f"no result files in {args.results}/ "
+              f"(run: sbc-validator validate ... --out {args.results})", file=sys.stderr)
+        return 2
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as fh:
+            fh.write(render_html(payload))
+        print(f"[report] wrote {args.out}  ({len(payload['fleet'])} SBCs)")
+    else:
+        print(_md(payload))
+    return 0
+
+
 def run_fleet(args) -> int:
     """Validate a directory of configs and roll up a fleet readiness report."""
     import glob
@@ -385,6 +403,12 @@ def main(argv=None) -> int:
     dm.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
     dm.add_argument("--out", default="results", help="where to write per-run results (default: results)")
     dm.set_defaults(func=lambda a: __import__("sbc_validator.demo", fromlist=["run_demo"]).run_demo(a))
+
+    rp = sub.add_parser("report",
+                        help="consolidated executive report (HTML/Markdown) from a results dir")
+    rp.add_argument("--results", default="results", help="dir of per-run JSON (validate --out)")
+    rp.add_argument("--out", default=None, help="write HTML here (default: print Markdown)")
+    rp.set_defaults(func=run_report)
 
     args = p.parse_args(argv)
     return args.func(args)

@@ -926,3 +926,16 @@ def test_ip_identity_flagged(ruleset):
     # an FQDN identity must NOT trip it
     ok = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
     assert "B.SIP.IDENTITY_IS_IP" not in {f.check_id for f in InteropValidator(ruleset).validate(ok).findings}
+
+
+def test_report_command(tmp_path):
+    """The executive report renders from a results dir (Markdown + HTML)."""
+    from sbc_validator.cli import main
+    out = tmp_path / "res"
+    assert main(["demo", "--samples", str(REPO / "samples"),
+                 "--ruleset", str(RULESET), "--out", str(out)]) == 0
+    assert main(["report", "--results", str(out)]) == 0           # markdown to stdout
+    html = tmp_path / "exec.html"
+    assert main(["report", "--results", str(out), "--out", str(html)]) == 0
+    h = html.read_text()
+    assert "Executive Report" in h and "CA migration" in h and "access-control" in h
