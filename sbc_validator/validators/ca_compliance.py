@@ -4,7 +4,7 @@ Domain C — TLS / SRTP & CA Compliance (primary wedge).
 Encodes the Microsoft Direct Routing 2026 mTLS/CA requirements as logic driven
 by a pulled rule bundle (so the authoritative root-CA list and counts live in
 the signed ruleset, not hardcoded here). Requirements sourced from Microsoft
-Learn and verified 2026-06-07 (see RULE_AUTHORITY.md):
+Learn and verified 2026-06-07 (see docs/RULE_AUTHORITY.md):
 
   * SBC trust store must contain ALL 7 required Microsoft/DigiCert root CAs
     (incl. the new DigiCert TLS ECC/RSA Root G5 pair) for the Teams mTLS context.
@@ -118,7 +118,7 @@ class CaComplianceValidator(AbstractValidator):
 
         # --- required root CAs present (count + identity) ---
         # The ruleset lists each required root as {"name", "sha1"} (authoritative,
-        # sourced — see RULE_AUTHORITY.md). Older bundles may list plain name
+        # sourced — see docs/RULE_AUTHORITY.md). Older bundles may list plain name
         # strings; both are handled. Matching is naming-tolerant: configs name the
         # same root inconsistently ("DigiCert Global Root G2" vs "DigiCertGlobalRootG2"),
         # so we compare on a normalized form and also accept a SHA-1 thumbprint match.
@@ -136,7 +136,7 @@ class CaComplianceValidator(AbstractValidator):
                        "is expected; the 7 required 2026 root CAs must be verified "
                        "out-of-band.",
                 remediation="Confirm the Teams TLS trust store contains all 7 required "
-                            "root CAs (see RULE_AUTHORITY.md), or supply trusted-root ids.",
+                            "root CAs (see docs/RULE_AUTHORITY.md), or supply trusted-root ids.",
                 locator=f"TlsContext '{ctx.name}'",
             ))
             required_roots = []      # skip the per-root missing check below

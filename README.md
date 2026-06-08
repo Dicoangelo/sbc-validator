@@ -115,20 +115,20 @@ samples/                 sample configs (intentional misconfigs) for smoke test
 
 | Doc | For |
 |---|---|
-| **[REVIEW.md](REVIEW.md)** | 5-minute orientation: what's built/proven, the 60-second demo, honest gaps |
-| **[ONE-PAGER.md](ONE-PAGER.md)** | the product at a glance (8 domains x 4 vendors, the wedge, the ask) |
-| **[MEETING-QA.md](MEETING-QA.md)** | anticipated vet-level questions + honest answers |
-| **[DASHBOARD.md](DASHBOARD.md)** | the local dashboard: panels, data flow, controls |
-| **[RUNBOOK.md](RUNBOOK.md)** | operator guide: install + run air-gapped, fleet readiness, leave-behind report |
-| **[CONFIG-REQUEST.md](CONFIG-REQUEST.md)** | exactly what real config to export per vendor (the unlock for routing + security) |
-| **[VALIDATOR-COVERAGE.md](VALIDATOR-COVERAGE.md)** | coverage vs. the canonical SBC failure-mode taxonomy + backlog |
-| **[PRODUCTION-PLAN.md](PRODUCTION-PLAN.md)** | the three planes (engine / rule service / telemetry) + hard gates |
-| **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)** | where every Microsoft DR rule is sourced + the re-sign workflow |
-| **[AUDIOCODES_INI.md](AUDIOCODES_INI.md)** | the real AudioCodes table-`.ini` grammar -> normalized model |
+| **[REVIEW.md](docs/REVIEW.md)** | 5-minute orientation: what's built/proven, the 60-second demo, honest gaps |
+| **[ONE-PAGER.md](docs/ONE-PAGER.md)** | the product at a glance (8 domains x 4 vendors, the wedge, the ask) |
+| **[MEETING-QA.md](docs/MEETING-QA.md)** | anticipated vet-level questions + honest answers |
+| **[DASHBOARD.md](docs/DASHBOARD.md)** | the local dashboard: panels, data flow, controls |
+| **[RUNBOOK.md](docs/RUNBOOK.md)** | operator guide: install + run air-gapped, fleet readiness, leave-behind report |
+| **[CONFIG-REQUEST.md](docs/CONFIG-REQUEST.md)** | exactly what real config to export per vendor (the unlock for routing + security) |
+| **[VALIDATOR-COVERAGE.md](docs/VALIDATOR-COVERAGE.md)** | coverage vs. the canonical SBC failure-mode taxonomy + backlog |
+| **[PRODUCTION-PLAN.md](docs/PRODUCTION-PLAN.md)** | the three planes (engine / rule service / telemetry) + hard gates |
+| **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)** | where every Microsoft DR rule is sourced + the re-sign workflow |
+| **[AUDIOCODES_INI.md](docs/AUDIOCODES_INI.md)** | the real AudioCodes table-`.ini` grammar -> normalized model |
 
 ## Microsoft Direct Routing 2026 facts encoded (sourced + verified 2026-06-07)
 
-Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
+Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)**.
 
 - Trust store must contain **all 7 required Microsoft/DigiCert root CAs**, each
   with its SHA-1 thumbprint, in the signed ruleset. This now includes the new
@@ -147,7 +147,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   `sip.g1.pstnhub.microsoft.com:5061`.
 
 > **Before production:** re-verify the root list against Microsoft's live Azure
-> Certificate Authority details page and re-sign the bundle (see RULE_AUTHORITY.md).
+> Certificate Authority details page and re-sign the bundle (see docs/RULE_AUTHORITY.md).
 > The values here are sourced and dated, not frozen; CA lists change.
 
 ## What's deliberately NOT done yet (roadmap)
@@ -173,7 +173,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   clientAuth-only leaf (the EKU deprecation).
 - **AudioCodes parses the real parameter-table `.ini`** a Mediant actually exports
   (indexed `[ Table ]` / `FORMAT` / `[ \Table ]` tables with cross-references;
-  Teams leg resolved via ProxySet -> pstnhub). See [AUDIOCODES_INI.md](AUDIOCODES_INI.md).
+  Teams leg resolved via ProxySet -> pstnhub). See [AUDIOCODES_INI.md](docs/AUDIOCODES_INI.md).
   Because a real `.ini` carries no cert/trust-store, C reports LOW "verify
   out-of-band" instead of false-claiming CRITICAL — it distinguishes *absent* from
   *not-present-in-this-source*.

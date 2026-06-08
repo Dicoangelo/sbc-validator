@@ -12,7 +12,7 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
 
 ## 1. Domain learnings (SBC / Direct Routing / the 2026 wedge)
 
-> Canonical domain model lives in **[[DOMAIN_REFERENCE.md]]** (distilled from
+> Canonical domain model lives in **[[docs/DOMAIN_REFERENCE.md]]** (distilled from
 > *SBCs For Dummies, 7th Ribbon ed.* + the MS DR docs). It maps every standard
 > SBC function to our coverage and ranks the gaps. Read it before adding a domain.
 
@@ -25,7 +25,7 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
   *signaling* plane. That is the recommended next security build (a new domain F),
   because it reads as "obviously an SBC concern" to a 20-year vet. Second:
   **SRTP media-encryption** validation (we carry the suite in the ruleset but
-  don't yet check the media leg actually encrypts). See DOMAIN_REFERENCE.md §gaps.
+  don't yet check the media leg actually encrypts). See docs/DOMAIN_REFERENCE.md §gaps.
 
 - **(2026-06-07) Rule authority is the deepest risk, and our placeholder was
   wrong in the worst way.** When we sourced the real Microsoft list, the
@@ -35,7 +35,7 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
   been told to fix the wrong things while the tool stayed silent on the actual
   2026 gap. A confident PASS on a wrong rule set is worse than no tool.
   -> *Apply:* every rule is now sourced + thumbprinted + dated in
-  [[RULE_AUTHORITY.md]], a test guards against any wrong-but-still-7 list, and we
+  [[docs/RULE_AUTHORITY.md]], a test guards against any wrong-but-still-7 list, and we
   re-verify against Microsoft's live page before every pilot.
 
 - **(2026-06-07) The authoritative 7 roots** (with SHA-1) are: DigiCert Global
@@ -157,7 +157,7 @@ Format for a learning: **what we learned -> why it matters -> how we apply it.**
   tables that cross-reference (IPGroup -> ProxySet + IPProfile + SIPInterface; the
   Teams leg is the IPGroup whose ProxySet's ProxyIP rows contain pstnhub). Built a
   real table-ini parser + DR mapper for it (`audiocodes_ini.py`), see
-  [[AUDIOCODES_INI.md]]. **The correctness landmine:** the leaf cert and root CAs
+  [[docs/AUDIOCODES_INI.md]]. **The correctness landmine:** the leaf cert and root CAs
   are imported certificate FILES, not in the .ini. Our C validator would have
   screamed CRITICAL (cert missing, all roots missing) on every real config. Fix:
   a TlsContext.introspectable flag + C emits LOW "verify out-of-band"
