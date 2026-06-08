@@ -1,14 +1,15 @@
 """
-Vendor parsers.
+Vendor parser dispatch.
 
-AudioCodes is implemented against a simplified INI-style projection of an
-exported config (enough to exercise the C and D validators end-to-end). The
-other three vendors are honest stubs: they sniff and raise NotImplementedError
-so the roadmap is explicit rather than pretending to support them.
+Four vendors are implemented end-to-end on one normalized model: AudioCodes
+(both the simplified INI projection and the real Mediant parameter-table .ini),
+Cisco CUBE (IOS-XE running-config), Ribbon SBC Core (set-config), and Oracle
+Acme Packet (ACLI). detect_and_parse sniffs the format and dispatches; the same
+A-G + S validators run unmodified across all four.
 
-Production note: real AudioCodes .ini exports have a richer grammar (parameter
-tables, indexed sub-records). Start one vendor end-to-end (this one), prove the
-normalized model holds, then widen — don't build four shallow parsers at once.
+Production note: real exports have richer grammar than the smoke-test samples
+(AudioCodes indexed tables, Cisco voice-class tenants, etc.). The model held as
+each vendor was added end-to-end rather than building four shallow parsers at once.
 """
 from __future__ import annotations
 

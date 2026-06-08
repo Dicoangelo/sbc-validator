@@ -146,10 +146,13 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
 
 ## Now implemented
 
-- **A/B/C/D/E** validators all live and (B/C/D/E) ruleset-driven:
-  A = syntax/semantic baseline, B = interop, C = TLS/CA wedge (incl. an **SRTP**
-  media-encryption check), D = NAT, E = codec, G = routing/classification (fires
-  only when the config source carries routing info).
+- **Eight validation domains, all live** and ruleset-driven where applicable:
+  A = syntax/semantic baseline, B = interop (incl. carrier-leg keep-alive and
+  IP-as-identity), C = TLS/CA wedge (incl. **SRTP** + trust-anchor chain +
+  wildcard-aware CN/SAN), D = NAT, E = codec (incl. transcode/DSP awareness),
+  F = topology-leak (from pcap), G = routing/classification, and **S = security /
+  access-control** (default-deny, broad CIDR, media-plane ACL, IPv6 neglect).
+  G and S fire only when the config source carries the relevant info.
 - **Four real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
   (IOS-XE), Ribbon SBC Core, and Oracle/Acme (ACLI).** The same validators run
   unmodified across all four — the vendor-agnostic claim, demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
@@ -202,9 +205,9 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)**.
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 66 tests) covering all three parsers (incl. the real
-  AudioCodes table-`.ini`), the five validators, SRTP, HA drift, call-flow
-  simulation, the pcap explainer (incl. topology leak), the real-config
+- **Test suite** (`pytest`, 79 tests) covering all four parsers (incl. the real
+  AudioCodes table-`.ini`), the eight validation domains, SRTP, HA drift,
+  call-flow simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,
   and HTML rendering.
 
