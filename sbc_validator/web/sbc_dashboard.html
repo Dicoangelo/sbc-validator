@@ -386,7 +386,7 @@ function renderAll(fleet, trend){
     data:{labels:trend.labels,
       datasets:Object.keys(trend.series).map(s=>({
         label:s,data:trend.series[s],borderColor:SEV_COLOR[s],backgroundColor:SEV_COLOR[s],
-        tension:.32,borderWidth:2,pointRadius:0,pointHoverRadius:4}))},
+        tension:.32,borderWidth:2,pointRadius:(trend.labels.length<=3?3:0),pointHoverRadius:4}))},
     options:{plugins:{legend:{position:"bottom",labels:{boxWidth:10,boxHeight:10,font:{size:10.5},usePointStyle:true,pointStyle:"rectRounded"}}},
       interaction:{mode:"index",intersect:false},
       scales:{x:{grid:{display:false},ticks:{font:{family:"IBM Plex Mono",size:9.5},maxRotation:0,autoSkip:true,maxTicksLimit:8}},
@@ -471,7 +471,9 @@ function loadPayload(p){
   if(!p.fleet || !p.fleet.length){ alert("No SBCs in that file."); return; }
   // ensure each finding has a domain (older outputs may omit it)
   p.fleet.forEach(s=>(s.findings||[]).forEach(f=>{ if(!f.domain && f.check_id) f.domain=f.check_id.split(".")[0]; }));
-  CURRENT = { fleet:p.fleet, trend:(p.trend&&p.trend.labels&&p.trend.labels.length)?p.trend:TREND, mode:p.mode||"internal" };
+  // A trend needs >=2 distinct days to draw a line; with one run's worth of
+  // history, show the illustrative sample trend instead of a blank single point.
+  CURRENT = { fleet:p.fleet, trend:(p.trend&&p.trend.labels&&p.trend.labels.length>1)?p.trend:TREND, mode:p.mode||"internal" };
   setMode(CURRENT.mode);
   rebuildVendorFilter(CURRENT.fleet);
   renderAll(CURRENT.fleet, CURRENT.trend);
