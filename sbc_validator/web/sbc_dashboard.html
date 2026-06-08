@@ -165,7 +165,7 @@
     <div class="navgroup">
       <h4>Operations</h4>
       <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.6a2 2 0 0 1 3.4 0l7 12a2 2 0 0 1-1.7 3H5a2 2 0 0 1-1.7-3z"/><path d="M12 9v4M12 17h.01"/></svg>Incidents &amp; Policies</a>
-      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z"/></svg>Validators (A-G)</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z"/></svg>Validators (A-G, S)</a>
       <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="20" height="6" rx="1"/></svg>SBC Devices</a>
     </div>
     <div class="navgroup">
@@ -182,21 +182,13 @@
   </div>
 
   <div class="filters">
-    <div class="field"><label>Account</label>
-      <select id="f-account"><option>Network Voice Estate</option><option>Lab / Staging</option></select>
-    </div>
-    <div class="field"><label>Dashboard</label>
-      <select id="f-dash"><option>SBC Pre-Deploy Validation</option><option>Microsoft DR Readiness</option></select>
-    </div>
     <div class="field"><label>Vendor</label>
       <select id="f-vendor"><option value="">All vendors</option></select>
     </div>
     <div class="field"><label>Verdict</label>
       <select id="f-verdict"><option value="">All verdicts</option><option>BLOCK</option><option>REVIEW</option><option>PASS</option></select>
     </div>
-    <div class="field grow"><label>Time range</label>
-      <select id="f-range"><option>Last 14 days</option><option>Last 7 days</option><option>Last 24 hours</option></select>
-    </div>
+    <div class="field grow"></div>
     <div class="field"><label>Data source <span id="mode-badge" class="badge">sample</span></label>
       <label for="f-file" class="loadbtn">⤓ Load dashboard_data.json</label>
       <input id="f-file" type="file" accept="application/json,.json" hidden />
@@ -501,7 +493,7 @@ document.getElementById("f-file").addEventListener("change",e=>{
   r.readAsText(file);
 });
 
-["f-vendor","f-verdict","f-range","f-account","f-dash"].forEach(id=>
+["f-vendor","f-verdict"].forEach(id=>
   document.getElementById(id).addEventListener("change",()=>renderAll(CURRENT.fleet,CURRENT.trend)));
 
 // initial: try a sibling dashboard_data.json (works when served over http),

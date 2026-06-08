@@ -95,22 +95,34 @@ python -m sbc_validator.cli validate samples/audiocodes_min.ini \
 ```
 sbc_validator/
   models.py              normalized vendor-neutral config model
-  cli.py                 entrypoint: parse -> validate -> report
-  rules/client.py        signed, versioned rule-bundle client (offline-capable)
-  parsers/
-    base.py              parser contract
-    audiocodes.py        AudioCodes (.ini table + simple); cisco_cube.py;
-                         ribbon.py; oracle.py (4 real vendor parsers)
-  validators/
-    base.py              Finding / Severity / AbstractValidator
-    ca_compliance.py     C — Microsoft DR TLS/CA wedge
-    nat_traversal.py     D — NAT / one-way audio
-  report/
-    risk.py              severity-weighted score + deploy verdict
-    anonymize.py         opt-in, minimal, non-reversible payload
+  cli.py                 entrypoint: validate/simulate/explain/diff/fleet/serve/demo/report
+  call_sim.py            deterministic call-flow prediction (TLS->SIP->SDP->media)
+  sip_trace.py / pcap.py pcap post-mortem ("explain"); pure-stdlib pcap reader
+  serve.py / demo.py     local dashboard server; one-command showcase
+  fleet.py               directory -> 2026 CA-readiness rollup
+  rules/client.py        signed, versioned, rollback-floored rule-bundle client
+  parsers/               audiocodes (.ini table + simple), cisco_cube, ribbon, oracle
+  validators/            A syntax, B interop, C ca_compliance, D nat_traversal,
+                         E codec, ha_drift, G routing, S access_control
+  report/                risk (score+verdict), html (per-SBC), exec (fleet report),
+                         anonymize (opt-in payload)
+  web/sbc_dashboard.html the packaged dashboard viewer
 rulesets/                signed rule bundles
-samples/                 sample config (intentional misconfigs) for smoke test
+samples/                 sample configs (intentional misconfigs) for smoke test
 ```
+
+## Documentation
+
+| Doc | For |
+|---|---|
+| **[REVIEW.md](REVIEW.md)** | 5-minute orientation: what's built/proven, the 60-second demo, honest gaps |
+| **[DASHBOARD.md](DASHBOARD.md)** | the local dashboard: panels, data flow, controls |
+| **[RUNBOOK.md](RUNBOOK.md)** | operator guide: install + run air-gapped, fleet readiness, leave-behind report |
+| **[CONFIG-REQUEST.md](CONFIG-REQUEST.md)** | exactly what real config to export per vendor (the unlock for routing + security) |
+| **[VALIDATOR-COVERAGE.md](VALIDATOR-COVERAGE.md)** | coverage vs. the canonical SBC failure-mode taxonomy + backlog |
+| **[PRODUCTION-PLAN.md](PRODUCTION-PLAN.md)** | the three planes (engine / rule service / telemetry) + hard gates |
+| **[RULE_AUTHORITY.md](RULE_AUTHORITY.md)** | where every Microsoft DR rule is sourced + the re-sign workflow |
+| **[AUDIOCODES_INI.md](AUDIOCODES_INI.md)** | the real AudioCodes table-`.ini` grammar -> normalized model |
 
 ## Microsoft Direct Routing 2026 facts encoded (sourced + verified 2026-06-07)
 
