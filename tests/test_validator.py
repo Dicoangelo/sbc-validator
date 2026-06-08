@@ -815,3 +815,15 @@ def test_demo_runs_and_writes_results(tmp_path):
     assert rc == 0
     results = list(out.glob("*/*.json"))
     assert len(results) >= 4          # four-vendor fleet recorded
+
+
+def test_cli_tampered_ruleset_clean_exit(tmp_path):
+    """A tampered/invalid ruleset must be refused with a clean exit, not a traceback."""
+    from sbc_validator.cli import main
+    bundle = json.loads(RULESET.read_text())
+    bundle["C"]["cert_expiry_warn_days"] = 9999      # breaks the signature
+    p = tmp_path / "tampered.json"
+    p.write_text(json.dumps(bundle))
+    with pytest.raises(SystemExit) as ei:
+        main(["validate", str(SAMPLE), "--ruleset", str(p)])
+    assert ei.value.code == 2

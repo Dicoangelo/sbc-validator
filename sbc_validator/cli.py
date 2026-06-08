@@ -60,10 +60,32 @@ def _parse(path: str):
         raise SystemExit(2)
 
 
+def _load_ruleset(path: str) -> dict:
+    """Fetch + verify a signed ruleset, converting any failure into a clean exit.
+
+    A customer can be handed a corrupted, tampered, stale, or missing bundle.
+    The signature/rollback refusal is a SECURITY outcome and must read as a
+    one-line message, never a Python traceback.
+    """
+    from .rules.client import RuleVerificationError
+    try:
+        return RuleClient().fetch("ms_direct_routing", local_path=path)
+    except RuleVerificationError as e:
+        print(f"ruleset refused: {e}", file=sys.stderr)
+        raise SystemExit(2)
+    except FileNotFoundError:
+        print(f"error: ruleset not found: {path}", file=sys.stderr)
+        raise SystemExit(2)
+    except (ValueError, OSError) as e:
+        print(f"ruleset error: could not read {path} ({type(e).__name__}: {e})",
+              file=sys.stderr)
+        raise SystemExit(2)
+
+
 def run(args) -> int:
     config = _parse(args.config)
 
-    bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
+    bundle = _load_ruleset(args.ruleset)
     ruleset_version = bundle.get("bundle_version", "unknown")
 
     findings = []
@@ -155,7 +177,7 @@ def run_simulate(args) -> int:
     """Predict how far a real call would get, from static config alone."""
     from .call_sim import simulate_call
     config = _parse(args.config)
-    bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
+    bundle = _load_ruleset(args.ruleset)
     findings = []
     for vcls in VALIDATORS:
         findings.extend(vcls(bundle).validate(config).findings)
@@ -225,7 +247,7 @@ def run_fleet(args) -> int:
     """Validate a directory of configs and roll up a fleet readiness report."""
     import glob
     from .fleet import run_fleet as _run_fleet, render_markdown
-    bundle = RuleClient().fetch("ms_direct_routing", local_path=args.ruleset)
+    bundle = _load_ruleset(args.ruleset)
     paths = sorted(p for p in glob.glob(os.path.join(args.directory, "*"))
                    if os.path.isfile(p))
     result = _run_fleet(paths, bundle)
