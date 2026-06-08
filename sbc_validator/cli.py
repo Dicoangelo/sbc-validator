@@ -60,6 +60,20 @@ def _parse(path: str):
         raise SystemExit(2)
 
 
+def _resolve_ruleset(path):
+    """Use the given ruleset, or auto-discover the shipped bundle.
+
+    The container and the source tree both carry the signed bundle at
+    rulesets/ms_direct_routing_*.json, so `--ruleset` is optional there and
+    commands stay short. A pip-only install with no bundle must pass --ruleset.
+    """
+    if path:
+        return path
+    from pathlib import Path as _P
+    found = sorted(_P("rulesets").glob("ms_direct_routing_*.json"))
+    return str(found[-1]) if found else None
+
+
 def _load_ruleset(path: str) -> dict:
     """Fetch + verify a signed ruleset, converting any failure into a clean exit.
 
@@ -85,7 +99,11 @@ def _load_ruleset(path: str) -> dict:
 def run(args) -> int:
     config = _parse(args.config)
 
-    bundle = _load_ruleset(args.ruleset)
+    rs = _resolve_ruleset(args.ruleset)
+    if rs is None:
+        print("error: no ruleset found; pass --ruleset <signed bundle>", file=sys.stderr)
+        return 2
+    bundle = _load_ruleset(rs)
     ruleset_version = bundle.get("bundle_version", "unknown")
 
     findings = []
@@ -177,7 +195,11 @@ def run_simulate(args) -> int:
     """Predict how far a real call would get, from static config alone."""
     from .call_sim import simulate_call
     config = _parse(args.config)
-    bundle = _load_ruleset(args.ruleset)
+    rs = _resolve_ruleset(args.ruleset)
+    if rs is None:
+        print("error: no ruleset found; pass --ruleset <signed bundle>", file=sys.stderr)
+        return 2
+    bundle = _load_ruleset(rs)
     findings = []
     for vcls in VALIDATORS:
         findings.extend(vcls(bundle).validate(config).findings)
@@ -247,7 +269,11 @@ def run_fleet(args) -> int:
     """Validate a directory of configs and roll up a fleet readiness report."""
     import glob
     from .fleet import run_fleet as _run_fleet, render_markdown
-    bundle = _load_ruleset(args.ruleset)
+    rs = _resolve_ruleset(args.ruleset)
+    if rs is None:
+        print("error: no ruleset found; pass --ruleset <signed bundle>", file=sys.stderr)
+        return 2
+    bundle = _load_ruleset(rs)
     paths = sorted(p for p in glob.glob(os.path.join(args.directory, "*"))
                    if os.path.isfile(p))
     result = _run_fleet(paths, bundle)
@@ -298,7 +324,7 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
     v = sub.add_parser("validate", help="validate a local SBC config export")
     v.add_argument("config")
-    v.add_argument("--ruleset", required=True, help="path to a signed rule bundle")
+    v.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
     v.add_argument("--json", action="store_true")
     v.add_argument("--out", default=None,
                    help="write this run to <out>/<sbc>/<timestamp>.json for the dashboard")
@@ -322,7 +348,7 @@ def main(argv=None) -> int:
     sm = sub.add_parser("simulate",
                         help="predict the call flow (TLS->SIP->SDP->media) from config")
     sm.add_argument("config")
-    sm.add_argument("--ruleset", required=True, help="path to a signed rule bundle")
+    sm.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
     sm.add_argument("--json", action="store_true")
     sm.set_defaults(func=run_simulate)
 
@@ -335,7 +361,7 @@ def main(argv=None) -> int:
     fl = sub.add_parser("fleet",
                         help="validate a directory of configs -> fleet readiness report")
     fl.add_argument("directory", help="directory of SBC config exports")
-    fl.add_argument("--ruleset", required=True, help="path to a signed rule bundle")
+    fl.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
     fl.add_argument("--out", default=None, help="write the Markdown report to this path")
     fl.add_argument("--json", action="store_true")
     fl.set_defaults(func=run_fleet)

@@ -827,3 +827,11 @@ def test_cli_tampered_ruleset_clean_exit(tmp_path):
     with pytest.raises(SystemExit) as ei:
         main(["validate", str(SAMPLE), "--ruleset", str(p)])
     assert ei.value.code == 2
+
+
+def test_validate_autodiscovers_ruleset(monkeypatch):
+    """--ruleset is optional: the shipped bundle is found relative to CWD."""
+    from sbc_validator.cli import main
+    monkeypatch.chdir(REPO)
+    rc = main(["validate", str(SAMPLE)])     # no --ruleset; audiocodes_min -> BLOCK
+    assert rc == 1

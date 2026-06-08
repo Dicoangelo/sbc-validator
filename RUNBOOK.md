@@ -53,10 +53,11 @@ at your own configs.
 
 ## Validate one SBC (air-gapped)
 
+The signed ruleset ships in the image, so `--ruleset` is optional:
+
 ```bash
 docker run --rm --network none -v "$PWD/configs:/work" \
-  ghcr.io/dicoangelo/sbc-validator:latest \
-  validate /work/teams.ini --ruleset rulesets/ms_direct_routing_2026-06.json
+  ghcr.io/dicoangelo/sbc-validator:latest validate /work/teams.ini
 ```
 
 Exit code is 0 for PASS, non-zero for BLOCK (tune with `--fail-on review`), so it
