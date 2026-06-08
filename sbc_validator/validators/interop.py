@@ -11,8 +11,18 @@ interop and cross-vendor bridging:
 """
 from __future__ import annotations
 
+import ipaddress
+
 from ..models import NormalizedConfig
 from .base import AbstractValidator, Finding, Severity, ValidatorResult
+
+
+def _is_ip(host: str) -> bool:
+    try:
+        ipaddress.ip_address(str(host).strip())
+        return True
+    except ValueError:
+        return False
 
 
 class InteropValidator(AbstractValidator):
@@ -22,6 +32,20 @@ class InteropValidator(AbstractValidator):
         res = ValidatorResult(domain=self.domain)
         rules = self.ruleset.get("B", {})
         teams_required_transport = rules.get("teams_required_transport", "tls")
+
+        # Teams refuses a Contact/OPTIONS whose hostname is an IP (403 Forbidden);
+        # the identity must be the SBC FQDN that also matches the cert CN/SAN.
+        # (Microsoft Direct Routing SIP spec.)
+        if config.sbc_fqdn and _is_ip(config.sbc_fqdn):
+            res.add(Finding(
+                check_id="B.SIP.IDENTITY_IS_IP",
+                title="SBC identity is an IP address, not an FQDN",
+                severity=Severity.HIGH,
+                detail="Direct Routing rejects an INVITE/OPTIONS whose Contact host is an "
+                       "IP with 403 Forbidden. The Contact must carry the SBC FQDN, which "
+                       "must also match the certificate CN/SAN.",
+                remediation="Present the SBC FQDN (not an IP) as the Teams-facing identity.",
+            ))
 
         teams = config.teams_interface()
         if teams is None:

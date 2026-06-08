@@ -913,3 +913,16 @@ def test_wildcard_cert_no_false_fqdn_mismatch(ruleset):
                                            transport="tls")])
     ids_found = {f.check_id for f in CaComplianceValidator(ruleset).validate(cfg).findings}
     assert "C.CERT.FQDN_MISMATCH" not in ids_found
+
+
+def test_ip_identity_flagged(ruleset):
+    """An IP (not FQDN) as the SBC identity is a 403 risk (MS DR SIP spec)."""
+    from sbc_validator.models import NormalizedConfig, SipInterface
+    ipcfg = NormalizedConfig(vendor="x", sbc_fqdn="203.0.113.9",
+                             sip_interfaces=[SipInterface(name="Teams", role="teams",
+                                             transport="tls", options_keepalive=True)])
+    got = {f.check_id for f in InteropValidator(ruleset).validate(ipcfg).findings}
+    assert "B.SIP.IDENTITY_IS_IP" in got
+    # an FQDN identity must NOT trip it
+    ok = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    assert "B.SIP.IDENTITY_IS_IP" not in {f.check_id for f in InteropValidator(ruleset).validate(ok).findings}
