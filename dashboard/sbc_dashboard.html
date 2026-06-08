@@ -126,7 +126,7 @@
   .riskbar span{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
 
   /* heatmap */
-  .heat{display:grid;grid-template-columns:54px repeat(5,1fr);gap:5px;align-items:center}
+  .heat{display:grid;grid-template-columns:54px repeat(7,1fr);gap:5px;align-items:center}
   .heat .h-col{font-size:10.5px;font-weight:700;color:var(--ink-soft);text-align:center;letter-spacing:.04em}
   .heat .h-row{font-size:10.5px;font-weight:700;color:var(--ink-soft)}
   .heat .cell{height:38px;border-radius:6px;display:grid;place-items:center;font-family:'IBM Plex Mono';font-size:13px;font-weight:600;color:#fff}
@@ -165,7 +165,7 @@
     <div class="navgroup">
       <h4>Operations</h4>
       <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.6a2 2 0 0 1 3.4 0l7 12a2 2 0 0 1-1.7 3H5a2 2 0 0 1-1.7-3z"/><path d="M12 9v4M12 17h.01"/></svg>Incidents &amp; Policies</a>
-      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z"/></svg>Validators (BCDE)</a>
+      <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2z"/></svg>Validators (A-G)</a>
       <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="20" height="6" rx="1"/></svg>SBC Devices</a>
     </div>
     <div class="navgroup">
@@ -227,7 +227,7 @@
       </div>
       <header style="padding-top:6px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg><h3>Open Findings by Domain</h3></header>
       <div class="body"><div class="chartwrap" style="height:182px"><canvas id="c-domain"></canvas></div></div>
-      <div class="foot"><span><b>BCDE</b> validation domains</span></div>
+      <div class="foot"><span><b>A-G</b> validation domains</span></div>
     </section>
 
     <!-- col 2: findings trend -->
@@ -282,8 +282,8 @@
 const SEV = ["CRITICAL","HIGH","MEDIUM","LOW","INFO"];
 const SEV_COLOR = {CRITICAL:"#c0392b",HIGH:"#e07a1f",MEDIUM:"#d4a017",LOW:"#5b85ad",INFO:"#9aa4b0"};
 const SEV_WEIGHT = {CRITICAL:40,HIGH:15,MEDIUM:6,LOW:2,INFO:0};
-const DOM_COLOR = {A:"#7a8794",B:"#5b85ad",C:"#9d1b54",D:"#e07a1f",E:"#1f8a6d"};
-const DOM_NAME = {A:"Baseline (A)",B:"Interop (B)",C:"TLS / CA (C)",D:"NAT (D)",E:"Codec (E)"};
+const DOM_COLOR = {A:"#7a8794",B:"#5b85ad",C:"#9d1b54",D:"#e07a1f",E:"#1f8a6d",F:"#8e44ad",G:"#c79100"};
+const DOM_NAME = {A:"Baseline (A)",B:"Interop (B)",C:"TLS / CA (C)",D:"NAT (D)",E:"Codec (E)",F:"Topology (F)",G:"Routing (G)"};
 
 // representative top findings per domain
 const TOPF = {
@@ -291,7 +291,9 @@ const TOPF = {
   C:["C.CA.ROOT_MISSING","C.CERT.EXPIRY","C.TLS.MTLS_DISABLED","C.CERT.EKU_DUALUSE"],
   D:["D.NAT.PRIVATE_ADVERTISED","D.NAT.NO_SYMMETRIC_RTP"],
   B:["B.SIP.TRANSPORT","B.SIP.OPTIONS_KEEPALIVE","B.SIP.NO_NORMALIZATION"],
-  E:["E.CODEC.NO_CROSS_OVERLAP","E.DTMF.INCONSISTENT"]
+  E:["E.CODEC.NO_CROSS_OVERLAP","E.DTMF.INCONSISTENT"],
+  F:["F.TOPOLOGY.PRIVATE_IP_LEAK","F.TOPOLOGY.VIA_INTERNAL"],
+  G:["G.CLASS.UNCLASSIFIED","G.ROUTE.NO_FROM_TEAMS","G.ROUTE.NO_TO_TEAMS"]
 };
 const VENDORS=["audiocodes","cisco_cube","ribbon","oracle_acme"];
 const SITES=["EU-West","US-East","US-West","APAC","DR-Site"];
@@ -373,8 +375,8 @@ function renderAll(fleet, trend){
   document.getElementById("rs-ver").textContent=(f[0]&&f[0].ruleset_version)||"—";
 
   // domain bar
-  const domCount={A:0,B:0,C:0,D:0,E:0};
-  f.forEach(s=>s.findings.forEach(x=>{if(x.severity!=="INFO")domCount[x.domain]++;}));
+  const domCount={}; Object.keys(DOM_NAME).forEach(d=>domCount[d]=0);
+  f.forEach(s=>s.findings.forEach(x=>{if(x.severity!=="INFO"&&domCount[x.domain]!==undefined)domCount[x.domain]++;}));
   charts.domain=new Chart(document.getElementById("c-domain"),{
     type:"bar",
     data:{labels:Object.keys(domCount).map(d=>DOM_NAME[d]),
@@ -426,15 +428,16 @@ function renderAll(fleet, trend){
   });
 
   // heatmap
-  const grid={}; SEV.filter(s=>s!=="INFO").forEach(s=>{grid[s]={A:0,B:0,C:0,D:0,E:0};});
+  const DOMS=Object.keys(DOM_NAME);
+  const grid={}; SEV.filter(s=>s!=="INFO").forEach(s=>{grid[s]={}; DOMS.forEach(d=>grid[s][d]=0);});
   f.forEach(s=>s.findings.forEach(x=>{if(grid[x.severity]&&grid[x.severity][x.domain]!==undefined)grid[x.severity][x.domain]++;}));
   let max=1; Object.values(grid).forEach(r=>Object.values(r).forEach(v=>max=Math.max(max,v)));
   const heat=document.getElementById("heat");
   heat.innerHTML="";
-  heat.insertAdjacentHTML("beforeend",`<div></div>`+["A","B","C","D","E"].map(d=>`<div class="h-col">${d}</div>`).join(""));
+  heat.insertAdjacentHTML("beforeend",`<div></div>`+DOMS.map(d=>`<div class="h-col">${d}</div>`).join(""));
   SEV.filter(s=>s!=="INFO").forEach(s=>{
     heat.insertAdjacentHTML("beforeend",`<div class="h-row">${s.slice(0,4)}</div>`);
-    ["A","B","C","D","E"].forEach(d=>{
+    DOMS.forEach(d=>{
       const v=grid[s][d], t=v/max;
       const bg=`color-mix(in srgb, #9d1b54 ${Math.round(t*100)}%, #eef1f4)`;
       const col = t>0.45?"#fff":"#52606e";
