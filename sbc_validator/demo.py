@@ -27,13 +27,14 @@ from .validators.access_control import AccessControlValidator
 _VALIDATORS = [SyntaxSemanticValidator, InteropValidator, CaComplianceValidator,
                NatTraversalValidator, CodecValidator, RoutingValidator, AccessControlValidator]
 
-# curated showcase: one per vendor, mixed verdicts (PASS -> BLOCK)
+# curated showcase: one per vendor, mixed verdicts + a security-exposure case
 _FLEET = [
-    ("clean_pass.ini",     "EU-West", "AudioCodes"),
-    ("audiocodes_min.ini", "EU-West", "AudioCodes"),
-    ("cisco_cube_dr.txt",  "US-West", "Cisco CUBE"),
-    ("ribbon_sbc.cli",     "EU-West", "Ribbon"),
-    ("oracle_teams.acli",  "APAC",    "Oracle Acme"),
+    ("clean_pass.ini",        "EU-West", "AudioCodes"),
+    ("audiocodes_min.ini",    "EU-West", "AudioCodes"),
+    ("cisco_cube_dr.txt",     "US-West", "Cisco CUBE"),
+    ("ribbon_sbc.cli",        "EU-West", "Ribbon"),
+    ("oracle_teams.acli",     "APAC",    "Oracle Acme"),
+    ("audiocodes_exposed.ini", "US-East", "AudioCodes"),  # healthy SBC, exposed firewall (domain S)
 ]
 _SIM_CONFIG = "audiocodes_min.ini"   # a BLOCK config: shows the call dying at TLS
 _PCAP = "reject_488.pcap"            # post-mortem of a rejected call
@@ -61,7 +62,7 @@ def run_demo(args) -> int:
 
     bundle = RuleClient().fetch("ms_direct_routing", local_path=str(ruleset))
     print(f"SBC Validator demo  (ruleset {bundle.get('bundle_version')})")
-    print("Validating a mixed four-vendor fleet, writing results to "
+    print("Validating a mixed multi-vendor fleet, writing results to "
           f"{out}/ ...\n")
 
     from .cli import _write_result   # function-level: cli is fully loaded by now
@@ -123,6 +124,16 @@ def run_demo(args) -> int:
                 print(f"\n  Explained capture ({_PCAP}): {diag}")
         except Exception:
             pass
+
+    # security posture: surface a domain-S exposure if one is in the fleet
+    sec_p = samples / "audiocodes_exposed.ini"
+    if sec_p.exists():
+        _, sec_findings, _ = _validate_one(sec_p, bundle)
+        s = [f for f in sec_findings if f.check_id.startswith("S.")]
+        if s:
+            top = max(s, key=lambda f: f.severity)
+            print(f"\n  Security posture (audiocodes_exposed.ini): {len(s)} access-control "
+                  f"findings, top [{top.severity.name}] {top.check_id}\n    {top.title}")
 
     # 2026 readiness rollup over the curated set
     from .fleet import run_fleet, render_markdown
