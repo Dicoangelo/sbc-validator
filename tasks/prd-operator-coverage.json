@@ -1,0 +1,116 @@
+{
+  "name": "sbc-validator-operator-coverage",
+  "description": "Post-v0.16.1 forward plan for SBC Validator. The engine, validators (A-G + S), 4 parsers, signed rules, air-gapped container, and a green release are done and reviewed (see docs/REVIEW-FINDINGS.md). This PRD consolidates the remaining work into two themes: (1) OPERATOR UX so a non-technical user can run it, not just view it; (2) COVERAGE depth gated on a real config. Shipped-this-sprint stories are recorded as done for an honest progress read.",
+  "project": "~/projects/sbc-validator",
+  "branchName": "operator-coverage",
+  "priority": "P1",
+  "verification": [
+    "source .venv/bin/activate && python -m pytest -q",
+    "sbc-validator demo",
+    "sbc-validator serve   # then load the dashboard, check console is clean"
+  ],
+  "userStories": [
+    {
+      "id": "OPS-001",
+      "title": "Honest nav scaffolding (no dead links)",
+      "priority": 0,
+      "status": "done",
+      "description": "The dashboard sidebar had 10 href=\"#\" dead links that read as a wireframe to a technical reviewer. Convert the unbuilt items to visible 'planned' scaffolding.",
+      "acceptanceCriteria": [
+        "Fleet Overview stays the live active page",
+        "Unbuilt items are muted, non-clickable (no href), each with a 'soon' pill + 'Planned' tooltip",
+        "Dashboard console is clean (no 404s); charts still render"
+      ]
+    },
+    {
+      "id": "OPS-002",
+      "title": "One-command launch + location-independent demo",
+      "priority": 0,
+      "status": "done",
+      "description": "Global ~/bin launcher + Desktop double-click that open the dashboard with zero setup; demo works from any directory (chdir to repo so cert PEM paths resolve).",
+      "acceptanceCriteria": [
+        "sbc-validator runs from any directory via ~/bin shim",
+        "Double-click SBC Validator.command opens the dashboard, auto-picks a free port",
+        "demo produces identical verdicts from any cwd (ribbon REVIEW 30 everywhere)"
+      ]
+    },
+    {
+      "id": "OPS-003",
+      "title": "Deep self-audit fixes (review-hardening)",
+      "priority": 0,
+      "status": "done",
+      "description": "5-agent deep review closed every acute demo-killer and security finding; shipped as green v0.16.1. See docs/REVIEW-FINDINGS.md.",
+      "acceptanceCriteria": [
+        "100 tests pass; demo verdicts unchanged",
+        "simulate/explain/trust-store/XSS/freshness/air-gap/ACL/NAT/HA/pcap/cert findings closed",
+        "v0.16.1 release green incl. air-gapped image smoke"
+      ]
+    },
+    {
+      "id": "OPS-004",
+      "title": "Drag-and-drop validate in the dashboard (C-suite operability)",
+      "priority": 1,
+      "status": "pending",
+      "dependsOn": [],
+      "description": "Turn the read-only dashboard into something a non-technical user OPERATES: drop a config file onto Fleet Overview and see the verdict, without a terminal. This is the Tier-2 unlock that makes it self-serve.",
+      "acceptanceCriteria": [
+        "A drop zone on Fleet Overview accepts a config file",
+        "serve.py gains a loopback-only POST /validate that runs the engine in-process and returns the report JSON",
+        "Raw config is validated in memory and never written to disk; nothing leaves 127.0.0.1",
+        "The verdict + findings render inline (reuse the existing report renderer); errors show a clean message, no traceback",
+        "A test covers the /validate endpoint (good config + malformed config)"
+      ]
+    },
+    {
+      "id": "OPS-005",
+      "title": "First real sidebar sub-page: Findings drill-down",
+      "priority": 2,
+      "status": "pending",
+      "description": "Convert one 'soon' nav item into a live page so the sidebar starts earning its chrome. Findings is the highest-value: a fleet-wide, filterable findings table.",
+      "acceptanceCriteria": [
+        "Clicking Findings shows a table of every finding across the fleet (SBC, domain, severity, check_id, title)",
+        "Filter by severity and domain; click a row to jump to that SBC",
+        "The 'soon' pill is removed from Findings; it becomes an active nav item",
+        "All values html-escaped (same discipline as the fleet table)"
+      ]
+    },
+    {
+      "id": "COV-001",
+      "title": "Acquire one real sanitized config per vendor (the unlock)",
+      "priority": 1,
+      "status": "pending",
+      "description": "External input from Dico/Philip: a real, sanitized export per vendor (AudioCodes Wizard .ini, Cisco running-config, Ribbon show-config, Oracle ACLI). This is the #1 dependency for COV-002/003. See docs/CONFIG-REQUEST.md.",
+      "acceptanceCriteria": [
+        "One real sanitized config per vendor lands in samples/real/ (gitignored or scrubbed)",
+        "The AudioCodes table parser is validated against a real Wizard .ini",
+        "Findings from the real config are reviewed against ground truth"
+      ]
+    },
+    {
+      "id": "COV-002",
+      "title": "Parser honesty for Cisco/Ribbon/Oracle (emit None, not guessed False)",
+      "priority": 2,
+      "status": "pending",
+      "dependsOn": ["COV-001"],
+      "description": "Finish the C1 tristate work for the non-AudioCodes parsers: set SRTP/keepalive/mtls/chain only when observed, leave None otherwise, so a real config never false-fires. Gated on COV-001 to validate against ground truth.",
+      "acceptanceCriteria": [
+        "Cisco/Ribbon/Oracle parsers emit None for unobserved SRTP/keepalive/mtls/chain_complete",
+        "No false C.SRTP.DISABLED / B.SIP.OPTIONS_KEEPALIVE / C.TLS.MTLS_DISABLED on a real clean config",
+        "Per-vendor silence test (clean real config -> zero false 'disabled' findings)"
+      ]
+    },
+    {
+      "id": "COV-003",
+      "title": "Per-config cipher-suite + min-TLS assertion (H5)",
+      "priority": 3,
+      "status": "pending",
+      "dependsOn": ["COV-001"],
+      "description": "Close the 'unasserted crypto specs' gap: assert the config actually offers TLS 1.2+ and the required SRTP/cipher suites the ruleset already carries.",
+      "acceptanceCriteria": [
+        "TlsContext gains min_tls_version + offered cipher/SRTP suites (tristate, silent on None)",
+        "Domain C asserts TLS-version and suite overlap, driven from the ruleset allowlist",
+        "Fires only when the config carries the data; silent otherwise; tests for both"
+      ]
+    }
+  ]
+}
