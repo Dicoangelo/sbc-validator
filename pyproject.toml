@@ -31,7 +31,7 @@ include = ["sbc_validator*"]
 # ship through the signed-rule channel (RuleClient fetch/cache) so rule updates
 # stay decoupled from code releases. Pass a bundle with --ruleset, or fetch one.
 [tool.setuptools.package-data]
-"sbc_validator.web" = ["*.html"]
+"sbc_validator.web" = ["*.html", "*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

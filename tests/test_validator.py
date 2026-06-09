@@ -865,16 +865,41 @@ def test_rollback_signed_but_stale_rejected(tmp_path, signing_key):
     old = tmp_path / "old.json"
     old.write_text(json.dumps(mk("2026-06-06")))
 
+    # Even a clean install (no cache, env unset) refuses the stale bundle: the
+    # compiled-in _MIN_BUNDLE_VERSION floor means freshness no longer depends on a
+    # seeded cache, closing the clean-first-run rollback window.
     _clean = RuleClient(cache_dir=tmp_path / "empty")
-    assert _clean.fetch("ms_direct_routing", local_path=str(old))   # valid against a clean floor
     with pytest.raises(RuleVerificationError):
-        client.fetch("ms_direct_routing", local_path=str(old))      # but rolled back vs. cache
+        _clean.fetch("ms_direct_routing", local_path=str(old))
+    with pytest.raises(RuleVerificationError):
+        client.fetch("ms_direct_routing", local_path=str(old))      # also rolled back vs. cache
 
 
 def test_env_min_version_floor(tmp_path, monkeypatch):
     monkeypatch.setenv("SBC_RULE_MIN_VERSION", "2027-01-01")
     with pytest.raises(RuleVerificationError):
         RuleClient(cache_dir=tmp_path).fetch("ms_direct_routing", local_path=str(RULESET))
+
+
+def test_cache_fallback_enforces_freshness_floor(tmp_path, signing_key):
+    # The locally-writable cache must not be a rollback vector: a downgraded but
+    # validly-signed cache file (older than the compiled-in floor) is refused on the
+    # network-failure fallback path, not served as-is.
+    def mk(version):
+        return sign_bundle(
+            {"ruleset_id": "ms_direct_routing", "bundle_version": version, "C": {}},
+            signing_key,
+        )
+
+    cache = tmp_path / "ms_direct_routing.json"
+    cache.write_text(json.dumps(mk("2026-06-05")))      # stale, but validly signed
+
+    def boom(url):
+        raise OSError("network down")
+
+    client = RuleClient(api_base="https://rules.example", cache_dir=tmp_path, fetcher=boom)
+    with pytest.raises(RuleVerificationError):
+        client.fetch("ms_direct_routing")               # network fails -> cache -> floor refuses
 
 
 def test_non_https_transport_refused():

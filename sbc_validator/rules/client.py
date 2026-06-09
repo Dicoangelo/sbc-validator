@@ -44,6 +44,13 @@ DEFAULT_CACHE_DIR = Path(os.environ.get("SBC_RULE_CACHE", "~/.cache/sbc_validato
 # outside this repo. Rotate here (and re-sign rulesets) when the publisher key changes.
 _PINNED_PUBLIC_KEY_B64 = "ws41rVVX8tKIKPWJDSZc8XS6y5oRTBXske1ufHiHky8="
 
+# Compiled-in freshness floor. A signature proves authenticity, NOT freshness, so
+# without a baked-in minimum a clean install (no cache, env unset) would accept any
+# validly-signed but stale bundle, e.g. the pre-2026-06-07 list that still carried
+# the retired Baltimore root and lacked the DigiCert G5 pair. Bump this whenever the
+# authoritative ruleset is re-sourced and re-signed (see docs/RULE_AUTHORITY.md).
+_MIN_BUNDLE_VERSION = "2026-06-07"
+
 # A signed bundle is small JSON; cap the inbound read so a hostile/runaway
 # endpoint can't exhaust memory before we ever get to verify it.
 _MAX_BUNDLE_BYTES = 8 * 1024 * 1024
@@ -127,8 +134,10 @@ class RuleClient:
         return self.cache_dir / f"{ruleset_id}.json"
 
     def _trusted_floor(self, ruleset_id: str) -> str:
-        """Highest version we already trust: env pin vs. the verified cache."""
-        floor = os.environ.get("SBC_RULE_MIN_VERSION", "")
+        """Highest version we already trust: the compiled-in floor vs. an operator
+        env pin vs. the verified cache. The compiled-in floor means the floor is
+        never empty, so a stale bundle is refused even on a clean first run."""
+        floor = max(_MIN_BUNDLE_VERSION, os.environ.get("SBC_RULE_MIN_VERSION", ""))
         cache = self._cache_path(ruleset_id)
         if cache.exists():
             try:
@@ -202,6 +211,10 @@ class RuleClient:
         if cached.exists():
             bundle = json.loads(cached.read_text())
             _verify(bundle)
+            # The cache is also enforced against the freshness floor: a locally
+            # writable cache must not be a rollback vector (a downgraded but
+            # validly-signed cache file would otherwise be served as-is).
+            _reject_rollback(bundle, floor, "cache")
             bundle.setdefault("_warnings", []).append(
                 "served from cache; remote freshness not confirmed"
             )

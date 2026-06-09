@@ -24,6 +24,11 @@ def _viewer_html() -> bytes:
     return (resources.files("sbc_validator.web") / "sbc_dashboard.html").read_bytes()
 
 
+def _asset(name: str) -> bytes:
+    # Serve only known, packaged static assets (no arbitrary path -> no traversal).
+    return (resources.files("sbc_validator.web") / name).read_bytes()
+
+
 def _make_handler(results_dir: str, anon: bool, org_salt: str):
     class Handler(BaseHTTPRequestHandler):
         def _send(self, code, body, ctype):
@@ -38,6 +43,9 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str):
             path = self.path.split("?", 1)[0]
             if path in ("/", "/sbc_dashboard.html"):
                 self._send(200, _viewer_html(), "text/html; charset=utf-8")
+            elif path == "/chart.umd.min.js":
+                self._send(200, _asset("chart.umd.min.js"),
+                           "application/javascript; charset=utf-8")
             elif path == "/dashboard_data.json":
                 payload = build_payload(results_dir, anon=anon, org_salt=org_salt)
                 if payload is None:
