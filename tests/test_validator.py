@@ -322,6 +322,40 @@ def test_explain_topology_leak_maps_to_domain_f():
     assert leak and "10.9.9.9" in leak[0]["detail"]
 
 
+def test_tls_close_notify_not_flagged_as_handshake_failure():
+    # A graceful TLS shutdown sends content-type 0x15 too. Only a FATAL alert is a
+    # handshake failure; a warning-level close_notify must NOT be flagged.
+    from sbc_validator.sip_trace import _fatal_tls_alert
+    from sbc_validator.pcap import Packet
+
+    def tcp5061(payload):
+        return Packet(ts=0.0, proto="tcp", src_ip="a", dst_ip="b",
+                      src_port=5061, dst_port=40000, payload=payload)
+
+    # warning-level (1) close_notify (desc 0) -> clean shutdown, not a failure
+    assert _fatal_tls_alert(tcp5061(bytes([0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00]))) is None
+    # fatal (2) unknown_ca (desc 48) -> a genuine handshake failure
+    assert _fatal_tls_alert(tcp5061(bytes([0x15, 0x03, 0x03, 0x00, 0x02, 0x02, 48]))) == 48
+    # application-data record (0x17) is not an alert
+    assert _fatal_tls_alert(tcp5061(bytes([0x17, 0x03, 0x03, 0x01, 0x00]) + b"x" * 20)) is None
+    # an alert off the SIP/TLS port is ignored
+    off = Packet(0.0, "tcp", "a", "b", 443, 40000, bytes([0x15, 0x03, 0x03, 0x00, 0x02, 0x02, 48]))
+    assert _fatal_tls_alert(off) is None
+
+
+def test_rtcp_not_counted_as_rtp_media():
+    # RTCP often returns even when RTP media does not; counting it as media would
+    # mask genuine one-way audio. Per RFC 5761 the second byte (200-204) is RTCP.
+    from sbc_validator.sip_trace import _looks_rtp
+    from sbc_validator.pcap import Packet
+
+    def udp(payload):
+        return Packet(0.0, "udp", "a", "b", 50000, 6000, payload)
+
+    assert _looks_rtp(udp(bytes([0x80, 0x00]) + b"\x00" * 20)) is True    # RTP PT 0 (PCMU)
+    assert _looks_rtp(udp(bytes([0x80, 200]) + b"\x00" * 20)) is False    # RTCP sender report
+
+
 # ---- SRTP media-encryption check (domain C) --------------------------------
 
 def test_c_flags_missing_srtp(ruleset):

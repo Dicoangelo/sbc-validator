@@ -141,7 +141,61 @@ def _looks_rtp(pkt: Packet) -> bool:
         return False
     if (p[0] & 0xC0) != 0x80:        # RTP version 2
         return False
+    # Exclude RTCP: per RFC 5761 the second byte (200-204 = SR/RR/SDES/BYE/APP)
+    # distinguishes RTCP from RTP media. RTCP often returns even when RTP media
+    # does not, which would otherwise mask genuine one-way audio.
+    if p[1] in (200, 201, 202, 203, 204):
+        return False
     return 5060 not in (pkt.src_port, pkt.dst_port) and 5061 not in (pkt.src_port, pkt.dst_port)
+
+
+# Minimum packets before a (src,sport,dst,dport) tuple counts as a real media flow;
+# kills single-stray-packet false positives in the one-way-audio check.
+_MIN_RTP = 3
+
+# TLS alert description codes (the fatal ones a Direct Routing handshake hits).
+_TLS_ALERT_DESC = {
+    40: "handshake_failure", 42: "bad_certificate", 43: "unsupported_certificate",
+    44: "certificate_revoked", 45: "certificate_expired", 46: "certificate_unknown",
+    47: "illegal_parameter", 48: "unknown_ca", 49: "access_denied",
+    51: "decrypt_error", 70: "protocol_version", 71: "insufficient_security",
+    80: "internal_error", 112: "unrecognized_name",
+}
+
+
+def _on_5061(pkt: Packet) -> bool:
+    return pkt.src_port == 5061 or pkt.dst_port == 5061
+
+
+def _is_tls_record(pkt: Packet) -> bool:
+    """A well-formed TLS record header on the SIP/TLS port (version bytes checked,
+    so random ciphertext and non-TLS traffic do not match)."""
+    p = pkt.payload
+    return (pkt.proto == "tcp" and len(p) >= 3 and p[0] in (0x14, 0x15, 0x16, 0x17)
+            and p[1] == 0x03 and p[2] <= 0x04 and _on_5061(pkt))
+
+
+def _fatal_tls_alert(pkt: Packet) -> Optional[int]:
+    """If this packet starts with a well-formed FATAL TLS alert record, return its
+    description code, else None. Excludes a warning-level close_notify (a clean
+    shutdown sends content-type 0x15 too) and random ciphertext (the full
+    record-plus-alert structure is validated, ~2^-40 chance of a coincidence)."""
+    p = pkt.payload
+    if pkt.proto != "tcp" or len(p) < 7 or not _on_5061(pkt):
+        return None
+    if p[0] != 0x15 or p[1] != 0x03 or p[2] > 0x04:   # alert record, TLS major 3
+        return None
+    if p[3] != 0x00 or p[4] != 0x02:                  # alert fragment length == 2
+        return None
+    level, desc = p[5], p[6]
+    if level != 2:                                    # 1 = warning (close_notify); 2 = fatal
+        return None
+    return desc
+
+
+def _reverse(flow):
+    s_ip, s_port, d_ip, d_port = flow
+    return (d_ip, d_port, s_ip, s_port)
 
 
 @dataclass
@@ -166,14 +220,18 @@ class CallAnalysis:
 def analyze(path: str) -> dict:
     pkts = read_packets(path)
     sip = [m for m in (_parse_sip(p) for p in pkts if _is_sip(p.payload)) if m]
-    rtp_flows = {}                                   # (src,dst) -> count
+    # Media flows keyed by full 4-tuple (src,sport,dst,dport), RTP only (RTCP
+    # excluded), and only counted as a flow once they clear _MIN_RTP packets.
+    rtp_counts: dict = {}
     for p in pkts:
         if _looks_rtp(p):
-            rtp_flows[(p.src_ip, p.dst_ip)] = rtp_flows.get((p.src_ip, p.dst_ip), 0) + 1
-    tls_alert = any(p.proto == "tcp" and p.payload[:1] == b"\x15"
-                    and (p.src_port == 5061 or p.dst_port == 5061) for p in pkts)
-    tls_seen = any(p.proto == "tcp" and p.payload[:1] in (b"\x16", b"\x15")
-                   and (p.src_port == 5061 or p.dst_port == 5061) for p in pkts)
+            k = (p.src_ip, p.src_port, p.dst_ip, p.dst_port)
+            rtp_counts[k] = rtp_counts.get(k, 0) + 1
+    rtp_flows = {k: n for k, n in rtp_counts.items() if n >= _MIN_RTP}
+
+    alert_codes = [c for c in (_fatal_tls_alert(p) for p in pkts) if c is not None]
+    tls_alert = bool(alert_codes)
+    tls_seen = any(_is_tls_record(p) for p in pkts)
 
     # group SIP by Call-ID
     calls: dict[str, list[SipMsg]] = {}
@@ -210,8 +268,12 @@ def analyze(path: str) -> dict:
                 # one-way audio: 200 OK SDP advertises a private media IP, or RTP
                 # flows are observed in only one direction.
                 ans_ip = next((m.media_ip for m in msgs if m.status == "200" and m.media_ip), None)
-                directions = set(rtp_flows)
-                one_way = bool(rtp_flows) and len({d[0] for d in directions}) < 2
+                # One-way audio from RTP: a media flow whose reverse direction was
+                # never observed. Only inferred for a single-call capture; with
+                # multiple calls the global flow set cannot be attributed to one
+                # call, so we fall back to the per-call SDP media-address check.
+                one_way = (len(calls) == 1 and bool(rtp_flows)
+                           and any(_reverse(k) not in rtp_flows for k in rtp_flows))
                 if _non_routable(ans_ip):
                     outcome = "ONE_WAY_AUDIO"
                     diags.append(Diagnosis(
@@ -286,10 +348,13 @@ def analyze(path: str) -> dict:
 
     top_diags = []
     if tls_alert:
+        names = sorted({_TLS_ALERT_DESC.get(c, f"alert {c}") for c in alert_codes})
         top_diags.append(Diagnosis(
-            "TLS_HANDSHAKE_FAILED", "C", "TLS alert observed on SIP/TLS (port 5061)",
-            "An encrypted SIP connection produced a TLS alert: the handshake failed, "
-            "typically an untrusted root CA or an invalid/expired SBC certificate.",
+            "TLS_HANDSHAKE_FAILED", "C",
+            f"Fatal TLS alert on SIP/TLS (port 5061): {', '.join(names)}",
+            "The TLS handshake failed with a fatal alert (" + ", ".join(names) + "), "
+            "typically an untrusted root CA (unknown_ca) or an invalid/expired SBC "
+            "certificate (certificate_expired / bad_certificate).",
             "Fix the trust store / certificate (validator domain C, the 2026 CA wedge)."))
     elif tls_seen and not sip:
         top_diags.append(Diagnosis(
@@ -301,7 +366,8 @@ def analyze(path: str) -> dict:
         "file": path,
         "packets": len(pkts),
         "sip_messages": len(sip),
-        "rtp_flows": [{"from": s, "to": d, "packets": n} for (s, d), n in rtp_flows.items()],
+        "rtp_flows": [{"from": f"{s_ip}:{s_port}", "to": f"{d_ip}:{d_port}", "packets": n}
+                      for (s_ip, s_port, d_ip, d_port), n in rtp_flows.items()],
         "tls": {"seen": tls_seen, "alert": tls_alert},
         "top_diagnoses": [vars(d) for d in top_diags],
         "calls": [{
