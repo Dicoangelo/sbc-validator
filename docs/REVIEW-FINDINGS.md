@@ -17,6 +17,30 @@ Severity: CRITICAL = wrong verdict or demo-killer in front of an expert.
 HIGH = a claim/gap the expert names in the first hour. MEDIUM/LOW = correctness
 debt. Each item carries the originating agent finding ID for traceability.
 
+## Status (2026-06-09) — fixed on branch `review-hardening`
+
+Tests 79 -> 94; the canonical demo fleet verdicts are unchanged throughout.
+
+- **FIXED** Doc drift + em dashes (D1-D7, E1).
+- **FIXED** C3 simulate: expired/self-signed/untrusted cert now hard-stops TLS.
+- **FIXED** C2 trust store: empty + introspectable is CRITICAL, not LOW.
+- **FIXED** C5/C6 explain: TLS close_notify no longer false-flags; one-way-audio
+  uses reverse-flow + RTCP exclusion + port keying.
+- **FIXED** S1/S2/S3 security: dashboard XSS escaped; compiled-in freshness floor
+  (clean install + cache fallback); dashboard vendored air-gapped (no CDNs).
+- **FIXED** H3 ordered-ACL shadowing (S.ACL.SHADOWED_DENY / SHADOWED_PERMIT).
+- **FIXED** C4 internal media realm no longer false-BLOCKs (MediaRealm.role).
+- **FIXED** H4 is_blocking() aligned to the verdict mapping.
+- **FIXED** H1 HA drift: normalized + introspectable-gated trust-store compare,
+  plus HA.DRIFT.SRTP (SV-11).
+- **FIXED (foundation)** C1 tristate: model fields are Optional, validators guard
+  `is False`. REMAINING: parser honesty (emit None when truly unobserved) + encode
+  demo samples' intended "off" states; this is the demo-sensitive half.
+- **REMAINING** H5 cipher/TLS-version assertion (dormant without parser support;
+  docs already frame it as roadmap). H6-H9 (SLL2, IPv4 fragmentation, SIP 487,
+  cross-signed chain). The M-series and crash battery (M7/M8). C7 parser fidelity
+  on real exports (external config required).
+
 ---
 
 ## CRITICAL — wrong verdict / demo-killer
