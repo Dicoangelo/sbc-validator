@@ -1,4 +1,4 @@
-# SBC Validator: Review Packet (v0.16.0)
+# SBC Validator: Review Packet (v0.16.1)
 
 The independent, local-first, multi-vendor SBC validation tool. Runs inside the
 customer's environment, air-gapped; raw configs never leave. This is a working
