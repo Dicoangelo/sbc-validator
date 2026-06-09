@@ -19,7 +19,8 @@ debt. Each item carries the originating agent finding ID for traceability.
 
 ## Status (2026-06-09) — fixed on branch `review-hardening`
 
-Tests 79 -> 94; the canonical demo fleet verdicts are unchanged throughout.
+Tests 79 -> 100; the canonical demo fleet verdicts are unchanged throughout; the
+wheel ships the vendored Chart.js so the air-gapped dashboard works offline.
 
 - **FIXED** Doc drift + em dashes (D1-D7, E1).
 - **FIXED** C3 simulate: expired/self-signed/untrusted cert now hard-stops TLS.
@@ -33,13 +34,22 @@ Tests 79 -> 94; the canonical demo fleet verdicts are unchanged throughout.
 - **FIXED** H4 is_blocking() aligned to the verdict mapping.
 - **FIXED** H1 HA drift: normalized + introspectable-gated trust-store compare,
   plus HA.DRIFT.SRTP (SV-11).
-- **FIXED (foundation)** C1 tristate: model fields are Optional, validators guard
-  `is False`. REMAINING: parser honesty (emit None when truly unobserved) + encode
-  demo samples' intended "off" states; this is the demo-sensitive half.
+- **FIXED** H6/H7/H8/F12 pcap engine: Linux SLL2 captures, IPv4 fragmentation,
+  IP total-length padding, SIP 487/481/491 caller-clearing (not config faults).
+- **FIXED** H9 cross-signed chain: subject->list, follow the candidate whose
+  signature verifies (no false CHAIN_INVALID / UNTRUSTED_ANCHOR).
+- **FIXED** crash battery (partial): non-dict signed bundle rejected cleanly (the
+  reproduced traceback); parser faults were already exit-2 via the CLI boundary.
+- **FIXED** C1 tristate foundation + AudioCodes table parser now emits None (not
+  guessed False) for unresolved SRTP/keep-alive.
+- **FIXED** M1 DTMF severity inversion; F11 cert-expiry UTC comparison.
 - **REMAINING** H5 cipher/TLS-version assertion (dormant without parser support;
-  docs already frame it as roadmap). H6-H9 (SLL2, IPv4 fragmentation, SIP 487,
-  cross-signed chain). The M-series and crash battery (M7/M8). C7 parser fidelity
-  on real exports (external config required).
+  docs already frame it as roadmap). C1's remaining parser-honesty work for the
+  simple AudioCodes parser + Cisco/Ribbon/Oracle, and encoding the demo samples'
+  intended "off" states, are gated on **C7 parser fidelity** (a real customer/Wizard
+  config per vendor) so the honest-None behaviour can be validated against ground
+  truth rather than guessed on synthetic samples. M2/M3 (codec canonicalization,
+  IPv6-neglect severity) deferred as they need a real config or a severity decision.
 
 ---
 
