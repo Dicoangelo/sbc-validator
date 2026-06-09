@@ -90,8 +90,8 @@ class CaComplianceValidator(AbstractValidator):
             ))
             return res
 
-        # --- mTLS enabled ---
-        if not ctx.mtls_enabled:
+        # --- mTLS enabled --- (fire only when the source says it is OFF, not unknown)
+        if ctx.mtls_enabled is False:
             res.add(Finding(
                 check_id="C.TLS.MTLS_DISABLED",
                 title="mTLS not enabled on Teams interface",
@@ -103,7 +103,7 @@ class CaComplianceValidator(AbstractValidator):
             ))
 
         # --- SRTP media encryption (Teams DR requires encrypted media) ---
-        if not teams.srtp_enabled:
+        if teams.srtp_enabled is False:
             res.add(Finding(
                 check_id="C.SRTP.DISABLED",
                 title="SRTP not enabled on the Teams media leg",
@@ -364,7 +364,7 @@ class CaComplianceValidator(AbstractValidator):
                     detail=f"Chain verified to root SHA-1 {chain['terminal_sha1']}.",
                     remediation="None (informational).",
                     locator=loc))
-        elif not cert.chain_complete:
+        elif cert.chain_complete is False:
             res.add(Finding(
                 check_id="C.CERT.CHAIN_INCOMPLETE",
                 title="Incomplete certificate chain",

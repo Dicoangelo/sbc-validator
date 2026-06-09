@@ -73,7 +73,7 @@ class NatTraversalValidator(AbstractValidator):
                         locator=loc,
                     ))
 
-            if require_symmetric and not realm.symmetric_rtp:
+            if require_symmetric and realm.symmetric_rtp is False:
                 res.add(Finding(
                     check_id="D.NAT.NO_SYMMETRIC_RTP",
                     title="Symmetric RTP disabled",

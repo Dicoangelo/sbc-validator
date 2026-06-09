@@ -398,6 +398,35 @@ def test_c_no_srtp_finding_when_enabled(ruleset):
     assert "C.SRTP.DISABLED" not in ids(res.findings)
 
 
+def test_tristate_unknown_fields_stay_silent(ruleset):
+    # A config that does not carry SRTP / keep-alive / mTLS / symmetric-RTP / chain
+    # info (all left None) must NOT produce false 'disabled'/'incomplete' findings:
+    # unknown is not 'off'. This is 'silence beats a wrong verdict' at the model
+    # level, and the exact false-positive class a real .ini would otherwise hit.
+    from sbc_validator.validators.interop import InteropValidator
+    root_names = [r["name"] for r in ruleset["C"]["required_root_ca_ids"]]
+    cfg = NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc.example.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc.example.com", transport="tls",
+            offered_codecs=["PCMU", "G722"],
+            # srtp_enabled / options_keepalive deliberately left as None (unknown)
+            tls_context=TlsContext(
+                name="T", trusted_root_ids=list(root_names),     # mtls_enabled None
+                presented_cert=Certificate(
+                    subject_cn="sbc.example.com", sans=["sbc.example.com"],
+                    ekus=[EKU.SERVER_AUTH], not_after="2030-01-01")))],  # chain_complete None
+        media_realms=[MediaRealm(name="m", advertised_public_ip="80.0.0.5")])  # symmetric_rtp None
+    c = ids(CaComplianceValidator(ruleset).validate(cfg).findings)
+    b = ids(InteropValidator(ruleset).validate(cfg).findings)
+    d = ids(NatTraversalValidator(ruleset).validate(cfg).findings)
+    assert "C.SRTP.DISABLED" not in c
+    assert "C.TLS.MTLS_DISABLED" not in c
+    assert "C.CERT.CHAIN_INCOMPLETE" not in c
+    assert "B.SIP.OPTIONS_KEEPALIVE" not in b
+    assert "D.NAT.NO_SYMMETRIC_RTP" not in d
+
+
 def test_cube_and_ribbon_parse_srtp():
     cube = detect_and_parse((REPO / "samples" / "cisco_cube_dr.txt").read_text())
     ribbon = detect_and_parse((REPO / "samples" / "ribbon_sbc.cli").read_text())

@@ -69,7 +69,7 @@ class InteropValidator(AbstractValidator):
                 locator=f"iface '{teams.name}'",
             ))
 
-        if not teams.options_keepalive:
+        if teams.options_keepalive is False:
             res.add(Finding(
                 check_id="B.SIP.OPTIONS_KEEPALIVE",
                 title="SIP OPTIONS keep-alive not enabled on Teams interface",
@@ -84,7 +84,7 @@ class InteropValidator(AbstractValidator):
         # keep-alive so the SBC detects a dead trunk and busies it out, instead of
         # routing calls into a black hole. Advisory (some ITSPs don't answer OPTIONS).
         carrier = config.carrier_interface()
-        if carrier is not None and not carrier.options_keepalive:
+        if carrier is not None and carrier.options_keepalive is False:
             res.add(Finding(
                 check_id="B.SIP.CARRIER_NO_KEEPALIVE",
                 title="SIP OPTIONS keep-alive not enabled on the carrier leg",
