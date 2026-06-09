@@ -70,6 +70,15 @@ def _ekus(cert) -> list[EKU]:
     return out
 
 
+def _issued_by(cert, candidate_issuer) -> bool:
+    """True if `candidate_issuer` actually signed `cert` (real signature check)."""
+    try:
+        cert.verify_directly_issued_by(candidate_issuer)
+        return True
+    except Exception:
+        return False
+
+
 def _chain_complete(certs) -> bool:
     """
     Best-effort local chain check: can we walk leaf -> ... -> self-signed root
@@ -78,7 +87,10 @@ def _chain_complete(certs) -> bool:
     """
     if not certs:
         return False
-    by_subject = {c.subject.rfc4514_string(): c for c in certs}
+    # subject -> list (a cross-signed CA has the same subject under two issuers).
+    by_subject: dict = {}
+    for c in certs:
+        by_subject.setdefault(c.subject.rfc4514_string(), []).append(c)
     current = certs[0]
     seen = set()
     while True:
@@ -86,10 +98,13 @@ def _chain_complete(certs) -> bool:
         iss = current.issuer.rfc4514_string()
         if subj == iss:
             return True  # reached a self-signed root within the bundle
-        if iss in seen or iss not in by_subject:
+        candidates = by_subject.get(iss)
+        if not candidates or iss in seen:
             return False  # missing intermediate / loop
         seen.add(iss)
-        current = by_subject[iss]
+        # follow the candidate whose signature actually verifies, if any.
+        nxt = next((c for c in candidates if _issued_by(current, c)), candidates[0])
+        current = nxt
 
 
 def inspect_file(path: str) -> Optional[Certificate]:
@@ -141,7 +156,14 @@ def verify_chain(path: str) -> Optional[dict]:
     if not certs:
         return None
 
-    by_subject = {c.subject.rfc4514_string(): c for c in certs}
+    # subject -> list: a cross-signed CA (the DigiCert G5 / Microsoft 2017 reality
+    # this tool exists for) has the same subject under two different issuers. Keying
+    # by subject as a single cert would let the wrong sibling win and produce a false
+    # CHAIN_INVALID / UNTRUSTED_ANCHOR. At each step we pick the candidate that
+    # actually signed the current cert.
+    by_subject: dict = {}
+    for c in certs:
+        by_subject.setdefault(c.subject.rfc4514_string(), []).append(c)
     leaf = certs[0]
     leaf_self_signed = leaf.subject.rfc4514_string() == leaf.issuer.rfc4514_string()
 
@@ -154,20 +176,17 @@ def verify_chain(path: str) -> Optional[dict]:
         subj = cur.subject.rfc4514_string()
         iss = cur.issuer.rfc4514_string()
         if subj == iss:                          # self-signed root reached
-            # verify the root's own signature too
-            issuer = cur
+            if not _issued_by(cur, cur):         # verify the root's own signature
+                signatures_valid = False
             reached_root = True
             terminal_sha1 = cur.fingerprint(hashes.SHA1()).hex().upper()
-        else:
-            issuer = by_subject.get(iss)
-            if issuer is None:
-                break                            # intermediate missing -> incomplete
-        try:
-            cur.verify_directly_issued_by(issuer)
-        except Exception:
-            signatures_valid = False
             break
-        if reached_root or iss in seen:
+        candidates = by_subject.get(iss)
+        if not candidates or iss in seen:
+            break                                # intermediate missing -> incomplete
+        issuer = next((c for c in candidates if _issued_by(cur, c)), None)
+        if issuer is None:
+            signatures_valid = False             # no sibling actually signed this cert
             break
         seen.add(iss)
         cur = issuer

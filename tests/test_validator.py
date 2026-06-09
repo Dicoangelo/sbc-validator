@@ -798,6 +798,58 @@ def test_verify_chain_self_signed_leaf():
     assert r["leaf_self_signed"] is True and r["length"] == 1
 
 
+def test_verify_chain_handles_cross_signed_sibling(tmp_path):
+    # Two intermediates share a subject (cross-sign), but only one actually signed
+    # the leaf. Keying the issuer by subject as a single cert could pick the decoy
+    # and false-flag CHAIN_INVALID / UNTRUSTED_ANCHOR. verify_chain must pick the
+    # real signer and still reach the root. (The DigiCert G5 / MS 2017 reality.)
+    if not cert_inspect.available():
+        pytest.skip("cryptography not installed")
+    import datetime
+    from cryptography import x509
+    from cryptography.x509.oid import NameOID
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    def key():
+        return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    def nm(cn):
+        return x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
+
+    t0 = datetime.datetime(2026, 1, 1)
+    t1 = t0 + datetime.timedelta(days=3650)
+
+    def ca(subject, issuer_name, issuer_key, subj_key):
+        return (x509.CertificateBuilder().subject_name(nm(subject))
+                .issuer_name(issuer_name).public_key(subj_key.public_key())
+                .serial_number(x509.random_serial_number())
+                .not_valid_before(t0).not_valid_after(t1)
+                .add_extension(x509.BasicConstraints(ca=True, path_length=None), True)
+                .sign(issuer_key, hashes.SHA256()))
+
+    rk, real_k, decoy_k, lk = key(), key(), key(), key()
+    root = ca("XSign Root", nm("XSign Root"), rk, rk)
+    inter_real = ca("XSign Inter", root.subject, rk, real_k)
+    inter_decoy = ca("XSign Inter", root.subject, rk, decoy_k)   # same subject, other key
+    leaf = (x509.CertificateBuilder().subject_name(nm("sbc.example.com"))
+            .issuer_name(inter_real.subject).public_key(lk.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(t0).not_valid_after(t0 + datetime.timedelta(days=365))
+            .sign(real_k, hashes.SHA256()))
+
+    def pem(c):
+        return c.public_bytes(serialization.Encoding.PEM)
+
+    # decoy listed AFTER the real signer: a last-wins subject map would pick it.
+    blob = pem(leaf) + pem(inter_real) + pem(inter_decoy) + pem(root)
+    p = tmp_path / "xsigned.pem"
+    p.write_bytes(blob)
+    r = cert_inspect.verify_chain(str(p))
+    assert r["reached_root"] is True
+    assert r["signatures_valid"] is True
+
+
 def _ctx_with_cert(ruleset, pem_path):
     return NormalizedConfig(
         vendor="x", sbc_fqdn="sbc01.contoso.com",
