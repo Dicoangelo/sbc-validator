@@ -45,7 +45,9 @@ jobs:
 
       - name: Air-gapped smoke on the published image
         run: |
-          IMG=ghcr.io/${{ github.repository }}:latest
+          # ghcr.io repository names must be lowercase; github.repository keeps the
+          # owner's display casing (Dicoangelo), so lowercase it for docker run.
+          IMG=$(echo "ghcr.io/${{ github.repository }}:latest" | tr '[:upper:]' '[:lower:]')
           docker run --rm --network none -v "$PWD/samples:/work" "$IMG" \
             validate /work/audiocodes_teams_real.ini \
             --ruleset rulesets/ms_direct_routing_2026-06.json
