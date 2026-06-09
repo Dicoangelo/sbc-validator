@@ -8,6 +8,30 @@ The two configs are in `samples/walkthrough/`:
 `sbc-teams-01-broken.ini` (the before) and `sbc-teams-01-fixed.ini` (the after),
 the same SBC.
 
+## What you're actually uploading
+
+The input is a **config export from the SBC**: the text file the box produces when
+you dump its configuration. Nothing connects to the live SBC, it is a static file,
+so the tool runs fully air-gapped and the raw config never leaves the environment.
+
+| Vendor | The file | How to export it |
+|---|---|---|
+| AudioCodes Mediant | the `.ini` config | Web GUI: Setup → Administration → Maintenance → Configuration File → Save INI File (or the SBC Config Wizard output) |
+| Cisco CUBE | `show running-config` output | run it on the box, save the text |
+| Ribbon SBC Core | `show configuration` (the `set …` flat config) | same |
+| Oracle Acme Packet | `show running-config` / `display-current-cfg` (ACLI) | same |
+
+Optionally also a `.pcap` capture (for `explain`, the post-mortem) and a leaf-cert
+`.pem` (which turns on the deep domain-C chain checks).
+
+**Honest note on this walkthrough.** The `samples/walkthrough/*.ini` files used here
+are **simplified, hand-authored** configs: clean teaching stand-ins, not a real
+Mediant export. The tool also parses the **real** AudioCodes parameter-table `.ini`
+(modeled against the Mediant manual, tested). For Cisco, Ribbon, and Oracle the
+parsers read the real export shapes, but routing (G) and access-control (S) stay
+deliberately silent until validated against a real config per vendor (see
+CONFIG-REQUEST.md). One real export per vendor is the unlock.
+
 ## 0. Run it yourself (one command)
 
 ```bash

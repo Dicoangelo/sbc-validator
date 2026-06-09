@@ -73,6 +73,8 @@ def run_demo(args) -> int:
 
     bundle = RuleClient().fetch("ms_direct_routing", local_path=str(ruleset))
     print(f"SBC Validator demo  (ruleset {bundle.get('bundle_version')})")
+    print("Input = an SBC config export (.ini / running-config / set / ACLI); these "
+          "samples are simplified stand-ins. See docs/WALKTHROUGH.md + CONFIG-REQUEST.md.")
     print("Validating a mixed multi-vendor fleet, writing results to "
           f"{out}/ ...\n")
 
