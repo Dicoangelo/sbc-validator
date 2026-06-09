@@ -314,6 +314,37 @@ def test_pcap_reader_parses_udp_sip():
     assert any(b"INVITE" in p.payload for p in pkts)
 
 
+def test_pcap_sll2_linktype_supported():
+    # `tcpdump -i any` on modern Linux writes LINKTYPE_LINUX_SLL2 (276); the reader
+    # must strip its 20-byte header (protocol in the first 2 bytes) and yield the IP.
+    import struct
+    from sbc_validator.pcap import _parse_link, LINKTYPE_LINUX_SLL2
+    ip = bytes([0x45, 0, 0, 20]) + b"\x00" * 16            # minimal IPv4 header
+    sll2 = struct.pack(">H", 0x0800) + b"\x00" * 18 + ip   # 20-byte SLL2 header + IP
+    assert _parse_link(LINKTYPE_LINUX_SLL2, sll2) == ip
+
+
+def test_pcap_ipv4_non_first_fragment_skipped():
+    # A non-first fragment carries no L4 header; parsing it as UDP/TCP is garbage.
+    import struct
+    from sbc_validator.pcap import _parse_ip
+    hdr = bytearray(20)
+    hdr[0] = 0x45
+    hdr[2:4] = struct.pack(">H", 40)
+    hdr[9] = 17                                            # UDP
+    hdr[6:8] = struct.pack(">H", 0x0001)                  # fragment offset = 1 -> skip
+    assert _parse_ip(bytes(hdr) + b"\x00" * 20) is None
+    hdr[6:8] = struct.pack(">H", 0x2000)                  # MF set, offset 0 -> first frag
+    assert _parse_ip(bytes(hdr) + b"\x00" * 20) is not None
+
+
+def test_sip_487_caller_cancel_not_a_config_fault():
+    # A caller hanging up before answer (INVITE/CANCEL/487) is not a transport fault.
+    from sbc_validator.sip_trace import _RESPONSE_CAUSE
+    assert _RESPONSE_CAUSE["487"][0] == "ok"
+    assert _RESPONSE_CAUSE["491"][0] == "ok"
+
+
 def test_explain_clean_call_connected():
     r = analyze(str(PCAP_CLEAN))
     assert r["sip_messages"] == 7

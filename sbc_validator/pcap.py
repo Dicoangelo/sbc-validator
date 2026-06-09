@@ -23,6 +23,7 @@ LINKTYPE_NULL = 0
 LINKTYPE_ETHERNET = 1
 LINKTYPE_RAW = 101
 LINKTYPE_LINUX_SLL = 113
+LINKTYPE_LINUX_SLL2 = 276   # `tcpdump -i any` on libpcap >= 1.10 (Debian 11+/RHEL 9+)
 LINKTYPE_RAW_ALT = 12  # some captures use 12 for raw IP
 
 
@@ -50,6 +51,16 @@ def _parse_ip(data: bytes):
         ihl = (data[0] & 0x0F) * 4
         if len(data) < ihl:
             return None
+        # A non-first fragment (fragment offset > 0) carries no L4 header; parsing it
+        # as a fresh UDP/TCP header yields garbage ports/payload. Skip it.
+        flags_frag = struct.unpack(">H", data[6:8])[0]
+        if flags_frag & 0x1FFF:
+            return None
+        # Trim to the IP total-length so Ethernet trailer padding (frames < 60 bytes
+        # are padded) does not leak into the L4 payload.
+        total_len = struct.unpack(">H", data[2:4])[0]
+        if 20 <= total_len <= len(data):
+            data = data[:total_len]
         proto = data[9]
         src, dst = _ip_str(data[12:16]), _ip_str(data[16:20])
         return proto, src, dst, data[ihl:]
@@ -79,6 +90,12 @@ def _parse_link(linktype: int, data: bytes) -> bytes | None:
         return data[4:] if len(data) >= 4 else None       # 4-byte address family
     if linktype == LINKTYPE_LINUX_SLL:
         return data[16:] if len(data) >= 16 else None
+    if linktype == LINKTYPE_LINUX_SLL2:
+        # 20-byte header; protocol (EtherType) is the first 2 bytes, IP follows.
+        if len(data) < 20:
+            return None
+        ptype = struct.unpack(">H", data[0:2])[0]
+        return data[20:] if ptype in (0x0800, 0x86DD) else None
     return None
 
 
@@ -122,7 +139,11 @@ def read_packets(path: str) -> list[Packet]:
         ts = ts_sec + ts_usec / usec_div
         if proto == 17 and len(l4) >= 8:                  # UDP
             sp, dp, ln = struct.unpack(">HHH", l4[:6])
-            out.append(Packet(ts, "udp", src, dst, sp, dp, l4[8:8 + max(0, ln - 8)] or l4[8:]))
+            # Use the UDP length when it is sane; else the remaining (already
+            # IP-truncated) bytes. A legitimately empty payload stays empty rather
+            # than resurrecting trailing bytes.
+            end = ln if 8 <= ln <= len(l4) else len(l4)
+            out.append(Packet(ts, "udp", src, dst, sp, dp, l4[8:end]))
         elif proto == 6 and len(l4) >= 20:                # TCP
             sp, dp = struct.unpack(">HH", l4[:4])
             data_off = (l4[12] >> 4) * 4
