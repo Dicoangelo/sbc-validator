@@ -72,6 +72,8 @@ def _pinned_pubkey() -> Ed25519PublicKey:
 
 
 def _verify(bundle: dict) -> None:
+    if not isinstance(bundle, dict):
+        raise RuleVerificationError("rule bundle is not a JSON object")
     sig_b64 = bundle.get("signature")
     if not sig_b64:
         raise RuleVerificationError("rule bundle is unsigned")
@@ -82,6 +84,8 @@ def _verify(bundle: dict) -> None:
 
 
 def _version(bundle: dict) -> str:
+    if not isinstance(bundle, dict):
+        return ""
     return str(bundle.get("bundle_version") or "")
 
 

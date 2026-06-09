@@ -1077,6 +1077,15 @@ def test_non_https_transport_refused():
         RuleClient()._http_get("file:///etc/passwd")
 
 
+def test_non_dict_bundle_rejected_cleanly(tmp_path):
+    # A ruleset file that is valid JSON but not an object (e.g. a list) must raise a
+    # clean RuleVerificationError, not an AttributeError traceback in front of a user.
+    p = tmp_path / "bad.json"
+    p.write_text("[1, 2, 3]")
+    with pytest.raises(RuleVerificationError):
+        RuleClient(cache_dir=tmp_path).fetch("ms_direct_routing", local_path=str(p))
+
+
 def test_unsafe_ruleset_id_rejected(tmp_path):
     with pytest.raises(RuleVerificationError):
         RuleClient(cache_dir=tmp_path)._cache_path("../escape")
