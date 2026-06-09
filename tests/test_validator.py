@@ -1098,6 +1098,27 @@ def test_non_dict_bundle_rejected_cleanly(tmp_path):
         RuleClient(cache_dir=tmp_path).fetch("ms_direct_routing", local_path=str(p))
 
 
+def test_runtime_dependencies_stay_minimal():
+    # The single-runtime-dependency rule (only `cryptography`) is a real
+    # differentiator for a local-first, air-gapped, supply-chain-averse tool. This
+    # ratchet fails if a runtime dep is added; update it deliberately when you mean to.
+    import re
+    text = (REPO / "pyproject.toml").read_text()
+    block = re.search(r"^dependencies\s*=\s*\[(.*?)\]", text, re.S | re.M).group(1)
+    names = [re.split(r"[><=!~ ]", d.strip().strip('"').strip("'"))[0]
+             for d in block.split(",") if d.strip()]
+    assert names == ["cryptography"], f"runtime dependencies drifted: {names}"
+
+
+def test_python_dash_m_entrypoint():
+    # `python -m sbc_validator --help` must work (the __main__.py alias), so the
+    # package is runnable without the console script being on PATH.
+    import subprocess, sys
+    r = subprocess.run([sys.executable, "-m", "sbc_validator", "--help"],
+                       capture_output=True, text=True, cwd=str(REPO))
+    assert r.returncode == 0 and "validate" in r.stdout
+
+
 def test_unsafe_ruleset_id_rejected(tmp_path):
     with pytest.raises(RuleVerificationError):
         RuleClient(cache_dir=tmp_path)._cache_path("../escape")
