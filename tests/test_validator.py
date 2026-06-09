@@ -522,6 +522,45 @@ def test_c_all_roots_present_no_root_finding(ruleset):
     assert "C.CERT.FQDN_MISMATCH" not in ids(res.findings)
 
 
+def test_c_empty_introspectable_trust_store_is_critical(ruleset):
+    # The source authoritatively enumerates the trust store (introspectable=True)
+    # and it is empty -> a total gap, a guaranteed mTLS hard-stop in the 2026
+    # rotation. Must be CRITICAL C.CA.ROOT_MISSING, not a LOW "verify out-of-band".
+    cfg = NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc.example.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc.example.com",
+            tls_context=TlsContext(
+                name="T", mtls_enabled=True, trusted_root_ids=[], introspectable=True,
+                presented_cert=Certificate(
+                    subject_cn="sbc.example.com", sans=["sbc.example.com"],
+                    ekus=[EKU.SERVER_AUTH], not_after="2030-01-01", chain_complete=True),
+            ))])
+    res = CaComplianceValidator(ruleset).validate(cfg)
+    found = {f.check_id: f.severity for f in res.findings}
+    assert found.get("C.CA.ROOT_MISSING") == Severity.CRITICAL
+    assert "C.CA.TRUST_STORE_UNAVAILABLE" not in found
+
+
+def test_c_empty_non_introspectable_trust_store_is_low(ruleset):
+    # Same empty trust store, but the source does NOT authoritatively enumerate it
+    # (e.g. an AudioCodes .ini): must stay LOW "verify out-of-band", never CRITICAL.
+    cfg = NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc.example.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc.example.com",
+            tls_context=TlsContext(
+                name="T", mtls_enabled=True, trusted_root_ids=[], introspectable=False,
+                presented_cert=Certificate(
+                    subject_cn="sbc.example.com", sans=["sbc.example.com"],
+                    ekus=[EKU.SERVER_AUTH], not_after="2030-01-01", chain_complete=True),
+            ))])
+    res = CaComplianceValidator(ruleset).validate(cfg)
+    found = ids(res.findings)
+    assert "C.CA.TRUST_STORE_UNAVAILABLE" in found
+    assert "C.CA.ROOT_MISSING" not in found
+
+
 def test_c_root_matching_is_naming_tolerant(ruleset):
     """Abbreviated config tokens (CA) match authoritative names (Certificate
     Authority), and thumbprints match too."""

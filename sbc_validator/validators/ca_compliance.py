@@ -123,10 +123,11 @@ class CaComplianceValidator(AbstractValidator):
         # same root inconsistently ("DigiCert Global Root G2" vs "DigiCertGlobalRootG2"),
         # so we compare on a normalized form and also accept a SHA-1 thumbprint match.
         present_norm = {_norm(p) for p in ctx.trusted_root_ids}
-        if not present_norm:
-            # No trust info in this source. On a real AudioCodes .ini the root CAs
-            # are imported certificate files, not config text, so we cannot enumerate
-            # them. Say so (don't false-claim every root is missing).
+        if not present_norm and not ctx.introspectable:
+            # The source references a trust store that is imported separately (e.g.
+            # an AudioCodes .ini, where root CAs are certificate files, not config
+            # text). We genuinely cannot enumerate it: say so rather than false-claim
+            # every root is missing.
             res.add(Finding(
                 check_id="C.CA.TRUST_STORE_UNAVAILABLE",
                 title="Trust store not present in this config source",
@@ -140,6 +141,10 @@ class CaComplianceValidator(AbstractValidator):
                 locator=f"TlsContext '{ctx.name}'",
             ))
             required_roots = []      # skip the per-root missing check below
+        # If present_norm is empty but the context IS introspectable, the source
+        # carries the trust store and it is genuinely empty: that is a total gap, a
+        # guaranteed mTLS hard-stop during the 2026 rotation. We fall through and let
+        # the missing-roots loop below report all required roots missing (CRITICAL).
         missing = []
         for r in required_roots:
             name = r.get("name") if isinstance(r, dict) else r
@@ -149,6 +154,23 @@ class CaComplianceValidator(AbstractValidator):
             if sha1 and _norm(sha1) in present_norm:
                 continue
             missing.append(r)
+        # Only a trust store we can authoritatively read (introspectable) can be
+        # declared "missing roots". A partial list leaked from a non-authoritative
+        # source must not false-scream CRITICAL; report it out-of-band instead.
+        if missing and not ctx.introspectable:
+            res.add(Finding(
+                check_id="C.CA.TRUST_STORE_UNAVAILABLE",
+                title="Trust store only partially visible in this config source",
+                severity=Severity.LOW,
+                detail="Some required root CAs were not found, but this source does not "
+                       "authoritatively enumerate the trust store, so absence here does "
+                       "not prove they are missing. Verify the full trust store "
+                       "out-of-band.",
+                remediation="Confirm all 7 required root CAs are installed (see "
+                            "docs/RULE_AUTHORITY.md).",
+                locator=f"TlsContext '{ctx.name}'",
+            ))
+            missing = []
         if missing:
             def _label(r):
                 if isinstance(r, dict):
