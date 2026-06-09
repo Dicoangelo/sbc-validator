@@ -274,10 +274,12 @@ def map_to_config(text: str) -> NormalizedConfig:
             fqdn=cfg.sbc_fqdn if role == "teams" else None,
             tls_context=ctx,
             transport=transport,
-            options_keepalive=ps_keepalive.get(psname, False),
+            # Honest tristate: None when the ProxySet / IP-Profile carrying the
+            # value was not resolvable from this source (do not guess "off").
+            options_keepalive=ps_keepalive.get(psname),
             normalization_profile=_manip_norm(ig),
             offered_codecs=coders_by_group.get(ipp_coders_ref.get(ippname) or "", []),
-            srtp_enabled=ipp_srtp.get(ippname, False),
+            srtp_enabled=ipp_srtp.get(ippname),
         ))
 
     # --- routing + classification (only when the source carries them) ---
