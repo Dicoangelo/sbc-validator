@@ -49,6 +49,17 @@ def _validate_one(path: Path, bundle: dict):
 
 
 def run_demo(args) -> int:
+    # The demo ships its own sample fleet and signed ruleset, so it must work from
+    # ANY directory, not only a source checkout. When the bundled assets aren't in
+    # the current directory, run from the repo root so EVERY sample path resolves
+    # consistently, including the cert PEMs that configs reference by relative path
+    # (otherwise deep cert inspection silently fails and verdicts drift by cwd). The
+    # demo only ever uses bundled assets, so changing directory is safe here.
+    if not getattr(args, "samples", None) and not Path("samples").is_dir():
+        repo_root = Path(__file__).resolve().parent.parent
+        if (repo_root / "samples").is_dir():
+            os.chdir(repo_root)
+
     samples = Path(getattr(args, "samples", None) or "samples")
     ruleset = Path(getattr(args, "ruleset", None) or "rulesets/ms_direct_routing_2026-06.json")
     out = getattr(args, "out", None) or "results"
