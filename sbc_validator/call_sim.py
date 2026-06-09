@@ -24,11 +24,19 @@ from .validators.base import Finding, Severity
 _TLS_HARDSTOP = {
     "C.CA.ROOT_MISSING", "C.TLS.NO_CONTEXT", "C.TLS.MTLS_DISABLED",
     "C.CERT.MISSING", "C.CERT.FQDN_MISMATCH",
+    # A leaf Teams will not trust hard-stops the handshake just like a missing root:
+    # self-signed, a chain that fails signature verification, or a chain that
+    # terminates at a root outside the required Microsoft/DigiCert set.
+    "C.CERT.SELF_SIGNED", "C.CERT.CHAIN_INVALID", "C.CERT.UNTRUSTED_ANCHOR",
 }
+# C.CERT.EXPIRY is handled severity-aware below: CRITICAL (already expired) hard-
+# stops the handshake; MEDIUM (expiring soon) is a warning. Same id, two outcomes.
 _TLS_WARN = {"C.CERT.EKU_NO_SERVERAUTH", "C.CERT.CHAIN_INCOMPLETE", "C.CERT.EKU_DUALUSE"}
 _SIP_HARDSTOP = {
     "B.SIP.TRANSPORT", "B.IFACE.NO_TEAMS", "A.STRUCT.NO_SIP_INTERFACES",
     "A.SEM.DANGLING_TLS",
+    # Teams requires an FQDN identity; an IP in the SIP identity draws a 403.
+    "B.SIP.IDENTITY_IS_IP",
     # routing/classification faults: the call never sets up (404 / rejected)
     "G.CLASS.UNCLASSIFIED", "G.ROUTE.NO_FROM_TEAMS", "G.ROUTE.NO_TO_TEAMS",
 }
@@ -36,7 +44,7 @@ _SIP_WARN = {"B.SIP.OPTIONS_KEEPALIVE", "B.SIP.NO_NORMALIZATION"}
 _SDP_HARDSTOP = {"E.CODEC.NO_TEAMS_OVERLAP", "E.CODEC.NONE_OFFERED"}
 _SDP_WARN = {"E.CODEC.NO_CROSS_OVERLAP", "E.DTMF.METHOD", "E.DTMF.INCONSISTENT"}
 _MEDIA_HARDSTOP = {"D.NAT.PRIVATE_ADVERTISED", "D.NAT.NO_PUBLIC_IP", "C.SRTP.DISABLED"}
-_MEDIA_WARN = {"D.NAT.NO_SYMMETRIC_RTP"}
+_MEDIA_WARN = {"D.NAT.NO_SYMMETRIC_RTP", "D.MEDIA.NO_REALM"}
 
 
 @dataclass
@@ -50,7 +58,7 @@ class CallStage:
 
 @dataclass
 class CallSimulation:
-    outcome: str                      # STABLE | NO_CONNECT | REJECTED | ONE_WAY_AUDIO | DEGRADED
+    outcome: str                      # STABLE | NO_CONNECT | REJECTED | ONE_WAY_AUDIO | NO_MEDIA | DEGRADED
     dies_at: Optional[str]
     summary: str
     negotiated_codec: Optional[str]
@@ -92,8 +100,14 @@ def simulate_call(config: NormalizedConfig, ruleset: dict,
         return [f.check_id for f in fs]
 
     # ---- Stage 1: TLS handshake ----
-    tls_fail = _by_stage(findings, _TLS_HARDSTOP)
-    tls_warn = _by_stage(findings, _TLS_WARN)
+    # An already-expired cert (C.CERT.EXPIRY at CRITICAL) hard-stops the handshake;
+    # the same id at MEDIUM (expiring soon) is only a warning.
+    expired_now = [f for f in findings
+                   if f.check_id == "C.CERT.EXPIRY" and f.severity == Severity.CRITICAL]
+    expiring_soon = [f for f in findings
+                     if f.check_id == "C.CERT.EXPIRY" and f.severity != Severity.CRITICAL]
+    tls_fail = _by_stage(findings, _TLS_HARDSTOP) + expired_now
+    tls_warn = _by_stage(findings, _TLS_WARN) + expiring_soon
     if tls_fail:
         stages.append(CallStage(
             "TLS handshake", "fail",
@@ -206,6 +220,8 @@ def _summarize(outcome, dies_at, codec):
         "NO_CONNECT": f"Predicted: NO calls connect. Chain breaks at {dies_at}.",
         "REJECTED": "Predicted: calls are rejected immediately (SIP 488) at SDP negotiation.",
         "ONE_WAY_AUDIO": "Predicted: call connects but audio is one-way and drops ~30s in.",
+        "NO_MEDIA": "Predicted: call signals through but media never encrypts; Teams "
+                    "drops the media and there is no audio.",
     }.get(outcome, "Predicted: see stages.")
 
 
@@ -246,8 +262,14 @@ def _ladder(config, ruleset, stages, dies_at, codec, teams_offered, transcode):
     msg("  -->", "ACK")
     # Media
     if status.get("Media path") == "fail":
-        out.append(f"{'':8}   x   RTP offered to a private/unreachable address")
-        out.append(f"{'':8}      one-way audio; remote RTP never returns; drops ~30s")
+        media_stage = next((s for s in stages if s.name == "Media path"), None)
+        srtp = bool(media_stage and "C.SRTP.DISABLED" in media_stage.driven_by)
+        if srtp:
+            out.append(f"{'':8}   x   media offered without SRTP (a=crypto absent)")
+            out.append(f"{'':8}      Teams drops the media; no audio in either direction")
+        else:
+            out.append(f"{'':8}   x   RTP offered to a private/unreachable address")
+            out.append(f"{'':8}      one-way audio; remote RTP never returns; drops ~30s")
         return out
     note = " (SBC transcoding)" if transcode else ""
     out.append(f"{'':8} ===  RTP {ans} bidirectional{note}  ===")

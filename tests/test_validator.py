@@ -243,6 +243,32 @@ def test_sim_488_when_no_teams_codec_overlap(ruleset):
     assert any("488" in line for line in sim.ladder)
 
 
+def test_sim_expired_cert_dies_at_tls(ruleset):
+    # An already-expired leaf must hard-stop the TLS handshake, not predict STABLE.
+    # (Everything else in this config is healthy; only the cert is expired.)
+    cfg = NormalizedConfig(
+        vendor="x", sbc_fqdn="sbc.example.com",
+        sip_interfaces=[SipInterface(
+            name="T", role="teams", fqdn="sbc.example.com", transport="tls",
+            options_keepalive=True, offered_codecs=["PCMU", "G722"], dtmf_method="rfc2833",
+            srtp_enabled=True,
+            tls_context=TlsContext(
+                name="T", mtls_enabled=True,
+                trusted_root_ids=[r["name"] for r in ruleset["C"]["required_root_ca_ids"]],
+                presented_cert=Certificate(
+                    subject_cn="sbc.example.com", sans=["sbc.example.com"],
+                    ekus=[EKU.SERVER_AUTH], not_after="2020-01-01", chain_complete=True)))],
+        media_realms=[MediaRealm(name="m", advertised_public_ip="80.0.0.5", symmetric_rtp=True)])
+    findings = _all_findings(cfg, ruleset)
+    assert any(f.check_id == "C.CERT.EXPIRY" and f.severity == Severity.CRITICAL
+               for f in findings)
+    sim = simulate_call(cfg, ruleset, findings)
+    assert sim.outcome == "NO_CONNECT"
+    assert sim.dies_at == "TLS handshake"
+    # ladder truncates at the handshake; it never reaches INVITE
+    assert not any("INVITE" in line for line in sim.ladder)
+
+
 # ---- PCAP explainer (post-mortem) ------------------------------------------
 
 from sbc_validator.pcap import read_packets
