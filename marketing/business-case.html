@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SBC-AutoOps · The Independent Truth Layer for Real-Time Voice</title>
+<meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA migration failure from config, before the outage." />
+<style>
+  :root{
+    --garnet:#9d1b54; --garnet-soft:#c14d80; --garnet-deep:#7a1340;
+    --ink:#15181e; --ink-soft:#525a66; --ink-faint:#8b95a1;
+    --line:#e4e7ec; --line-soft:#eef1f4; --panel:#ffffff; --bg:#f7f8fa;
+    --rail:#161c25; --rail-2:#1d2530; --rail-text:#aeb8c4;
+    --crit:#c0392b; --high:#e07a1f; --med:#d4a017; --pass:#1f8a6d; --info:#5b85ad;
+    --sans:'Archivo',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  a:focus-visible,.btn:focus-visible{outline:2px solid var(--garnet);outline-offset:3px;border-radius:6px}
+  @media (prefers-reduced-motion: reduce){*{animation:none !important;scroll-behavior:auto !important}}
+  body{margin:0;font-family:var(--body);color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,.dsp{font-family:var(--sans);font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:0}
+  h2{font-size:clamp(26px,3.4vw,40px)}
+  h3{font-size:18px;font-weight:700;letter-spacing:-.01em}
+  p{margin:0 0 14px}
+  a{color:var(--garnet);text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--garnet);font-weight:600}
+  .muted{color:var(--ink-soft)}
+  section{padding:72px 0;border-top:1px solid var(--line)}
+  .lead{font-size:clamp(17px,1.6vw,20px);color:var(--ink-soft);max-width:60ch}
+
+  /* top bar */
+  header.bar{position:sticky;top:0;z-index:50;background:rgba(247,248,250,.86);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+  .bar .wrap{display:flex;align-items:center;gap:16px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--sans);font-weight:800;letter-spacing:-.01em}
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--garnet),var(--garnet-soft));display:grid;place-items:center;color:#fff;font-size:14px;font-weight:800}
+  .brand small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--ink-faint);font-weight:600;text-transform:uppercase}
+  .bar nav{margin-left:auto;display:flex;gap:22px;align-items:center}
+  .bar nav a{color:var(--ink-soft);font-size:14px;font-weight:500}
+  .bar nav a:hover{color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--garnet);color:#fff;font-weight:600;font-size:14px;padding:10px 18px;border-radius:9px;border:1px solid var(--garnet);transition:.15s;cursor:pointer}
+  .btn:hover{background:var(--garnet-deep);color:#fff}
+  .btn.ghost{background:transparent;color:var(--garnet);border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--garnet);background:#fff}
+  @media(max-width:760px){.bar nav a{display:none}}
+
+  /* hero */
+  .hero{padding:64px 0 56px;border-top:none;background:
+     radial-gradient(900px 380px at 84% -8%, rgba(157,27,84,.10), transparent 60%),
+     radial-gradient(700px 320px at 0% 110%, rgba(157,27,84,.06), transparent 55%)}
+  .live{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:6px 14px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--crit);box-shadow:0 0 0 0 rgba(192,57,43,.5);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.45)}70%{box-shadow:0 0 0 8px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+  .hero h1{font-size:clamp(34px,5.4vw,60px);margin:20px 0 0}
+  .hero h1 .g{color:var(--garnet)}
+  .hero .lead{margin:18px 0 0}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+  .herometa{display:flex;flex-wrap:wrap;gap:26px;margin-top:34px;padding-top:24px;border-top:1px solid var(--line)}
+  .herometa div{font-size:13px;color:var(--ink-soft)}
+  .herometa b{display:block;font-family:var(--sans);font-size:24px;color:var(--ink);font-weight:800;letter-spacing:-.01em}
+
+  /* countdown */
+  .countdown{margin-top:30px;background:var(--rail);color:#fff;border-radius:14px;padding:20px 22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px}
+  .countdown .cd-lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#e3b9cd}
+  .countdown .cd-num{font-family:var(--sans);font-weight:800;font-size:30px;line-height:1}
+  .countdown .cd-sub{color:var(--rail-text);font-size:13px;max-width:34ch}
+
+  /* generic cards */
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:860px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .card h3{margin-bottom:8px}
+  .card p{font-size:14.5px;color:var(--ink-soft);margin:0}
+  .kpi b{font-family:var(--sans);font-size:34px;font-weight:800;color:var(--garnet);letter-spacing:-.02em;display:block;line-height:1}
+  .kpi span{font-size:13px;color:var(--ink-soft);display:block;margin-top:6px}
+
+  /* timeline */
+  .tl{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:30px;position:relative}
+  .tl:before{content:"";position:absolute;left:0;right:0;top:11px;height:2px;background:var(--line)}
+  .tl .step{position:relative;padding:0 8px;text-align:left}
+  .tl .node{width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink-faint);position:relative;z-index:2}
+  .tl .past .node{background:var(--garnet);border-color:var(--garnet);color:#fff}
+  .tl .now .node{background:var(--crit);border-color:var(--crit);color:#fff;box-shadow:0 0 0 5px rgba(192,57,43,.16)}
+  .tl .date{font-family:var(--mono);font-size:11.5px;font-weight:600;margin-top:10px;color:var(--ink)}
+  .tl .what{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+  .tl .now .date{color:var(--crit)}
+  @media(max-width:760px){.tl{grid-template-columns:1fr;gap:14px}.tl:before{display:none}.tl .step{display:flex;gap:12px;align-items:flex-start}.tl .date{margin-top:0}}
+
+  /* failure callout */
+  .failbox{background:linear-gradient(180deg,#fff,#fffafa);border:1px solid #f0d9d9;border-left:4px solid var(--crit);border-radius:12px;padding:22px 24px}
+  .failbox .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--crit);font-weight:700}
+
+  /* victim cards */
+  .victim{border-top:3px solid var(--crit)}
+  .victim .who{font-family:var(--sans);font-weight:800;font-size:16px}
+  .victim .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--high);font-weight:700;margin:2px 0 8px}
+
+  /* compare table */
+  .cmp{width:100%;border-collapse:collapse;margin-top:24px;font-size:14px}
+  .cmp th,.cmp td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  .cmp thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+  .cmp .us{color:var(--pass);font-weight:600}
+  .cmp .no{color:var(--ink-faint)}
+  .cmp tbody tr:hover{background:var(--line-soft)}
+
+  /* dark band */
+  .dark{background:var(--rail);color:#fff;border:none}
+  .dark h2{color:#fff} .dark .eyebrow{color:var(--garnet-soft)} .dark .lead{color:var(--rail-text)}
+  .dark .card{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.09)}
+  .dark .card h3{color:#fff} .dark .card p{color:var(--rail-text)}
+  .seg{font-family:var(--mono);font-size:11px;color:var(--garnet-soft);font-weight:700;letter-spacing:.06em}
+
+  /* proof / pills */
+  .pill{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:13px;font-weight:600;margin:0 8px 8px 0}
+  .pill b{color:var(--garnet)}
+  .gaps{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 22px;border-left:4px solid var(--pass)}
+
+  /* team */
+  .person{display:flex;gap:16px;align-items:flex-start}
+  .person .av{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,var(--rail),var(--rail-2));color:#fff;display:grid;place-items:center;font-family:var(--sans);font-weight:800;font-size:20px;flex:none}
+  .person .role{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--garnet);font-weight:700}
+
+  /* cta */
+  .ctaband{background:linear-gradient(135deg,var(--garnet),var(--garnet-deep));color:#fff;border:none;text-align:center}
+  .ctaband h2{color:#fff} .ctaband p{color:rgba(255,255,255,.85);max-width:56ch;margin:14px auto 0}
+  .ctaband .btn{background:#fff;color:var(--garnet);border-color:#fff;margin-top:26px}
+  .ctaband .btn:hover{background:#f3e6ec;color:var(--garnet-deep)}
+  .ctaband .contact{margin-top:18px;font-family:var(--mono);font-size:13px;color:rgba(255,255,255,.9)}
+  .ctaband .contact a{color:#fff;text-decoration:underline}
+
+  footer{padding:28px 0;border-top:1px solid var(--line);color:var(--ink-faint);font-size:12.5px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between}
+  .disc{font-size:11.5px;color:var(--ink-faint);max-width:70ch;margin-top:8px}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="brand"><span class="mark">S</span><span>SBC-AutoOps<small>Metaventions AI</small></span></div>
+    <nav>
+      <a href="#crisis">The wedge</a>
+      <a href="#solution">Solution</a>
+      <a href="#market">Market</a>
+      <a href="#proof">Proof</a>
+      <a class="btn" href="#cta">Book a design-partner call</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <span class="live"><span class="dot"></span> Microsoft Direct Routing CA migration: enforcement is live now</span>
+    <h1>The independent <span class="g">truth layer</span><br>for real-time voice.</h1>
+    <p class="lead">Microsoft's 2026 certificate migration is hard-stopping Teams calls at the TLS handshake across mixed-vendor SBC fleets. SBC-AutoOps catches it from the config, before the outage, across AudioCodes, Cisco, Ribbon, and Oracle, on one model. Local-first. Raw configs never leave.</p>
+    <div class="cta-row">
+      <a class="btn" href="#cta">Book a design-partner call</a>
+      <a class="btn ghost" href="#proof">See what runs today</a>
+    </div>
+
+    <div class="countdown" id="cd">
+      <div>
+        <div class="cd-lbl">Final EKU cutover · June 15, 2026</div>
+        <div class="cd-num" id="cdnum">&nbsp;</div>
+      </div>
+      <div class="cd-sub">Chrome/Mozilla finish removing the dual-use clientAuth EKU. The hard root-CA deadline (Mar 31) and Microsoft's server rollout (Apr) have already passed. Unvalidated SBCs are failing now.</div>
+    </div>
+
+    <div class="herometa">
+      <div><b>80M+</b>Teams Phone monthly users</div>
+      <div><b>80%</b>of telephony Teams via Direct Routing</div>
+      <div><b>4–12h+</b>typical MTTR per SBC misconfig</div>
+      <div><b>$1.1→2.4B</b>SBC market, 2025→2035</div>
+    </div>
+  </div>
+</section>
+
+<!-- CRISIS -->
+<section id="crisis">
+  <div class="wrap">
+    <span class="eyebrow">The wedge · why now</span>
+    <h2 style="margin-top:10px;max-width:18ch">A cryptographic deadline that hard-stops voice.</h2>
+    <p class="lead" style="margin-top:16px">Teams Direct Routing runs entirely on mutual TLS between the customer's SBC and Microsoft's SIP proxy. In 2026 Microsoft retired the legacy roots and is enforcing serverAuth-only certificates. An SBC whose trust store or cert is not updated does not degrade. It hard-stops.</p>
+
+    <div class="failbox" style="margin-top:24px">
+      <span class="tag">The failure mode</span>
+      <p style="margin:8px 0 0;font-size:15.5px;color:var(--ink)">Instant TLS handshake rejection, SIP 408 timeouts, complete inbound and outbound outage, with nothing in Teams pointing at the certificate. The classic "scream test": you find out from users, not from a dashboard. Tracked as Microsoft Message Center <span class="mono">MC1235747</span>.</p>
+    </div>
+
+    <div class="tl">
+      <div class="step past"><div class="node">✓</div><div class="date">Feb 16</div><div class="what">MS test endpoint live</div></div>
+      <div class="step past"><div class="node">✓</div><div class="date">Feb 28</div><div class="what">Remediation deadline</div></div>
+      <div class="step past"><div class="node">✓</div><div class="date">Mar 31</div><div class="what">Legacy roots rejected</div></div>
+      <div class="step past"><div class="node">✓</div><div class="date">Apr</div><div class="what">MS server cert rollout</div></div>
+      <div class="step now"><div class="node">!</div><div class="date">Jun 15 · now</div><div class="what">Final EKU enforcement</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COST / VICTIMS -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">The cost of getting it wrong</span>
+    <h2 style="margin-top:10px;max-width:20ch">It is already happening, in production.</h2>
+    <div class="grid g3" style="margin-top:26px">
+      <div class="card victim">
+        <div class="who">Voipcloud</div>
+        <div class="tag">P1 · thousands of users</div>
+        <p>Microsoft stopped accepting calls routed through their SBCs: a temporally valid but untrusted root presented at the mTLS handshake. Full outage.</p>
+      </div>
+      <div class="card victim">
+        <div class="who">CallTower</div>
+        <div class="tag">Silent blackhole</div>
+        <p>Unpatched SBCs stopped sending SIP OPTIONS pings; Microsoft auto-deactivated the Direct Routing domain and blackholed every voice route, with no SIP 503 to warn anyone.</p>
+      </div>
+      <div class="card victim">
+        <div class="who">FusionConnect</div>
+        <div class="tag">One-way audio</div>
+        <p>Signaling succeeded, but media relays presented new DigiCert certs and silently dropped outbound audio (SRTP mismatch). The hardest failure to diagnose.</p>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:22px;font-size:14px">Practitioners rate SBC config complexity 6–8 out of 10. Teams learn about trunk outages from user complaints and LinkedIn posts. There is no cross-vendor, pre-deployment tool to catch this before it ships.</p>
+  </div>
+</section>
+
+<!-- SOLUTION -->
+<section id="solution" class="dark">
+  <div class="wrap">
+    <span class="eyebrow">What it is</span>
+    <h2 style="margin-top:10px;max-width:22ch">Validate the config before the call, not the call after the outage.</h2>
+    <p class="lead" style="margin-top:16px">SBC-AutoOps parses any vendor's config into one normalized model and runs eight validation domains over it. Deterministic verdicts, not LLM guesses. It runs inside your environment, air-gapped; raw configs never leave.</p>
+    <div class="grid g3" style="margin-top:30px">
+      <div class="card"><div class="seg">VALIDATE</div><h3 style="margin-top:8px">Catch it from config</h3><p>Eight domains: TLS/CA roots and EKU and chain, SRTP, NAT/one-way-audio, codec, routing, interop, security/ACL. The 2026 wedge is domain C.</p></div>
+      <div class="card"><div class="seg">SIMULATE</div><h3 style="margin-top:8px">Predict the call</h3><p>Models the call as a chain (TLS → SIP → SDP → media), predicts how far it gets, names the user-visible symptom, and renders the SIP ladder up to the failure.</p></div>
+      <div class="card"><div class="seg">EXPLAIN</div><h3 style="margin-top:8px">Diagnose a capture</h3><p>Reconstructs the SIP ladder from a packet capture, detects one-way audio and TLS alerts, and maps each failure back to the config fix.</p></div>
+    </div>
+    <p class="lead" style="margin-top:26px;color:#fff;font-weight:600">Four real vendor parsers on one model: AudioCodes, Cisco CUBE, Ribbon, Oracle Acme. Plus HA-drift detection, fleet readiness, and a CI/CD gate.</p>
+  </div>
+</section>
+
+<!-- WHITESPACE -->
+<section id="why">
+  <div class="wrap">
+    <span class="eyebrow">Why independent + pre-deployment wins</span>
+    <h2 style="margin-top:10px;max-width:24ch">Everything that exists is single-vendor, or watches the call after it fails.</h2>
+    <table class="cmp">
+      <thead><tr><th>Approach</th><th>What it does</th><th>Why it misses the 2026 wedge</th></tr></thead>
+      <tbody>
+        <tr><td>Post-deployment AIOps</td><td class="no">Inspects active SIP/RTP for jitter, latency, MOS</td><td>The failure drops TLS <em>before</em> signaling exists. You cannot monitor a call that is cryptographically blocked from starting.</td></tr>
+        <tr><td>Vendor tools (OVOC, RAMP)</td><td class="no">Manage their own hardware only</td><td>Reality is multi-vendor: LoopUp runs Ribbon + AudioCodes; Societe Generale runs Oracle + AudioCodes + Ribbon. No single pane.</td></tr>
+        <tr><td><b>SBC-AutoOps</b></td><td class="us">Validates any vendor's config before deploy; predicts the call</td><td class="us">Catches the missing root, wrong EKU, expired cert, SRTP gap, from the config, before traffic, across the whole mixed fleet.</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="margin-top:20px;font-size:14px">The independent, cross-vendor normalized model is the hard part to build, and the long-term moat: a consented, anonymized failure-pattern corpus across the industry that no single-vendor tool can assemble.</p>
+  </div>
+</section>
+
+<!-- MARKET -->
+<section id="market">
+  <div class="wrap">
+    <span class="eyebrow">The market</span>
+    <h2 style="margin-top:10px">A large, urgent, structurally underserved market.</h2>
+    <div class="grid g4" style="margin-top:26px">
+      <div class="card kpi"><b>$2.4B</b><span>SBC market by 2035 (from $1.1B in 2025, ~8% CAGR)</span></div>
+      <div class="card kpi"><b>$100B+</b><span>UCaaS market, growing 15–20% a year</span></div>
+      <div class="card kpi"><b>20M+</b><span>users on Teams Direct Routing for PSTN calling</span></div>
+      <div class="card kpi"><b>50+</b><span>mixed-vendor SBCs in a typical enterprise estate</span></div>
+    </div>
+    <h3 style="margin-top:40px">Who we sell to</h3>
+    <div class="grid g4" style="margin-top:16px">
+      <div class="card"><h3>Tier-1 carriers / SBCaaS</h3><p>AT&T, Verizon, BT. One cert mismatch cascades into simultaneous outages across hundreds of enterprise tenants.</p></div>
+      <div class="card"><h3>Cloud-voice MSPs / OCAs</h3><p>SIPPIO, CallTower, NWN Carousel. White-label backend; a failure severs the downstream channel revenue.</p></div>
+      <div class="card"><h3>Systems integrators</h3><p>Continuant, SoftwareOne, Insight. Own the multi-vendor PBX-to-Teams migration during the crypto shift.</p></div>
+      <div class="card"><h3>Enterprises, 50+ SBCs</h3><p>Mixed-vendor Direct Routing or BYOC estates with no cross-vendor pre-deployment check.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- REGULATED -->
+<section class="dark">
+  <div class="wrap">
+    <span class="eyebrow">Who cannot afford to get this wrong</span>
+    <h2 style="margin-top:10px;max-width:24ch">The orgs that run their own SBCs do it because they have to.</h2>
+    <p class="lead" style="margin-top:16px">Compliance keeps them off managed cloud calling, so they own the cert problem directly, and the downtime is life-safety or regulatory, not inconvenience.</p>
+    <div class="grid g3" style="margin-top:28px">
+      <div class="card"><div class="seg">FINANCIAL · MiFID II / FINRA</div><h3 style="margin-top:8px">Societe Generale · TP ICAP</h3><p>HA Oracle clustering for trader voice, WORM-compliant call recording. If TLS fails, unrecorded calls must be blocked outright, or it is a regulatory fine.</p></div>
+      <div class="card"><div class="seg">HEALTH / PUBLIC SAFETY · HIPAA / CJIS</div><h3 style="margin-top:8px">UCF · Falck EMS</h3><p>CJIS-compliant police routing, HIPAA clinics, emergency medical triage that cannot drop a packet. Survivable branch appliances must trust the new roots.</p></div>
+      <div class="card"><div class="seg">DEFENSE / MANUFACTURING</div><h3 style="margin-top:8px">US DoD · Bosch Group</h3><p>JITC-certified Ribbon with FIPS-140-2; HA AudioCodes pairs running local media optimization across global factory floors.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF -->
+<section id="proof">
+  <div class="wrap">
+    <span class="eyebrow">What runs today</span>
+    <h2 style="margin-top:10px">A working product, not a slide.</h2>
+    <div style="margin-top:22px">
+      <span class="pill"><b>4</b> real vendor parsers, one model</span>
+      <span class="pill"><b>8</b> validation domains live</span>
+      <span class="pill"><b>104</b> tests in CI (3 Python versions)</span>
+      <span class="pill"><b>7</b> Microsoft roots, Ed25519-signed rules</span>
+      <span class="pill"><b>air-gapped</b> Docker image</span>
+      <span class="pill"><b>1</b> runtime dependency</span>
+      <span class="pill">validate · simulate · explain · diff · fleet</span>
+    </div>
+    <div class="gaps" style="margin-top:26px">
+      <h3 style="color:var(--pass)">The honest gaps (and why they are the moat)</h3>
+      <p class="muted" style="margin-top:8px;font-size:14.5px">Routing and security for Cisco, Ribbon, and Oracle, per-config cipher matching, and live probing stay <b>silent</b> until validated against a real config per vendor. The tool refuses to guess. A wrong verdict, telling a customer to fix the wrong thing, is the one thing this product cannot afford. That discipline is the difference between a diagnostic and a liability.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">The team · Metaventions AI</span>
+    <h2 style="margin-top:10px">Telecom domain depth, meet AI build velocity.</h2>
+    <div class="grid g2" style="margin-top:26px">
+      <div class="card"><div class="person"><div class="av">PD</div><div><div class="role">Co-founder · Telecom</div><h3 style="margin-top:3px">Philip Drammeh</h3><p style="margin-top:6px">Ex-Microsoft Telecom Spec Lead. Deep SBC and Teams Direct Routing architecture expertise: the ground truth the validators are modeled against.</p></div></div></div>
+      <div class="card"><div class="person"><div class="av">DA</div><div><div class="role">Co-founder · AI builder</div><h3 style="margin-top:3px">Dico Angelo</h3><p style="margin-top:6px">AI systems architect and operator. Builds production AI infrastructure and autonomous diagnostic platforms; ships the engine and the local-first distributable.</p></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta" class="ctaband">
+  <div class="wrap">
+    <span class="eyebrow" style="color:rgba(255,255,255,.85)">The ask</span>
+    <h2 style="margin-top:10px">Two design partners. One real config per vendor.</h2>
+    <p>We are partnering with one or two MSPs or enterprises running 50+ SBCs, and we need one real, sanitized config per vendor: it turns routing and security live for that vendor, the same path that made AudioCodes real. In exchange you get a 2026-migration readiness audit across your whole mixed fleet, run air-gapped, before the next failure.</p>
+    <a class="btn" href="mailto:dicoangelo@metaventionsai.com?subject=SBC-AutoOps%20design%20partnership">Book a design-partner call</a>
+    <div class="contact">dicoangelo@metaventionsai.com &nbsp;·&nbsp; dicoangelo.metaventionsai.com</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>© 2026 Metaventions AI · SBC-AutoOps · The independent truth layer for real-time voice.</div>
+    <div>Local-first · air-gapped · vendor-agnostic</div>
+  </div>
+  <div class="wrap"><p class="disc">Named outages and target organizations are drawn from public market research on the 2026 Microsoft Teams Direct Routing CA migration and are cited as industry context, not as customer endorsements. Product capabilities described as "today" are implemented and tested; routing/security coverage for Cisco, Ribbon, and Oracle, and any continuous-monitoring or AI-assisted remediation, are on the roadmap and stay silent until validated.</p></div>
+</footer>
+
+<script>
+  // Countdown to the June 15, 2026 final EKU enforcement (graceful once passed).
+  (function(){
+    var target = new Date('2026-06-15T00:00:00Z').getTime();
+    var el = document.getElementById('cdnum');
+    function tick(){
+      var d = target - Date.now();
+      if(d <= 0){ el.textContent = 'ENFORCEMENT LIVE'; el.style.fontSize='22px'; return; }
+      var days = Math.floor(d/864e5), hrs = Math.floor((d%864e5)/36e5), mins = Math.floor((d%36e5)/6e4);
+      el.textContent = days + 'd ' + hrs + 'h ' + mins + 'm';
+    }
+    tick(); setInterval(tick, 60000);
+  })();
+</script>
+</body>
+</html>
