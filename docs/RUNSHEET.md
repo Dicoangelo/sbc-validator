@@ -37,6 +37,7 @@ the environment). The eight commands:
 
 ```bash
 sbc-validator demo               # the whole story in one shot (validate + predict + explain + readiness)
+sbc-validator walk <config>      # guided end-to-end tour: ingest -> each domain -> verdict -> predicted call
 sbc-validator serve              # the live dashboard at http://127.0.0.1:8787
 sbc-validator validate <config>  --ruleset ~/projects/sbc-validator/rulesets/ms_direct_routing_2026-06.json
 sbc-validator simulate <config>  --ruleset ...    # predict the call flow, name the symptom

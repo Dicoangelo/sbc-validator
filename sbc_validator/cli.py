@@ -231,6 +231,18 @@ def run_simulate(args) -> int:
     return 0
 
 
+def run_walk(args) -> int:
+    """Narrated, staged end-to-end walkthrough of one config (ingest → verdict → predict)."""
+    config = _parse(args.config)
+    rs = _resolve_ruleset(args.ruleset)
+    if rs is None:
+        print("error: no ruleset found; pass --ruleset <signed bundle>", file=sys.stderr)
+        return 2
+    bundle = _load_ruleset(rs)
+    from .walk import walk_report
+    return walk_report(config, bundle)
+
+
 def run_explain(args) -> int:
     """Post-mortem: reconstruct the SIP ladder from a pcap and explain failures."""
     from .sip_trace import analyze
@@ -370,6 +382,12 @@ def main(argv=None) -> int:
     sm.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
     sm.add_argument("--json", action="store_true")
     sm.set_defaults(func=run_simulate)
+
+    wk = sub.add_parser("walk",
+                        help="guided end-to-end walkthrough of one config (ingest→verdict→predict)")
+    wk.add_argument("config")
+    wk.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
+    wk.set_defaults(func=run_walk)
 
     ex = sub.add_parser("explain",
                         help="post-mortem: reconstruct the SIP ladder from a .pcap and diagnose")

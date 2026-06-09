@@ -1119,6 +1119,31 @@ def test_python_dash_m_entrypoint():
     assert r.returncode == 0 and "validate" in r.stdout
 
 
+_WALK = REPO / "samples" / "walkthrough"
+
+
+def test_walkthrough_pair_broken_blocks_fixed_passes(ruleset):
+    # The golden-path pair: the SAME SBC, broken -> BLOCK, fixed -> PASS. This is the
+    # "close the loop" proof the end-to-end walkthrough is built on.
+    broken = detect_and_parse((_WALK / "sbc-teams-01-broken.ini").read_text())
+    fixed = detect_and_parse((_WALK / "sbc-teams-01-fixed.ini").read_text())
+    assert score(_all_findings(broken, ruleset))["verdict"] == "BLOCK"
+    assert score(_all_findings(fixed, ruleset))["verdict"] == "PASS"
+
+
+def test_walk_command_runs_end_to_end():
+    # `walk` narrates the whole pipeline and exits cleanly on the broken sample.
+    import subprocess, sys
+    r = subprocess.run([sys.executable, "-m", "sbc_validator", "walk",
+                        "samples/walkthrough/sbc-teams-01-broken.ini"],
+                       capture_output=True, text=True, cwd=str(REPO))
+    assert r.returncode == 0
+    out = r.stdout
+    assert "STAGE 1 — INGEST" in out
+    assert "VERDICT: BLOCK" in out
+    assert "NO_CONNECT" in out
+
+
 def test_unsafe_ruleset_id_rejected(tmp_path):
     with pytest.raises(RuleVerificationError):
         RuleClient(cache_dir=tmp_path)._cache_path("../escape")
