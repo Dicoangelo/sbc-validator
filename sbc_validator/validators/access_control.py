@@ -35,6 +35,11 @@ _BROAD_PREFIX_V4 = 24
 _BROAD_PREFIX_V6 = 48
 
 
+def _plane_covers(outer: str, inner: str) -> bool:
+    """Does a rule governing the `outer` plane also govern traffic on `inner`?"""
+    return outer == "both" or outer == inner
+
+
 class AccessControlValidator(AbstractValidator):
     domain = "S"
 
@@ -105,6 +110,58 @@ class AccessControlValidator(AbstractValidator):
                        "effectively default-allow over IPv6, bypassing the IPv4 perimeter.",
                 remediation="Mirror the deny-all + carrier allow-list on the IPv6 plane.",
             ))
+
+        # Ordered-ACL shadowing: SBC access lists are evaluated top-down, first
+        # match wins. A rule is dead (shadowed) when an earlier rule on the same IP
+        # version and a covering plane already matches its entire CIDR with the
+        # opposite action. The two cases differ in consequence:
+        #   broad permit above a specific deny  -> the host you meant to block is
+        #     admitted (a security hole, the deny never runs) -> HIGH.
+        #   broad deny above a specific permit  -> the peer you meant to allow is
+        #     blocked (trunk down / one-way audio) -> MEDIUM.
+        for i, rule in enumerate(acls):
+            if not rule.cidr:
+                continue
+            try:
+                inner = ipaddress.ip_network(rule.cidr, strict=False)
+            except ValueError:
+                continue
+            for earlier in acls[:i]:
+                if (earlier.action == rule.action or not earlier.cidr
+                        or earlier.ip_version != rule.ip_version
+                        or not _plane_covers(earlier.plane, rule.plane)):
+                    continue
+                try:
+                    outer = ipaddress.ip_network(earlier.cidr, strict=False)
+                except ValueError:
+                    continue
+                if inner.version != outer.version or not inner.subnet_of(outer):
+                    continue
+                if rule.action == "deny":
+                    res.add(Finding(
+                        check_id="S.ACL.SHADOWED_DENY",
+                        title=f"Deny {rule.cidr} is shadowed by an earlier permit {earlier.cidr}",
+                        severity=Severity.HIGH,
+                        detail="ACLs are first-match, top-down. A broader permit "
+                               f"({earlier.cidr}) sits above this deny ({rule.cidr}), so the "
+                               "deny never takes effect: the host you intended to block is "
+                               "admitted to the SIP engine.",
+                        remediation="Order the specific deny above the broad permit "
+                                    "(most specific first).",
+                    ))
+                else:
+                    res.add(Finding(
+                        check_id="S.ACL.SHADOWED_PERMIT",
+                        title=f"Permit {rule.cidr} is shadowed by an earlier deny {earlier.cidr}",
+                        severity=Severity.MEDIUM,
+                        detail="ACLs are first-match, top-down. A broader deny "
+                               f"({earlier.cidr}) sits above this permit ({rule.cidr}), so the "
+                               "permit never takes effect: the peer you intended to allow is "
+                               "blocked, causing a down trunk or one-way audio.",
+                        remediation="Order the specific permit above the broad deny "
+                                    "(most specific first).",
+                    ))
+                break    # first covering rule wins; report this rule once
 
         # RTP source-address validation disabled.
         if config.rtp_source_validation is False:

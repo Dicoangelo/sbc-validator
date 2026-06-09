@@ -1013,6 +1013,46 @@ def test_audiocodes_exposed_acl_fires_domain_s():
             "S.ACL.MEDIA_PLANE_MISSING", "S.ACL.IPV6_NEGLECT"} <= got
 
 
+def test_acl_shadowed_deny_is_high():
+    # A broad permit above a specific deny: the deny is dead (first-match, top-down),
+    # so the host meant to be blocked is admitted. Security hole -> HIGH.
+    from sbc_validator.models import NormalizedConfig, AccessControlEntry as ACE
+    from sbc_validator.validators.access_control import AccessControlValidator
+    cfg = NormalizedConfig(vendor="x", access_controls=[
+        ACE(plane="both", ip_version=4, action="permit", cidr="198.51.100.0/24"),
+        ACE(plane="both", ip_version=4, action="deny", cidr="198.51.100.66/32"),  # shadowed
+        ACE(plane="both", ip_version=4, action="deny", cidr="0.0.0.0/0"),
+    ])
+    got = {f.check_id: f.severity for f in AccessControlValidator({}).validate(cfg).findings}
+    assert got.get("S.ACL.SHADOWED_DENY") == Severity.HIGH
+
+
+def test_acl_shadowed_permit_is_medium():
+    # A broad deny above a specific permit: the permit is dead, the peer you meant
+    # to allow is blocked (trunk down). Availability problem -> MEDIUM.
+    from sbc_validator.models import NormalizedConfig, AccessControlEntry as ACE
+    from sbc_validator.validators.access_control import AccessControlValidator
+    cfg = NormalizedConfig(vendor="x", access_controls=[
+        ACE(plane="both", ip_version=4, action="deny", cidr="203.0.113.0/24"),
+        ACE(plane="both", ip_version=4, action="permit", cidr="203.0.113.10/32"),  # shadowed
+    ])
+    got = {f.check_id: f.severity for f in AccessControlValidator({}).validate(cfg).findings}
+    assert got.get("S.ACL.SHADOWED_PERMIT") == Severity.MEDIUM
+
+
+def test_acl_correct_order_no_shadowing():
+    # Specific rules above the broad catch-all: nothing is shadowed.
+    from sbc_validator.models import NormalizedConfig, AccessControlEntry as ACE
+    from sbc_validator.validators.access_control import AccessControlValidator
+    cfg = NormalizedConfig(vendor="x", access_controls=[
+        ACE(plane="both", ip_version=4, action="deny", cidr="198.51.100.66/32"),
+        ACE(plane="both", ip_version=4, action="permit", cidr="198.51.100.0/24"),
+        ACE(plane="both", ip_version=4, action="deny", cidr="0.0.0.0/0"),
+    ])
+    got = {f.check_id for f in AccessControlValidator({}).validate(cfg).findings}
+    assert "S.ACL.SHADOWED_DENY" not in got and "S.ACL.SHADOWED_PERMIT" not in got
+
+
 def test_wildcard_cert_fqdn_match():
     """MS Direct Routing supports wildcard certs; exact-match would false-flag."""
     from sbc_validator.validators.ca_compliance import _name_covers, _fqdn_matches
