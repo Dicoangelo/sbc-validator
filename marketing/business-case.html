@@ -3,371 +3,637 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SBC-AutoOps · The Independent Truth Layer for Real-Time Voice</title>
-<meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA migration failure from config, before the outage." />
+<title>SBC-AutoOps · The independent truth layer for real-time voice</title>
+<meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA/EKU migration failure from the config, before the outage, across AudioCodes, Cisco, Ribbon, and Oracle." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --garnet:#9d1b54; --garnet-soft:#c14d80; --garnet-deep:#7a1340;
     --ink:#15181e; --ink-soft:#525a66; --ink-faint:#8b95a1;
     --line:#e4e7ec; --line-soft:#eef1f4; --panel:#ffffff; --bg:#f7f8fa;
-    --rail:#161c25; --rail-2:#1d2530; --rail-text:#aeb8c4;
-    --crit:#c0392b; --high:#e07a1f; --med:#d4a017; --pass:#1f8a6d; --info:#5b85ad;
+    --rail:#161c25; --rail-2:#1d2530; --rail-line:#27313e; --rail-text:#aeb8c4; --rail-faint:#6b7785;
+    --crit:#c0392b; --high:#e07a1f; --pass:#1f8a6d;
     --sans:'Archivo',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
-    --body:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --serif:'Instrument Serif','Iowan Old Style',Georgia,'Times New Roman',serif;
     --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --shadow-card:0 1px 2px rgba(21,24,30,.04),0 8px 28px rgba(21,24,30,.05);
+    --shadow-lift:0 2px 6px rgba(21,24,30,.06),0 18px 44px rgba(21,24,30,.10);
+    --r:16px;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
-  a:focus-visible,.btn:focus-visible{outline:2px solid var(--garnet);outline-offset:3px;border-radius:6px}
-  @media (prefers-reduced-motion: reduce){*{animation:none !important;scroll-behavior:auto !important}}
-  body{margin:0;font-family:var(--body);color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
-  h1,h2,h3,.dsp{font-family:var(--sans);font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:0}
-  h2{font-size:clamp(26px,3.4vw,40px)}
-  h3{font-size:18px;font-weight:700;letter-spacing:-.01em}
+  body{margin:0;font-family:var(--body);font-size:16px;color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  h1,h2,h3,h4{font-family:var(--sans);font-weight:800;letter-spacing:-.022em;line-height:1.06;margin:0;text-wrap:balance}
+  h2{font-size:clamp(28px,3.6vw,44px)}
+  h3{font-size:17px;font-weight:700;letter-spacing:-.012em;line-height:1.3}
   p{margin:0 0 14px}
   a{color:var(--garnet);text-decoration:none}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  a:hover{color:var(--garnet-deep)}
+  img,svg{display:block}
+  ::selection{background:rgba(157,27,84,.16)}
+  a:focus-visible,button:focus-visible,.btn:focus-visible{outline:2px solid var(--garnet);outline-offset:3px;border-radius:8px}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
   .mono{font-family:var(--mono)}
-  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--garnet);font-weight:600}
   .muted{color:var(--ink-soft)}
-  section{padding:72px 0;border-top:1px solid var(--line)}
-  .lead{font-size:clamp(17px,1.6vw,20px);color:var(--ink-soft);max-width:60ch}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--garnet);font-weight:600}
+  .eyebrow:before{content:"";width:22px;height:2px;background:var(--garnet);border-radius:2px}
+  section{padding:96px 0}
+  section + section{border-top:1px solid var(--line)}
+  .lead{font-size:clamp(17px,1.6vw,19.5px);color:var(--ink-soft);max-width:62ch}
+  .ser{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:0}
+  h1 .ser,h2 .ser{font-size:1.05em}
+  .ser.g{color:var(--garnet)}
 
-  /* top bar */
-  header.bar{position:sticky;top:0;z-index:50;background:rgba(247,248,250,.86);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
-  .bar .wrap{display:flex;align-items:center;gap:16px;height:60px}
-  .brand{display:flex;align-items:center;gap:10px;font-family:var(--sans);font-weight:800;letter-spacing:-.01em}
-  .brand .mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--garnet),var(--garnet-soft));display:grid;place-items:center;color:#fff;font-size:14px;font-weight:800}
-  .brand small{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--ink-faint);font-weight:600;text-transform:uppercase}
-  .bar nav{margin-left:auto;display:flex;gap:22px;align-items:center}
+  /* ── scroll progress ─────────────────────────── */
+  #prog{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--garnet),var(--garnet-soft));z-index:120}
+
+  /* ── top bar ─────────────────────────────────── */
+  header.bar{position:sticky;top:0;z-index:100;background:rgba(247,248,250,.82);backdrop-filter:saturate(1.5) blur(14px);-webkit-backdrop-filter:saturate(1.5) blur(14px);border-bottom:1px solid var(--line)}
+  .bar .wrap{display:flex;align-items:center;gap:16px;height:64px}
+  .brand{display:flex;align-items:center;gap:11px;font-family:var(--sans);font-weight:800;font-size:16.5px;letter-spacing:-.015em;color:var(--ink)}
+  .brand .mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--garnet),var(--garnet-deep));display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800;box-shadow:0 4px 12px rgba(157,27,84,.28)}
+  .brand small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink-faint);font-weight:600;text-transform:uppercase;margin-top:1px}
+  .bar nav{margin-left:auto;display:flex;gap:26px;align-items:center}
   .bar nav a{color:var(--ink-soft);font-size:14px;font-weight:500}
   .bar nav a:hover{color:var(--ink)}
-  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--garnet);color:#fff;font-weight:600;font-size:14px;padding:10px 18px;border-radius:9px;border:1px solid var(--garnet);transition:.15s;cursor:pointer}
-  .btn:hover{background:var(--garnet-deep);color:#fff}
-  .btn.ghost{background:transparent;color:var(--garnet);border-color:var(--line)}
-  .btn.ghost:hover{border-color:var(--garnet);background:#fff}
-  @media(max-width:760px){.bar nav a{display:none}}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--garnet);color:#fff;font-family:var(--body);font-weight:600;font-size:14.5px;padding:12px 22px;border-radius:11px;border:1px solid var(--garnet);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease;box-shadow:0 6px 18px rgba(157,27,84,.22)}
+  .btn:hover{background:var(--garnet-deep);color:#fff;transform:translateY(-1px);box-shadow:0 10px 26px rgba(157,27,84,.30)}
+  .btn:active{transform:translateY(0) scale(.985)}
+  .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:var(--shadow-card)}
+  .btn.ghost:hover{border-color:var(--garnet);color:var(--garnet);background:#fff}
+  .btn.sm{padding:9px 16px;font-size:13.5px;box-shadow:none}
+  @media(max-width:820px){.bar nav a{display:none}}
 
-  /* hero */
-  .hero{padding:64px 0 56px;border-top:none;background:
-     radial-gradient(900px 380px at 84% -8%, rgba(157,27,84,.10), transparent 60%),
-     radial-gradient(700px 320px at 0% 110%, rgba(157,27,84,.06), transparent 55%)}
-  .live{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:6px 14px;font-size:12.5px;font-weight:600;color:var(--ink-soft)}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--crit);box-shadow:0 0 0 0 rgba(192,57,43,.5);animation:pulse 2s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.45)}70%{box-shadow:0 0 0 8px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
-  .hero h1{font-size:clamp(34px,5.4vw,60px);margin:20px 0 0}
-  .hero h1 .g{color:var(--garnet)}
-  .hero .lead{margin:18px 0 0}
-  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
-  .herometa{display:flex;flex-wrap:wrap;gap:26px;margin-top:34px;padding-top:24px;border-top:1px solid var(--line)}
-  .herometa div{font-size:13px;color:var(--ink-soft)}
-  .herometa b{display:block;font-family:var(--sans);font-size:24px;color:var(--ink);font-weight:800;letter-spacing:-.01em}
+  /* ── hero ────────────────────────────────────── */
+  .hero{padding:84px 0 72px;position:relative;overflow:hidden;background:
+    radial-gradient(1000px 460px at 88% -10%, rgba(157,27,84,.09), transparent 62%),
+    radial-gradient(760px 380px at -6% 108%, rgba(157,27,84,.06), transparent 58%),
+    radial-gradient(rgba(157,27,84,.07) 1px, transparent 1px) 0 0/26px 26px}
+  .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
+  @media(max-width:1000px){.hero-grid{grid-template-columns:1fr;gap:44px}}
+  .live{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:7px 15px;font-size:12.5px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-card)}
+  .live .mono{font-size:11px;color:var(--ink-faint)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--crit);box-shadow:0 0 0 0 rgba(192,57,43,.5);animation:pulse 2s infinite;flex:none}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.45)}70%{box-shadow:0 0 0 9px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+  .hero h1{font-size:clamp(38px,4.9vw,62px);margin:24px 0 0;font-weight:900}
+  .hero .lead{margin:20px 0 0}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+  .trustline{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:.02em}
+  .trustline b{color:var(--garnet);font-weight:600}
 
   /* countdown */
-  .countdown{margin-top:30px;background:var(--rail);color:#fff;border-radius:14px;padding:20px 22px;display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px}
-  .countdown .cd-lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#e3b9cd}
-  .countdown .cd-num{font-family:var(--sans);font-weight:800;font-size:30px;line-height:1}
-  .countdown .cd-sub{color:var(--rail-text);font-size:13px;max-width:34ch}
+  .countdown{margin-top:34px;background:linear-gradient(160deg,var(--rail),#1a2230);color:#fff;border:1px solid var(--rail-line);border-radius:var(--r);padding:20px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:16px 30px;box-shadow:0 18px 44px rgba(15,20,28,.18)}
+  .cd-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#e3b9cd;margin-bottom:9px}
+  .cd-units{display:flex;gap:8px}
+  .cd-units .u{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:8px 0;min-width:62px;text-align:center}
+  .cd-units .u b{display:block;font-family:var(--sans);font-weight:800;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+  .cd-units .u span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--rail-faint);margin-top:5px}
+  .cd-live{font-family:var(--sans);font-weight:900;font-size:26px;letter-spacing:.01em;color:#ff8a7d;display:none}
+  .cd-sub{color:var(--rail-text);font-size:13px;line-height:1.55;max-width:36ch;flex:1;min-width:240px}
+  .cd-sub b{color:#fff;font-weight:600}
 
-  /* generic cards */
+  /* floating terminal */
+  .heroviz{position:relative}
+  .heroviz .glow{position:absolute;inset:-36px -28px;background:radial-gradient(closest-side,rgba(157,27,84,.16),transparent 72%);filter:blur(8px);pointer-events:none}
+  .term-wrap{position:relative;animation:float 7s ease-in-out infinite;will-change:transform}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  .term{background:#10151c;border:1px solid #243040;border-radius:18px;overflow:hidden;box-shadow:0 40px 90px rgba(15,20,28,.34),0 8px 24px rgba(15,20,28,.18);transform-style:preserve-3d}
+  .term .tbar{display:flex;align-items:center;gap:7px;padding:12px 16px;background:#0b1016;border-bottom:1px solid #1d2530}
+  .term .tbar i{width:11px;height:11px;border-radius:50%}
+  .t1{background:#ec6a5e}.t2{background:#f3bf4f}.t3{background:#61c554}
+  .term .tbar span{margin-left:9px;font-family:var(--mono);font-size:11.5px;color:#6b7785}
+  .term pre{margin:0;padding:20px 20px 24px;font-family:var(--mono);font-size:12.3px;line-height:1.72;color:#c7d0db;overflow-x:auto;white-space:pre;tab-size:2}
+  .term .cmd{color:#fff;font-weight:500}
+  .term .ps{color:#5fd39b}
+  .term .stg{color:#c14d80;font-weight:600;letter-spacing:.06em}
+  .term .crit{color:#ff6b5e;font-weight:600}
+  .term .high{color:#f0a04b;font-weight:600}
+  .term .key{color:#9fb3c8}
+  .term .blk{color:#ff6b5e;font-weight:700}
+  .term .die{color:#ff8a7d;font-weight:600}
+  .term .dim{color:#7a8694}
+  @media(max-width:480px){.term pre{font-size:11px}}
+
+  /* stats strip */
+  .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:64px;border:1px solid var(--line);border-radius:var(--r);background:#fff;overflow:hidden;box-shadow:var(--shadow-card)}
+  .statgrid > div{padding:24px 26px;border-left:1px solid var(--line-soft)}
+  .statgrid > div:first-child{border-left:none}
+  .statgrid b{display:block;font-family:var(--sans);font-size:clamp(24px,2.4vw,32px);font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.05}
+  .statgrid b em{font-style:normal;color:var(--garnet)}
+  .statgrid span{display:block;font-size:13px;color:var(--ink-soft);margin-top:7px;line-height:1.45}
+  @media(max-width:860px){.statgrid{grid-template-columns:repeat(2,1fr)}.statgrid > div:nth-child(3){border-left:none}.statgrid > div:nth-child(n+3){border-top:1px solid var(--line-soft)}}
+  @media(max-width:430px){.statgrid{grid-template-columns:1fr}.statgrid > div{border-left:none!important;border-top:1px solid var(--line-soft)}.statgrid > div:first-child{border-top:none}}
+
+  /* ── vendor strip ────────────────────────────── */
+  .vstrip{background:var(--rail);color:var(--rail-text);padding:20px 0;border-top:1px solid var(--rail-line)}
+  .vstrip .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 28px}
+  .vstrip .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--garnet-soft);font-weight:600}
+  .vmarks{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-family:var(--sans);font-weight:700;color:#fff;font-size:15.5px;letter-spacing:-.01em}
+  .vmarks i{color:rgba(255,255,255,.22);font-style:normal}
+  @media(max-width:640px){.vmarks{font-size:13.5px;gap:6px 11px}}
+
+  /* ── grids + cards ───────────────────────────── */
   .grid{display:grid;gap:18px}
-  .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
-  @media(max-width:860px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
-  .card h3{margin-bottom:8px}
-  .card p{font-size:14.5px;color:var(--ink-soft);margin:0}
-  .kpi b{font-family:var(--sans);font-size:34px;font-weight:800;color:var(--garnet);letter-spacing:-.02em;display:block;line-height:1}
-  .kpi span{font-size:13px;color:var(--ink-soft);display:block;margin-top:6px}
+  .g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:900px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:580px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:26px;box-shadow:var(--shadow-card);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:#d7dbe2}
+  .card h3{margin-bottom:9px}
+  .card p{font-size:14.5px;color:var(--ink-soft);margin:0;line-height:1.62}
+  .seg{font-family:var(--mono);font-size:10.5px;color:var(--garnet);font-weight:700;letter-spacing:.12em;text-transform:uppercase}
 
-  /* timeline */
-  .tl{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:30px;position:relative}
-  .tl:before{content:"";position:absolute;left:0;right:0;top:11px;height:2px;background:var(--line)}
-  .tl .step{position:relative;padding:0 8px;text-align:left}
-  .tl .node{width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--ink-faint);position:relative;z-index:2}
+  /* ── crisis ──────────────────────────────────── */
+  .failbox{background:linear-gradient(180deg,#fff,#fff8f7);border:1px solid #f0dad7;border-left:4px solid var(--crit);border-radius:14px;padding:24px 28px;margin-top:30px;box-shadow:var(--shadow-card)}
+  .failbox .tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--crit);font-weight:700}
+  .failbox p{margin:9px 0 0;font-size:15.5px;color:var(--ink);line-height:1.65;max-width:78ch}
+  .tl{display:grid;grid-template-columns:repeat(5,1fr);margin-top:46px;position:relative}
+  .tl:before{content:"";position:absolute;left:12px;right:12px;top:13px;height:2px;background:linear-gradient(90deg,var(--garnet) 0 78%,var(--line) 78%)}
+  .tl .step{position:relative;padding:0 12px 0 0}
+  .tl .node{width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ink-faint);position:relative;z-index:2}
   .tl .past .node{background:var(--garnet);border-color:var(--garnet);color:#fff}
-  .tl .now .node{background:var(--crit);border-color:var(--crit);color:#fff;box-shadow:0 0 0 5px rgba(192,57,43,.16)}
-  .tl .date{font-family:var(--mono);font-size:11.5px;font-weight:600;margin-top:10px;color:var(--ink)}
-  .tl .what{font-size:12.5px;color:var(--ink-soft);margin-top:3px}
+  .tl .now .node{background:var(--crit);border-color:var(--crit);color:#fff;box-shadow:0 0 0 6px rgba(192,57,43,.15);animation:pulse 2s infinite}
+  .tl .date{font-family:var(--mono);font-size:12px;font-weight:600;margin-top:12px;color:var(--ink)}
+  .tl .what{font-size:12.5px;color:var(--ink-soft);margin-top:4px;line-height:1.45;padding-right:6px}
   .tl .now .date{color:var(--crit)}
-  @media(max-width:760px){.tl{grid-template-columns:1fr;gap:14px}.tl:before{display:none}.tl .step{display:flex;gap:12px;align-items:flex-start}.tl .date{margin-top:0}}
+  .tl .here{display:inline-block;margin-top:7px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:var(--crit);border-radius:4px;padding:3px 7px}
+  @media(max-width:780px){.tl{grid-template-columns:1fr;gap:18px}.tl:before{left:13px;right:auto;top:8px;bottom:8px;width:2px;height:auto;background:linear-gradient(180deg,var(--garnet) 0 78%,var(--line) 78%)}.tl .step{display:grid;grid-template-columns:26px 1fr;gap:0 14px;align-items:start}.tl .date{margin-top:3px;grid-column:2}.tl .what,.tl .here{grid-column:2}}
 
-  /* failure callout */
-  .failbox{background:linear-gradient(180deg,#fff,#fffafa);border:1px solid #f0d9d9;border-left:4px solid var(--crit);border-radius:12px;padding:22px 24px}
-  .failbox .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--crit);font-weight:700}
-
-  /* victim cards */
+  /* victims */
   .victim{border-top:3px solid var(--crit)}
-  .victim .who{font-family:var(--sans);font-weight:800;font-size:16px}
-  .victim .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--high);font-weight:700;margin:2px 0 8px}
+  .victim .who{font-family:var(--sans);font-weight:800;font-size:17px;letter-spacing:-.01em}
+  .victim .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--high);font-weight:700;margin:4px 0 10px}
+  .stake{border-top:3px solid var(--garnet)}
+  .stake.s-high{border-top-color:var(--high)}.stake.s-crit{border-top-color:var(--crit)}
 
-  /* compare table */
-  .cmp{width:100%;border-collapse:collapse;margin-top:24px;font-size:14px}
-  .cmp th,.cmp td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top}
-  .cmp thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
-  .cmp .us{color:var(--pass);font-weight:600}
-  .cmp .no{color:var(--ink-faint)}
-  .cmp tbody tr:hover{background:var(--line-soft)}
+  /* model highlight card */
+  .card.hl{border:1.5px solid var(--garnet);box-shadow:0 10px 32px rgba(157,27,84,.10)}
+  .card.hl:hover{box-shadow:0 16px 44px rgba(157,27,84,.16)}
+  .notbox{margin-top:26px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 24px;font-size:14.5px;color:var(--ink-soft);box-shadow:var(--shadow-card)}
+  .notbox b{color:var(--ink)}
 
-  /* dark band */
-  .dark{background:var(--rail);color:#fff;border:none}
-  .dark h2{color:#fff} .dark .eyebrow{color:var(--garnet-soft)} .dark .lead{color:var(--rail-text)}
-  .dark .card{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.09)}
-  .dark .card h3{color:#fff} .dark .card p{color:var(--rail-text)}
-  .seg{font-family:var(--mono);font-size:11px;color:var(--garnet-soft);font-weight:700;letter-spacing:.06em}
+  /* ── dark sections ───────────────────────────── */
+  .dark{background:linear-gradient(180deg,var(--rail),#141a23);color:#fff;border-top:1px solid var(--rail-line)!important}
+  .dark h2{color:#fff}
+  .dark .eyebrow{color:var(--garnet-soft)}.dark .eyebrow:before{background:var(--garnet-soft)}
+  .dark .lead{color:var(--rail-text)}
+  .dark .card{background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.09);box-shadow:none}
+  .dark .card:hover{border-color:rgba(193,77,128,.45);box-shadow:0 14px 40px rgba(0,0,0,.32)}
+  .dark .card h3{color:#fff}.dark .card p{color:var(--rail-text)}
+  .dark .seg{color:var(--garnet-soft)}
+  .dark .muted{color:var(--rail-faint)}
 
-  /* proof / pills */
-  .pill{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 13px;font-size:13px;font-weight:600;margin:0 8px 8px 0}
-  .pill b{color:var(--garnet)}
-  .gaps{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 22px;border-left:4px solid var(--pass)}
+  /* ── compare table ───────────────────────────── */
+  .cmpwrap{margin-top:36px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#fff;box-shadow:var(--shadow-card)}
+  .cmp{width:100%;border-collapse:collapse;font-size:14px}
+  .cmp th,.cmp td{text-align:left;padding:16px 20px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.55}
+  .cmp tbody tr:last-child td{border-bottom:none}
+  .cmp thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;background:var(--line-soft);border-bottom:1px solid var(--line)}
+  .cmp .name{font-family:var(--sans);font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+  .cmp .no{color:var(--ink-soft)}
+  .cmp tr.us{background:linear-gradient(90deg,rgba(157,27,84,.045),rgba(157,27,84,.015))}
+  .cmp tr.us .name{color:var(--garnet)}
+  .cmp tr.us td{color:var(--ink)}
+  .cmp .verd{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:5px;padding:3px 8px;display:inline-block;margin-bottom:7px}
+  .verd.miss{background:#fbeeee;color:var(--crit)}
+  .verd.win{background:#e7f4ef;color:var(--pass)}
+  @media(max-width:720px){.cmp thead{display:none}.cmp tr{display:block;border-bottom:1px solid var(--line)}.cmp td{display:block;border-bottom:none;padding:10px 18px}.cmp td:first-child{padding-top:18px}.cmp td:last-child{padding-bottom:18px}}
 
-  /* team */
-  .person{display:flex;gap:16px;align-items:flex-start}
-  .person .av{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,var(--rail),var(--rail-2));color:#fff;display:grid;place-items:center;font-family:var(--sans);font-weight:800;font-size:20px;flex:none}
-  .person .role{font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--garnet);font-weight:700}
+  /* ── market ──────────────────────────────────── */
+  .kpi b{font-family:var(--sans);font-size:clamp(28px,2.6vw,36px);font-weight:800;color:var(--garnet);letter-spacing:-.02em;display:block;line-height:1.05}
+  .kpi span{font-size:13px;color:var(--ink-soft);display:block;margin-top:8px;line-height:1.5}
+  .icp .seg{display:block;margin-bottom:8px}
 
-  /* cta */
-  .ctaband{background:linear-gradient(135deg,var(--garnet),var(--garnet-deep));color:#fff;border:none;text-align:center}
-  .ctaband h2{color:#fff} .ctaband p{color:rgba(255,255,255,.85);max-width:56ch;margin:14px auto 0}
-  .ctaband .btn{background:#fff;color:var(--garnet);border-color:#fff;margin-top:26px}
-  .ctaband .btn:hover{background:#f3e6ec;color:var(--garnet-deep)}
-  .ctaband .contact{margin-top:18px;font-family:var(--mono);font-size:13px;color:rgba(255,255,255,.9)}
-  .ctaband .contact a{color:#fff;text-decoration:underline}
+  /* ── proof ───────────────────────────────────── */
+  .pills{display:flex;flex-wrap:wrap;gap:9px;margin-top:28px}
+  .pill{display:inline-flex;align-items:baseline;gap:6px;background:#fff;border:1px solid var(--line);border-radius:24px;padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--ink);box-shadow:var(--shadow-card)}
+  .pill b{font-family:var(--sans);color:var(--garnet);font-weight:800;font-size:15px}
+  .gaps{background:linear-gradient(180deg,#fff,#f6fbf9);border:1px solid #d8e9e2;border-left:4px solid var(--pass);border-radius:14px;padding:26px 30px;margin-top:30px;box-shadow:var(--shadow-card)}
+  .gaps h3{color:var(--pass);font-size:18px}
+  .gaps p{margin:10px 0 0;font-size:15px;color:var(--ink-soft);line-height:1.68;max-width:84ch}
+  .gaps b{color:var(--ink)}
 
-  footer{padding:28px 0;border-top:1px solid var(--line);color:var(--ink-faint);font-size:12.5px}
-  footer .wrap{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between}
-  .disc{font-size:11.5px;color:var(--ink-faint);max-width:70ch;margin-top:8px}
+  /* ── team ────────────────────────────────────── */
+  .person{display:flex;gap:18px;align-items:flex-start}
+  .person .av{width:58px;height:58px;border-radius:14px;background:linear-gradient(135deg,var(--rail),var(--rail-2));color:#fff;display:grid;place-items:center;font-family:var(--sans);font-weight:800;font-size:20px;flex:none;border:1px solid var(--rail-line)}
+  .person .role{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--garnet);font-weight:700}
+  .person h3{margin-top:4px;font-size:19px}
+  .person p{margin-top:8px}
+
+  /* ── cta band ────────────────────────────────── */
+  .ctaband{background:
+    radial-gradient(700px 320px at 18% -20%, rgba(255,255,255,.10), transparent 60%),
+    linear-gradient(135deg,var(--garnet),var(--garnet-deep));
+    color:#fff;text-align:center;border-top:none!important}
+  .ctaband h2{color:#fff;font-size:clamp(30px,3.8vw,46px)}
+  .ctaband .eyebrow{color:rgba(255,255,255,.85)}.ctaband .eyebrow:before{background:rgba(255,255,255,.85)}
+  .ctaband .lead{color:rgba(255,255,255,.88);max-width:64ch;margin:18px auto 0}
+  .ctaband .btn{background:#fff;color:var(--garnet);border-color:#fff;margin-top:32px;font-size:15.5px;padding:14px 28px;box-shadow:0 14px 36px rgba(0,0,0,.22)}
+  .ctaband .btn:hover{background:#f7e9f0;color:var(--garnet-deep)}
+  .ctaband .contact{margin-top:22px;font-family:var(--mono);font-size:13px;color:rgba(255,255,255,.92)}
+  .ctaband .contact a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+  .ctaband .exch{display:inline-block;margin-top:26px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:14px 22px;font-size:14px;color:rgba(255,255,255,.92);max-width:62ch;line-height:1.6}
+
+  footer{padding:34px 0 44px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:12.5px;background:#f2f3f6}
+  footer .top{display:flex;flex-wrap:wrap;gap:8px 22px;justify-content:space-between;align-items:center}
+  footer .disc{font-size:11.5px;color:var(--ink-faint);max-width:88ch;margin-top:16px;line-height:1.65}
+
+  /* ── reveal ──────────────────────────────────── */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.25,1);transition-delay:var(--d,0ms)}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion: reduce){
+    *,*:before,*:after{animation:none!important;transition:none!important}
+    html{scroll-behavior:auto}
+    .reveal{opacity:1;transform:none}
+    .term-wrap{animation:none}
+  }
+  /* never let scroll-reveal hide content in print/PDF export */
+  @media print{.reveal{opacity:1!important;transform:none!important}}
 </style>
 </head>
 <body>
 
+<div id="prog" aria-hidden="true"></div>
+
 <header class="bar">
   <div class="wrap">
-    <div class="brand"><span class="mark">S</span><span>SBC-AutoOps<small>Metaventions AI</small></span></div>
-    <nav>
+    <a class="brand" href="#top" aria-label="SBC-AutoOps by Metaventions AI, back to top">
+      <span class="mark" aria-hidden="true">S</span>
+      <span>SBC-AutoOps<small>Metaventions AI</small></span>
+    </a>
+    <nav aria-label="Primary">
       <a href="#crisis">The wedge</a>
-      <a href="#solution">Solution</a>
+      <a href="#how">How it works</a>
       <a href="#market">Market</a>
       <a href="#proof">Proof</a>
-      <a class="btn" href="#cta">Book a design-partner call</a>
+      <a class="btn sm" href="#cta">Book a design-partner call</a>
     </nav>
   </div>
 </header>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="wrap">
-    <span class="live"><span class="dot"></span> Microsoft Direct Routing CA migration: enforcement is live now</span>
-    <h1>The independent <span class="g">truth layer</span><br>for real-time voice.</h1>
-    <p class="lead">Microsoft's 2026 certificate migration is hard-stopping Teams calls at the TLS handshake across mixed-vendor SBC fleets. SBC-AutoOps catches it from the config, before the outage, across AudioCodes, Cisco, Ribbon, and Oracle, on one model. Local-first. Raw configs never leave.</p>
-    <div class="cta-row">
-      <a class="btn" href="#cta">Book a design-partner call</a>
-      <a class="btn ghost" href="#proof">See what runs today</a>
-    </div>
+<main id="top">
 
-    <div class="countdown" id="cd">
+<!-- ═══ HERO ═══ -->
+<section class="hero" style="border-top:none">
+  <div class="wrap">
+    <div class="hero-grid">
       <div>
-        <div class="cd-lbl">Final EKU cutover · June 15, 2026</div>
-        <div class="cd-num" id="cdnum">&nbsp;</div>
+        <span class="live reveal"><span class="dot" aria-hidden="true"></span> Microsoft CA migration: enforcement is live <span class="mono">· MC1235747</span></span>
+        <h1 class="reveal" style="--d:80ms">The independent<br><span class="ser g">truth layer</span> for<br>real-time voice.</h1>
+        <p class="lead reveal" style="--d:160ms">Microsoft's 2026 certificate migration is hard-stopping Teams Direct Routing calls at the TLS handshake, across mixed-vendor SBC fleets, with nothing pointing at the cert. SBC-AutoOps catches it from the config, before the outage. Any vendor, one model, plain English. Local-first: raw configs never leave your environment.</p>
+        <div class="cta-row reveal" style="--d:240ms">
+          <a class="btn" href="#cta">Book a design-partner call</a>
+          <a class="btn ghost" href="#how">See it work</a>
+        </div>
+        <div class="trustline reveal" style="--d:300ms"><b>4</b> vendor parsers · <b>8</b> validation domains · <b>104</b> tests in CI · air-gapped</div>
+
+        <div class="countdown reveal" style="--d:360ms" role="timer" aria-live="off" aria-label="Countdown to the June 15 2026 final EKU cutover">
+          <div>
+            <div class="cd-lbl">Final EKU cutover · June 15, 2026</div>
+            <div class="cd-units" id="cdu">
+              <div class="u"><b id="cd-d">--</b><span>days</span></div>
+              <div class="u"><b id="cd-h">--</b><span>hrs</span></div>
+              <div class="u"><b id="cd-m">--</b><span>min</span></div>
+              <div class="u"><b id="cd-s">--</b><span>sec</span></div>
+            </div>
+            <div class="cd-live" id="cdlive">ENFORCEMENT LIVE</div>
+          </div>
+          <div class="cd-sub">The hard root-CA deadline <b>passed March 31</b>. Microsoft's server rollout landed in April. Unvalidated SBCs are failing in production now, and the last cutover lands in days.</div>
+        </div>
       </div>
-      <div class="cd-sub">Chrome/Mozilla finish removing the dual-use clientAuth EKU. The hard root-CA deadline (Mar 31) and Microsoft's server rollout (Apr) have already passed. Unvalidated SBCs are failing now.</div>
+
+      <div class="heroviz reveal" style="--d:200ms">
+        <div class="glow" aria-hidden="true"></div>
+        <div class="term-wrap" id="tilt">
+          <div class="term">
+            <div class="tbar"><i class="t1"></i><i class="t2"></i><i class="t3"></i><span>sbc-validator · pre-deployment walk</span></div>
+            <pre aria-label="Terminal output of sbc-validator walk showing a blocked verdict"><span class="ps">$</span> <span class="cmd">sbc-validator walk sbc-teams-01.contoso.com.ini</span>
+
+  <span class="stg">STAGE 1 · INGEST</span>
+  <span class="key">Teams leg</span>   transport=tcp   mTLS=no   SRTP=no   roots 5/7
+
+  <span class="stg">STAGE 2 · VALIDATE</span>
+  <span class="crit">[CRITICAL]</span>  C.CA.ROOT_MISSING          <span class="dim">2 of 7 Microsoft roots missing (DigiCert G5 pair)</span>
+  <span class="crit">[CRITICAL]</span>  D.NAT.PRIVATE_ADVERTISED   <span class="dim">private IP advertised in SDP</span>
+  <span class="high">[HIGH]</span>      B.SIP.TRANSPORT            <span class="dim">transport is TCP, not TLS</span>
+  <span class="high">[HIGH]</span>      C.TLS.MTLS_DISABLED        <span class="dim">mutual TLS off</span>
+  <span class="high">[HIGH]</span>      C.SRTP.DISABLED            <span class="dim">media not encrypted</span>
+
+  <span class="stg">STAGE 3 · VERDICT</span>       risk 100/100   →   <span class="blk">BLOCK</span>
+
+  <span class="stg">STAGE 4 · PREDICT</span>
+  SBC  --&gt;  TLS ClientHello
+       &lt;--  unknown CA / handshake failed      <span class="die">&lt;&lt; call dies here</span>
+  Outcome: <span class="crit">NO_CONNECT</span>  <span class="dim">(dies at TLS handshake)</span></pre>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="herometa">
-      <div><b>80M+</b>Teams Phone monthly users</div>
-      <div><b>80%</b>of telephony Teams via Direct Routing</div>
-      <div><b>4–12h+</b>typical MTTR per SBC misconfig</div>
-      <div><b>$1.1→2.4B</b>SBC market, 2025→2035</div>
+    <div class="statgrid reveal" style="--d:120ms">
+      <div><b>80M<em>+</em></b><span>Teams Phone monthly users worldwide</span></div>
+      <div><b>20M<em>+</em></b><span>rely on Direct Routing for PSTN calling</span></div>
+      <div><b>4–12h<em>+</em></b><span>typical MTTR for an SBC misconfiguration</span></div>
+      <div><b>$1.1→2.4B</b><span>SBC market, 2025 to 2035, ~8% CAGR</span></div>
     </div>
   </div>
 </section>
 
-<!-- CRISIS -->
-<section id="crisis">
+<!-- ═══ VENDOR STRIP ═══ -->
+<div class="vstrip" role="region" aria-label="Supported SBC platforms">
   <div class="wrap">
-    <span class="eyebrow">The wedge · why now</span>
-    <h2 style="margin-top:10px;max-width:18ch">A cryptographic deadline that hard-stops voice.</h2>
-    <p class="lead" style="margin-top:16px">Teams Direct Routing runs entirely on mutual TLS between the customer's SBC and Microsoft's SIP proxy. In 2026 Microsoft retired the legacy roots and is enforcing serverAuth-only certificates. An SBC whose trust store or cert is not updated does not degrade. It hard-stops.</p>
+    <span class="lbl">One model · every major SBC platform</span>
+    <div class="vmarks">
+      <b>AudioCodes Mediant</b><i>·</i><b>Cisco CUBE</b><i>·</i><b>Ribbon SBC Core</b><i>·</i><b>Oracle Acme Packet</b>
+    </div>
+  </div>
+</div>
 
-    <div class="failbox" style="margin-top:24px">
+<!-- ═══ CRISIS ═══ -->
+<section id="crisis" style="border-top:none">
+  <div class="wrap">
+    <span class="eyebrow reveal">The wedge · why now</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:21ch">A cryptographic deadline that <span class="ser g">hard-stops</span> voice.</h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Teams Direct Routing runs entirely on mutual TLS between your SBC and Microsoft's SIP proxy. In 2026, Microsoft retires the legacy roots and enforces serverAuth-only certificates. An SBC whose trust store or cert is not updated does not degrade gracefully. It stops, completely.</p>
+
+    <div class="failbox reveal" style="--d:160ms">
       <span class="tag">The failure mode</span>
-      <p style="margin:8px 0 0;font-size:15.5px;color:var(--ink)">Instant TLS handshake rejection, SIP 408 timeouts, complete inbound and outbound outage, with nothing in Teams pointing at the certificate. The classic "scream test": you find out from users, not from a dashboard. Tracked as Microsoft Message Center <span class="mono">MC1235747</span>.</p>
+      <p>Instant TLS handshake rejection. SIP 408 timeouts. Total inbound and outbound outage. And nothing in Teams points at the certificate: you find out from users, not from a dashboard. Engineers call it the "scream test." Tracked as Microsoft Message Center <span class="mono" style="font-weight:600">MC1235747</span>.</p>
     </div>
 
-    <div class="tl">
-      <div class="step past"><div class="node">✓</div><div class="date">Feb 16</div><div class="what">MS test endpoint live</div></div>
-      <div class="step past"><div class="node">✓</div><div class="date">Feb 28</div><div class="what">Remediation deadline</div></div>
-      <div class="step past"><div class="node">✓</div><div class="date">Mar 31</div><div class="what">Legacy roots rejected</div></div>
-      <div class="step past"><div class="node">✓</div><div class="date">Apr</div><div class="what">MS server cert rollout</div></div>
-      <div class="step now"><div class="node">!</div><div class="date">Jun 15 · now</div><div class="what">Final EKU enforcement</div></div>
+    <div class="tl reveal" style="--d:200ms" role="list" aria-label="2026 enforcement timeline">
+      <div class="step past" role="listitem"><div class="node" aria-hidden="true">✓</div><div class="date">Feb 16</div><div class="what">Microsoft test endpoint live for pre-deployment validation</div></div>
+      <div class="step past" role="listitem"><div class="node" aria-hidden="true">✓</div><div class="date">Feb 28</div><div class="what">Industry remediation deadline: firmware + root imports done</div></div>
+      <div class="step past" role="listitem"><div class="node" aria-hidden="true">✓</div><div class="date">Mar 31</div><div class="what">HARD deadline: legacy roots rejected outright</div></div>
+      <div class="step past" role="listitem"><div class="node" aria-hidden="true">✓</div><div class="date">April</div><div class="what">Microsoft rolls new certs onto the primary SIP proxy; unpatched peers drop</div></div>
+      <div class="step now" role="listitem"><div class="node" aria-hidden="true">!</div><div class="date">Jun 15</div><div class="what">Final EKU cutover: dual-use clientAuth certs removed</div><span class="here" id="tlhere">We are here</span></div>
     </div>
   </div>
 </section>
 
-<!-- COST / VICTIMS -->
-<section>
+<!-- ═══ COST ═══ -->
+<section id="cost">
   <div class="wrap">
-    <span class="eyebrow">The cost of getting it wrong</span>
-    <h2 style="margin-top:10px;max-width:20ch">It is already happening, in production.</h2>
-    <div class="grid g3" style="margin-top:26px">
-      <div class="card victim">
-        <div class="who">Voipcloud</div>
-        <div class="tag">P1 · thousands of users</div>
-        <p>Microsoft stopped accepting calls routed through their SBCs: a temporally valid but untrusted root presented at the mTLS handshake. Full outage.</p>
-      </div>
-      <div class="card victim">
-        <div class="who">CallTower</div>
-        <div class="tag">Silent blackhole</div>
-        <p>Unpatched SBCs stopped sending SIP OPTIONS pings; Microsoft auto-deactivated the Direct Routing domain and blackholed every voice route, with no SIP 503 to warn anyone.</p>
-      </div>
-      <div class="card victim">
-        <div class="who">FusionConnect</div>
-        <div class="tag">One-way audio</div>
-        <p>Signaling succeeded, but media relays presented new DigiCert certs and silently dropped outbound audio (SRTP mismatch). The hardest failure to diagnose.</p>
-      </div>
+    <span class="eyebrow reveal">The cost of getting it wrong</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:22ch">It is already happening, in production.</h2>
+    <div class="grid g3" style="margin-top:34px">
+      <div class="card victim reveal"><div class="who">Voipcloud</div><div class="tag">P1 · thousands of users</div><p>Microsoft stopped accepting their calls: a temporally valid but untrusted root presented at the mTLS handshake. Full outage across the customer base.</p></div>
+      <div class="card victim reveal" style="--d:90ms"><div class="who">CallTower</div><div class="tag">Silent blackhole</div><p>Unpatched SBCs stopped sending SIP OPTIONS pings. Microsoft auto-deactivated the Direct Routing domain and blackholed every voice route, with no SIP 503 to warn anyone.</p></div>
+      <div class="card victim reveal" style="--d:180ms"><div class="who">FusionConnect</div><div class="tag">One-way audio</div><p>Signaling succeeded, but media relays presented new DigiCert certs and silently dropped outbound audio (SRTP mismatch). The hardest class of failure to diagnose.</p></div>
     </div>
     <div class="grid g3" style="margin-top:18px">
-      <div class="card" style="border-top:3px solid var(--high)"><div class="seg" style="color:var(--high)">REGULATORY</div><p style="margin-top:8px">An unrecorded trader call (MiFID II / FINRA) is a severe, heavily fined violation. If recording fails, the call must be blocked outright.</p></div>
-      <div class="card" style="border-top:3px solid var(--crit)"><div class="seg" style="color:var(--crit)">LIFE-SAFETY</div><p style="margin-top:8px">Healthcare and emergency triage run on 99.999% uptime, where a dropped call can mean the loss of a life.</p></div>
-      <div class="card" style="border-top:3px solid var(--garnet)"><div class="seg" style="color:var(--garnet)">CONTRACTUAL</div><p style="margin-top:8px">Tier-1 carriers are bound by strict 24/7 SLAs. One core cert miss is a mass tenant outage and SLA penalties.</p></div>
+      <div class="card stake s-high reveal"><span class="seg" style="color:var(--high)">Regulatory</span><h3 style="margin-top:8px">MiFID II / FINRA fines</h3><p>An unrecorded trader call is a severe, heavily fined regulatory violation. If recording fails, the SBC must block the call outright.</p></div>
+      <div class="card stake s-crit reveal" style="--d:90ms"><span class="seg" style="color:var(--crit)">Life-safety</span><h3 style="margin-top:8px">99.999% or lives</h3><p>Healthcare and emergency triage architectures demand five-nines uptime, where a failed call can literally mean the loss of a life.</p></div>
+      <div class="card stake reveal" style="--d:180ms"><span class="seg">Contractual</span><h3 style="margin-top:8px">24/7 carrier SLAs</h3><p>Tier-1 carriers are bound by strict around-the-clock SLAs. One core cert miss cascades into a mass tenant outage and SLA penalties.</p></div>
     </div>
-    <p class="muted" style="margin-top:22px;font-size:14px">Practitioners rate SBC config complexity 6 to 8 out of 10. Teams learn about trunk outages from user complaints and LinkedIn posts. There is no cross-vendor, pre-deployment tool to catch this before it ships.</p>
+    <p class="muted reveal" style="margin-top:26px;font-size:14.5px;max-width:78ch">Practitioners rate SBC config complexity 6 to 8 out of 10, and MTTR runs 4 to 12+ hours. Teams still learn about trunk outages from user complaints and LinkedIn posts. Until now, no cross-vendor, pre-deployment layer existed to catch this before it ships.</p>
   </div>
 </section>
 
-<!-- SOLUTION -->
-<section id="solution" class="dark">
+<!-- ═══ MENTAL MODEL ═══ -->
+<section id="model">
   <div class="wrap">
-    <span class="eyebrow">What it is</span>
-    <h2 style="margin-top:10px;max-width:22ch">Validate the config before the call, not the call after the outage.</h2>
-    <p class="lead" style="margin-top:16px">SBC-AutoOps parses any vendor's config into one normalized model and runs eight validation domains over it. Deterministic verdicts, not LLM guesses. It runs inside your environment, air-gapped; raw configs never leave.</p>
-    <div class="grid g3" style="margin-top:30px">
-      <div class="card"><div class="seg">VALIDATE</div><h3 style="margin-top:8px">Catch it from config</h3><p>Eight domains: TLS/CA roots and EKU and chain, SRTP, NAT/one-way-audio, codec, routing, interop, security/ACL. The 2026 wedge is domain C.</p></div>
-      <div class="card"><div class="seg">SIMULATE</div><h3 style="margin-top:8px">Predict the call</h3><p>Models the call as a chain (TLS → SIP → SDP → media), predicts how far it gets, names the user-visible symptom, and renders the SIP ladder up to the failure.</p></div>
-      <div class="card"><div class="seg">EXPLAIN</div><h3 style="margin-top:8px">Diagnose a capture</h3><p>Reconstructs the SIP ladder from a packet capture, detects one-way audio and TLS alerts, and maps each failure back to the config fix.</p></div>
+    <span class="eyebrow reveal">The mental model</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">The <span class="ser g">OBD-II scanner</span> for your voice network.</h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Your car throws a warning light and any shop's scanner reads it, on any make. Your SBCs throw silent failures, and the only tools that read them are locked to one vendor or demand a Wireshark expert. SBC-AutoOps is the universal scanner: plug in any vendor's config, get a plain-English readout of what will break and why.</p>
+    <div class="grid g4" style="margin-top:34px">
+      <div class="card reveal"><span class="seg" style="color:var(--ink-faint)">The car</span><h3 style="margin-top:8px">Your SBCs</h3><p>AudioCodes, Cisco, Ribbon, Oracle. The gateway every call in your business passes through.</p></div>
+      <div class="card hl reveal" style="--d:80ms"><span class="seg">The scanner</span><h3 style="margin-top:8px">SBC-AutoOps</h3><p>Any make, automated, explained in plain English. Reads the config; never touches the live box.</p></div>
+      <div class="card reveal" style="--d:160ms"><span class="seg" style="color:var(--ink-faint)">Dealer-only tool</span><h3 style="margin-top:8px">Vendor tools</h3><p>OVOC, RAMP, Element Manager. Locked to one make, blind across a mixed fleet.</p></div>
+      <div class="card reveal" style="--d:240ms"><span class="seg" style="color:var(--ink-faint)">The multimeter</span><h3 style="margin-top:8px">Wireshark</h3><p>Powerful, manual, expert-only. Not something an ops team runs before every change.</p></div>
     </div>
-    <p class="lead" style="margin-top:26px;color:#fff;font-weight:600">Four real vendor parsers on one model: AudioCodes, Cisco CUBE, Ribbon, Oracle Acme. Plus HA-drift detection, fleet readiness, and a CI/CD gate.</p>
+    <div class="notbox reveal"><b>What we are not:</b> we are not an SBC, and we do not compete with AudioCodes, Cisco, Ribbon, or Oracle. They are channel partners, not competitors. We are the independent layer that reads all of them.</div>
   </div>
 </section>
 
-<!-- WHITESPACE -->
+<!-- ═══ OUTCOMES ═══ -->
+<section id="outcomes">
+  <div class="wrap">
+    <span class="eyebrow reveal">What you get</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px">Outcomes, not output.</h2>
+    <div class="grid g3" style="margin-top:34px">
+      <div class="card reveal"><h3>Zero-outage deployments</h3><p>Validate certs, trust stores, and HA pairs before production. The silent failure never ships.</p></div>
+      <div class="card reveal" style="--d:70ms"><h3>MTTR from hours to minutes</h3><p>Replace 4 to 12 hours of manual log forensics with an instant readout and the exact thing to fix.</p></div>
+      <div class="card reveal" style="--d:140ms"><h3>One pane, every vendor</h3><p>AudioCodes, Cisco, Ribbon, Oracle, on-prem or cloud, in a single diagnostic layer.</p></div>
+      <div class="card reveal"><h3>SLA protection</h3><p>Catch config drift before it breaks the uptime commitment your contracts and penalties hang on.</p></div>
+      <div class="card reveal" style="--d:70ms"><h3>Self-serve independence</h3><p>Stop escalating to vendors, ITSPs, or Microsoft support to learn what your own config already knows.</p></div>
+      <div class="card hl reveal" style="--d:140ms"><h3 style="color:var(--garnet)">Security as the wedge</h3><p>Local-first and air-gapped: raw configs never leave your environment. The security review becomes the reason to adopt, not the blocker.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section id="how" class="dark">
+  <div class="wrap">
+    <span class="eyebrow reveal">How it works</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">Validate the config before the call, not the call after the outage.</h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Four real vendor parsers normalize any config into one model, and the engine runs validation domains over it. Deterministic verdicts, not LLM guesses. It runs inside your environment, fully air-gapped.</p>
+    <div class="grid g3" style="margin-top:36px">
+      <div class="card reveal"><span class="seg">01 · Validate</span><h3 style="margin-top:10px">Catch it from config</h3><p>Eight domains: syntax, interop, the TLS/CA wedge with SRTP and trust-anchor chains, NAT and one-way audio, codec, topology leak, routing, security. The 2026 failure is caught before a single packet is sent.</p></div>
+      <div class="card reveal" style="--d:90ms"><span class="seg">02 · Simulate</span><h3 style="margin-top:10px">Predict the call</h3><p>Models the call as a chain (TLS, then SIP, then SDP, then media), predicts exactly how far it gets, names the user-visible symptom, and renders the SIP ladder up to the point of failure.</p></div>
+      <div class="card reveal" style="--d:180ms"><span class="seg">03 · Explain</span><h3 style="margin-top:10px">Diagnose a capture</h3><p>Reconstructs the SIP ladder from a packet capture, detects one-way audio and TLS alerts, and maps each failure back to the config change that fixes it.</p></div>
+    </div>
+    <p class="reveal" style="margin-top:30px;color:#fff;font-weight:600;font-size:16.5px;max-width:70ch">Plus HA-drift diff, fleet readiness reports, and a CI/CD gate, so the bad config never reaches the change window in the first place.</p>
+  </div>
+</section>
+
+<!-- ═══ WHY WE WIN ═══ -->
 <section id="why">
   <div class="wrap">
-    <span class="eyebrow">Why independent + pre-deployment wins</span>
-    <h2 style="margin-top:10px;max-width:24ch">Everything that exists is single-vendor, or watches the call after it fails.</h2>
-    <table class="cmp">
-      <thead><tr><th>Approach</th><th>What it does</th><th>Why it misses the 2026 wedge</th></tr></thead>
-      <tbody>
-        <tr><td>Post-deployment AIOps</td><td class="no">Inspects active SIP/RTP for jitter, latency, MOS</td><td>The failure drops TLS <em>before</em> signaling exists. You cannot monitor a call that is cryptographically blocked from starting.</td></tr>
-        <tr><td>Vendor tools (OVOC, RAMP)</td><td class="no">Manage their own hardware only</td><td>Reality is multi-vendor: LoopUp runs Ribbon + AudioCodes; Societe Generale runs Oracle + AudioCodes + Ribbon. No single pane.</td></tr>
-        <tr><td><b>SBC-AutoOps</b></td><td class="us">Validates any vendor's config before deploy; predicts the call</td><td class="us">Catches the missing root, wrong EKU, expired cert, SRTP gap, from the config, before traffic, across the whole mixed fleet.</td></tr>
-      </tbody>
-    </table>
-    <p class="muted" style="margin-top:20px;font-size:14px">The independent, cross-vendor normalized model is the hard part to build, and the long-term moat: a consented, anonymized failure-pattern corpus across the industry that no single-vendor tool can assemble.</p>
+    <span class="eyebrow reveal">Why independent + pre-deployment wins</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:26ch">Everything else is single-vendor, or watches the call after it fails.</h2>
+    <div class="cmpwrap reveal" style="--d:120ms">
+      <table class="cmp">
+        <thead><tr><th scope="col">Approach</th><th scope="col">What it does</th><th scope="col">The 2026 wedge</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="name">Post-deployment AIOps</td>
+            <td class="no">Inspects active SIP/RTP for jitter, latency, MOS</td>
+            <td><span class="verd miss">Blind</span><br>The failure drops TLS before signaling exists. You cannot monitor a call that is cryptographically blocked from ever starting.</td>
+          </tr>
+          <tr>
+            <td class="name">Vendor tools (OVOC, RAMP, EM)</td>
+            <td class="no">Manage their own hardware only</td>
+            <td><span class="verd miss">Siloed</span><br>Reality is multi-vendor: LoopUp runs Ribbon + AudioCodes; Societe Generale runs Oracle + AudioCodes + Ribbon. No single pane exists.</td>
+          </tr>
+          <tr class="us">
+            <td class="name">SBC-AutoOps</td>
+            <td>Validates any vendor's config before deploy, then predicts the call</td>
+            <td><span class="verd win">Catches it</span><br>The missing root, the wrong EKU, the SRTP gap: from the config, before traffic, across the whole mixed fleet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
-<!-- MARKET -->
+<!-- ═══ MARKET ═══ -->
 <section id="market">
   <div class="wrap">
-    <span class="eyebrow">The market</span>
-    <h2 style="margin-top:10px">A large, urgent, structurally underserved market.</h2>
-    <p class="lead" style="margin-top:16px">Direct Routing already saves enterprises 50 to 75 percent on global telephony versus Microsoft Calling Plans. That entire saving, and the uptime it depends on, rides on the SBC cert being right. SBC-AutoOps is cheap insurance on a high-value, fragile, compliance-bound setup.</p>
-    <div class="grid g4" style="margin-top:26px">
-      <div class="card kpi"><b>$2.4B</b><span>SBC market by 2035 (from $1.1B in 2025, ~8% CAGR)</span></div>
-      <div class="card kpi"><b>$100B+</b><span>UCaaS market, growing 15–20% a year</span></div>
-      <div class="card kpi"><b>20M+</b><span>users on Teams Direct Routing for PSTN calling</span></div>
-      <div class="card kpi"><b>50+</b><span>mixed-vendor SBCs in a typical enterprise estate</span></div>
+    <span class="eyebrow reveal">The market</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">Large, urgent, and structurally <span class="ser g">underserved.</span></h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Direct Routing saves enterprises 50 to 75 percent on global telephony versus Microsoft Calling Plans. That entire saving, and the uptime it rides on, depends on the SBC being right. SBC-AutoOps is cheap insurance on a high-value, fragile, compliance-bound setup.</p>
+    <div class="grid g4" style="margin-top:34px">
+      <div class="card kpi reveal"><b>$2.4B</b><span>SBC market by 2035, from $1.1B in 2025 (~8% CAGR)</span></div>
+      <div class="card kpi reveal" style="--d:70ms"><b>$100B+</b><span>UCaaS market, growing 15–20% a year</span></div>
+      <div class="card kpi reveal" style="--d:140ms"><b>20M+</b><span>users on Teams Direct Routing for PSTN calling</span></div>
+      <div class="card kpi reveal" style="--d:210ms"><b>50–75%</b><span>telephony savings that ride on the SBC working</span></div>
     </div>
-    <h3 style="margin-top:40px">Who we sell to</h3>
-    <div class="grid g4" style="margin-top:16px">
-      <div class="card"><h3>Tier-1 carriers / SBCaaS</h3><p>AT&T, Verizon, BT. One cert mismatch cascades into simultaneous outages across hundreds of enterprise tenants.</p></div>
-      <div class="card"><h3>Cloud-voice MSPs / OCAs</h3><p>SIPPIO, CallTower, NWN Carousel. White-label backend; a failure severs the downstream channel revenue.</p></div>
-      <div class="card"><h3>Systems integrators</h3><p>Continuant, SoftwareOne, Insight. Own the multi-vendor PBX-to-Teams migration during the crypto shift.</p></div>
-      <div class="card"><h3>Enterprises, 50+ SBCs</h3><p>Mixed-vendor Direct Routing or BYOC estates with no cross-vendor pre-deployment check.</p></div>
+    <h3 class="reveal" style="margin-top:52px;font-size:20px">Who we sell to</h3>
+    <div class="grid g4" style="margin-top:18px">
+      <div class="card icp reveal"><span class="seg">Tier-1 carriers · SBCaaS</span><h3>AT&amp;T · Verizon · BT</h3><p style="margin-top:8px">Multitenant cloud SBC fleets. One cert mismatch cascades into simultaneous outages across hundreds of enterprise tenants.</p></div>
+      <div class="card icp reveal" style="--d:70ms"><span class="seg">Cloud-voice MSPs · OC</span><h3>SIPPIO · CallTower · NWN Carousel</h3><p style="margin-top:8px">API-driven virtual-SBC fleets behind white-label voice. A failure severs the downstream channel revenue.</p></div>
+      <div class="card icp reveal" style="--d:140ms"><span class="seg">Systems integrators</span><h3>Continuant · SoftwareOne · Insight</h3><p style="margin-top:8px">Own the multi-vendor PBX-to-Teams migration, and the responsibility that hybrid estates survive the cryptographic shift.</p></div>
+      <div class="card icp reveal" style="--d:210ms"><span class="seg">Enterprises</span><h3>50+ mixed-vendor SBCs</h3><p style="margin-top:8px">Direct Routing or BYOC estates with no cross-vendor, pre-deployment check before every change window.</p></div>
     </div>
   </div>
 </section>
 
-<!-- REGULATED -->
-<section class="dark">
+<!-- ═══ REGULATED ═══ -->
+<section id="regulated" class="dark">
   <div class="wrap">
-    <span class="eyebrow">Who cannot afford to get this wrong</span>
-    <h2 style="margin-top:10px;max-width:24ch">The orgs that run their own SBCs do it because they have to.</h2>
-    <p class="lead" style="margin-top:16px">Compliance keeps them off managed cloud calling, so they own the cert problem directly, and the downtime is life-safety or regulatory, not inconvenience.</p>
-    <div class="grid g3" style="margin-top:28px">
-      <div class="card"><div class="seg">FINANCIAL · MiFID II / FINRA</div><h3 style="margin-top:8px">Societe Generale · TP ICAP</h3><p>HA Oracle clustering for trader voice, WORM-compliant call recording. If TLS fails, unrecorded calls must be blocked outright, or it is a regulatory fine.</p></div>
-      <div class="card"><div class="seg">HEALTH / PUBLIC SAFETY · HIPAA / CJIS</div><h3 style="margin-top:8px">UCF · Falck EMS</h3><p>CJIS-compliant police routing, HIPAA clinics, emergency medical triage that cannot drop a packet. Survivable branch appliances must trust the new roots.</p></div>
-      <div class="card"><div class="seg">DEFENSE / MANUFACTURING</div><h3 style="margin-top:8px">US DoD · Bosch Group</h3><p>JITC-certified Ribbon with FIPS-140-2; HA AudioCodes pairs running local media optimization across global factory floors.</p></div>
+    <span class="eyebrow reveal">Who cannot afford to get this wrong</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:26ch">The orgs that run their own SBCs do it because they have to.</h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Compliance keeps them off managed cloud calling, so they own the certificate problem directly. For them, downtime is regulatory or life-safety, not inconvenience.</p>
+    <div class="grid g3" style="margin-top:36px">
+      <div class="card reveal"><span class="seg">Financial · MiFID II / FINRA</span><h3 style="margin-top:10px">Societe Generale · TP ICAP</h3><p style="margin-top:8px">HA Oracle clustering for trader voice with WORM-compliant recording; multi-vendor cloud migration on AudioCodes + Cisco CUBE. If TLS fails, unrecorded calls must be blocked, or it is a fine.</p></div>
+      <div class="card reveal" style="--d:90ms"><span class="seg">Health · Public safety · HIPAA / CJIS</span><h3 style="margin-top:10px">UCF · Falck EMS</h3><p style="margin-top:8px">CJIS-compliant police routing, HIPAA clinics, and global emergency triage that cannot drop a packet. Survivable branch appliances must trust the new DigiCert roots.</p></div>
+      <div class="card reveal" style="--d:180ms"><span class="seg">Defense · Manufacturing</span><h3 style="margin-top:10px">US DoD · Bosch Group</h3><p style="margin-top:8px">JITC-certified Ribbon with FIPS-140-2 at the DoD; HA AudioCodes pairs running Local Media Optimization across Bosch factory floors worldwide.</p></div>
     </div>
   </div>
 </section>
 
-<!-- PROOF -->
+<!-- ═══ PROOF ═══ -->
 <section id="proof">
   <div class="wrap">
-    <span class="eyebrow">What runs today</span>
-    <h2 style="margin-top:10px">A working product, not a slide.</h2>
-    <div style="margin-top:22px">
+    <span class="eyebrow reveal">What runs today</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px">A working product, <span class="ser g">not a slide.</span></h2>
+    <div class="pills reveal" style="--d:120ms">
       <span class="pill"><b>4</b> real vendor parsers, one model</span>
       <span class="pill"><b>8</b> validation domains live</span>
-      <span class="pill"><b>104</b> tests in CI (3 Python versions)</span>
-      <span class="pill"><b>7</b> Microsoft roots, Ed25519-signed rules</span>
-      <span class="pill"><b>air-gapped</b> Docker image</span>
-      <span class="pill"><b>1</b> runtime dependency</span>
+      <span class="pill"><b>104</b> automated tests in CI</span>
+      <span class="pill"><b>7</b> Microsoft roots, signed authority-sourced rules</span>
+      <span class="pill">air-gapped Docker image</span>
       <span class="pill">validate · simulate · explain · diff · fleet</span>
     </div>
-    <div class="gaps" style="margin-top:26px">
-      <h3 style="color:var(--pass)">The honest gaps (and why they are the moat)</h3>
-      <p class="muted" style="margin-top:8px;font-size:14.5px">Routing and security for Cisco, Ribbon, and Oracle, per-config cipher matching, and live probing stay <b>silent</b> until validated against a real config per vendor. The tool refuses to guess. A wrong verdict, telling a customer to fix the wrong thing, is the one thing this product cannot afford. That discipline is the difference between a diagnostic and a liability.</p>
+    <div class="gaps reveal" style="--d:180ms">
+      <h3>The honest gaps, and why they are the moat</h3>
+      <p>Routing and security checks for Cisco, Ribbon, and Oracle, per-config cipher matching, and live probing all stay <b>silent</b> until they are validated against a real config for that vendor. The tool refuses to guess. A wrong verdict, telling a customer to fix the wrong thing, is the one thing this product cannot afford. That discipline is the difference between a diagnostic and a liability.</p>
     </div>
   </div>
 </section>
 
-<!-- TEAM -->
-<section>
+<!-- ═══ TEAM ═══ -->
+<section id="team">
   <div class="wrap">
-    <span class="eyebrow">The team · Metaventions AI</span>
-    <h2 style="margin-top:10px">Telecom domain depth, meet AI build velocity.</h2>
-    <div class="grid g2" style="margin-top:26px">
-      <div class="card"><div class="person"><div class="av">PD</div><div><div class="role">Co-founder · Telecom</div><h3 style="margin-top:3px">Philip Drammeh</h3><p style="margin-top:6px">Ex-Microsoft Telecom Spec Lead. Deep SBC and Teams Direct Routing architecture expertise: the ground truth the validators are modeled against.</p></div></div></div>
-      <div class="card"><div class="person"><div class="av">DA</div><div><div class="role">Co-founder · AI builder</div><h3 style="margin-top:3px">Dico Angelo</h3><p style="margin-top:6px">AI systems architect and operator. Builds production AI infrastructure and autonomous diagnostic platforms; ships the engine and the local-first distributable.</p></div></div></div>
+    <span class="eyebrow reveal">The team · Metaventions AI</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:26ch">Telecom domain depth, meet AI build velocity.</h2>
+    <div class="grid g2" style="margin-top:34px">
+      <div class="card reveal"><div class="person"><div class="av" aria-hidden="true">PD</div><div><span class="role">Co-founder · Telecom</span><h3>Philip Drammeh</h3><p>Ex-Microsoft Telecom Spec Lead with deep SBC and Teams Direct Routing architecture expertise: the ground truth every validator is modeled against.</p></div></div></div>
+      <div class="card reveal" style="--d:90ms"><div class="person"><div class="av" aria-hidden="true">DA</div><div><span class="role">Co-founder · AI builder</span><h3>Dico Angelo</h3><p>AI builder and systems architect. Builds production AI infrastructure and autonomous diagnostic platforms; ships the engine and the local-first distributable.</p></div></div></div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
+<!-- ═══ CTA ═══ -->
 <section id="cta" class="ctaband">
   <div class="wrap">
-    <span class="eyebrow" style="color:rgba(255,255,255,.85)">The ask</span>
-    <h2 style="margin-top:10px">Two design partners. One real config per vendor.</h2>
-    <p>We are partnering with one or two MSPs or enterprises running 50+ SBCs, and we need one real, sanitized config per vendor: it turns routing and security live for that vendor, the same path that made AudioCodes real. In exchange you get a 2026-migration readiness audit across your whole mixed fleet, run air-gapped, before the next failure.</p>
-    <a class="btn" href="mailto:dicoangelo@metaventionsai.com?subject=SBC-AutoOps%20design%20partnership">Book a design-partner call</a>
-    <div class="contact">dicoangelo@metaventionsai.com &nbsp;·&nbsp; dicoangelo.metaventionsai.com</div>
+    <span class="eyebrow reveal">The ask</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px">Two <span class="ser">design partners.</span><br>One real config per vendor.</h2>
+    <p class="lead reveal" style="--d:120ms">We are partnering with one or two MSPs or enterprises running 50+ SBCs. We need one real, sanitized config per vendor: that is what turns routing and security checks live for that platform, the same path that made AudioCodes real.</p>
+    <div class="exch reveal" style="--d:160ms"><b>In exchange:</b> a 2026-migration readiness audit across your entire mixed-vendor fleet, run air-gapped inside your environment, before the next failure finds you.</div>
+    <div class="reveal" style="--d:200ms">
+      <a class="btn" href="mailto:dicoangelo@metaventionsai.com?subject=SBC-AutoOps%20design%20partnership">Book a design-partner call</a>
+      <div class="contact"><a href="mailto:dicoangelo@metaventionsai.com">dicoangelo@metaventionsai.com</a> &nbsp;·&nbsp; <a href="https://dicoangelo.metaventionsai.com">dicoangelo.metaventionsai.com</a></div>
+    </div>
   </div>
 </section>
+
+</main>
 
 <footer>
   <div class="wrap">
-    <div>© 2026 Metaventions AI · SBC-AutoOps · The independent truth layer for real-time voice.</div>
-    <div>Local-first · air-gapped · vendor-agnostic</div>
+    <div class="top">
+      <div>© 2026 Metaventions AI · SBC-AutoOps · The independent truth layer for real-time voice.</div>
+      <div class="mono" style="font-size:11px;letter-spacing:.08em">LOCAL-FIRST · AIR-GAPPED · VENDOR-AGNOSTIC</div>
+    </div>
+    <p class="disc">Named outages and target organizations are drawn from public market research on the 2026 Microsoft Teams Direct Routing CA migration (Microsoft Message Center MC1235747) and are cited as industry context, not as customer endorsements. Capabilities described as available today are implemented and tested. Routing and security coverage for Cisco, Ribbon, and Oracle, per-config cipher matching, live probing, and any continuous-monitoring or AI-assisted remediation are roadmap and stay silent until validated against real configs.</p>
   </div>
-  <div class="wrap"><p class="disc">Named outages and target organizations are drawn from public market research on the 2026 Microsoft Teams Direct Routing CA migration and are cited as industry context, not as customer endorsements. Product capabilities described as "today" are implemented and tested; routing/security coverage for Cisco, Ribbon, and Oracle, and any continuous-monitoring or AI-assisted remediation, are on the roadmap and stay silent until validated.</p></div>
 </footer>
 
 <script>
-  // Countdown to the June 15, 2026 final EKU enforcement (graceful once passed).
-  (function(){
-    var target = new Date('2026-06-15T00:00:00Z').getTime();
-    var el = document.getElementById('cdnum');
-    function tick(){
-      var d = target - Date.now();
-      if(d <= 0){ el.textContent = 'ENFORCEMENT LIVE'; el.style.fontSize='22px'; return; }
-      var days = Math.floor(d/864e5), hrs = Math.floor((d%864e5)/36e5), mins = Math.floor((d%36e5)/6e4);
-      el.textContent = days + 'd ' + hrs + 'h ' + mins + 'm';
+(function(){
+  "use strict";
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* scroll progress */
+  var prog = document.getElementById("prog");
+  function onScroll(){
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    prog.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + "%";
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  onScroll();
+
+  /* scroll reveal */
+  var els = document.querySelectorAll(".reveal");
+  if (!reduced && "IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    }, {threshold:.12, rootMargin:"0px 0px -8% 0px"});
+    els.forEach(function(el){ io.observe(el); });
+  } else {
+    els.forEach(function(el){ el.classList.add("in"); });
+  }
+
+  /* countdown to the June 15, 2026 final EKU cutover */
+  var target = new Date("2026-06-15T00:00:00Z").getTime();
+  var dEl = document.getElementById("cd-d"), hEl = document.getElementById("cd-h"),
+      mEl = document.getElementById("cd-m"), sEl = document.getElementById("cd-s"),
+      units = document.getElementById("cdu"), liveEl = document.getElementById("cdlive"),
+      here = document.getElementById("tlhere");
+  var timer = null;
+  function pad(n){ return n < 10 ? "0" + n : "" + n; }
+  function tick(){
+    var diff = target - Date.now();
+    if (diff <= 0) {
+      units.style.display = "none";
+      liveEl.style.display = "block";
+      if (here) here.textContent = "Enforcement live";
+      if (timer) clearInterval(timer);
+      return;
     }
-    tick(); setInterval(tick, 60000);
-  })();
+    dEl.textContent = pad(Math.floor(diff / 864e5));
+    hEl.textContent = pad(Math.floor(diff % 864e5 / 36e5));
+    mEl.textContent = pad(Math.floor(diff % 36e5 / 6e4));
+    sEl.textContent = pad(Math.floor(diff % 6e4 / 1e3));
+  }
+  tick();
+  timer = setInterval(tick, 1000);
+
+  /* subtle tilt on the hero terminal (pointer devices only, motion allowed) */
+  var tiltHost = document.getElementById("tilt");
+  if (tiltHost && !reduced && window.matchMedia("(pointer: fine)").matches) {
+    var card = tiltHost.querySelector(".term");
+    tiltHost.addEventListener("mousemove", function(e){
+      var r = tiltHost.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width - .5;
+      var y = (e.clientY - r.top) / r.height - .5;
+      card.style.transform = "perspective(1100px) rotateY(" + (x * 4) + "deg) rotateX(" + (y * -4) + "deg)";
+    });
+    tiltHost.addEventListener("mouseleave", function(){
+      card.style.transition = "transform .5s ease";
+      card.style.transform = "perspective(1100px) rotateY(0) rotateX(0)";
+      setTimeout(function(){ card.style.transition = ""; }, 500);
+    });
+  }
+})();
 </script>
 </body>
 </html>
