@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from ..models import NormalizedConfig, SipInterface
 from .base import Finding, Severity
+from .ca_compliance import _norm
 
 
 def _teams(cfg: NormalizedConfig) -> SipInterface | None:
@@ -22,8 +23,10 @@ def _teams(cfg: NormalizedConfig) -> SipInterface | None:
 
 
 def _roots(iface: SipInterface | None) -> set[str]:
+    # Normalize so the same root named two ways across firmware/export versions
+    # ("DigiCert Global Root G2" vs "DigiCertGlobalRootG2") does not read as drift.
     if iface and iface.tls_context:
-        return set(iface.tls_context.trusted_root_ids)
+        return {_norm(r) for r in iface.tls_context.trusted_root_ids}
     return set()
 
 
@@ -56,11 +59,23 @@ def ha_diff(active: NormalizedConfig, standby: NormalizedConfig) -> list[Finding
             "Configure the Teams SIP interface identically on both nodes.")
         return findings
 
-    # Trust store — the failover-during-CA-migration killer.
-    a_roots, s_roots = _roots(at), _roots(st)
-    if a_roots != s_roots:
-        missing_on_standby = sorted(a_roots - s_roots)
-        extra_on_standby = sorted(s_roots - a_roots)
+    # Trust store — the failover-during-CA-migration killer. Only comparable when
+    # both nodes authoritatively enumerate their trust store; otherwise an absent
+    # store would read as false drift.
+    ac, sc = at.tls_context, st.tls_context
+    both_introspectable = bool(ac and sc and ac.introspectable and sc.introspectable)
+    if not both_introspectable:
+        add("HA.DRIFT.TRUST_STORE_UNVERIFIABLE",
+            "Trust store drift not verifiable from these sources",
+            Severity.LOW,
+            "At least one node imports its trust store separately (it is not in this "
+            "export), so root-CA drift cannot be compared here. Confirm both nodes "
+            "carry identical root CAs out-of-band.",
+            "Verify the active and standby Teams TLS trust stores match.")
+    elif _roots(at) != _roots(st):
+        a_raw, s_raw = set(ac.trusted_root_ids), set(sc.trusted_root_ids)
+        missing_on_standby = sorted(r for r in a_raw if _norm(r) not in _roots(st))
+        extra_on_standby = sorted(r for r in s_raw if _norm(r) not in _roots(at))
         add("HA.DRIFT.TRUST_STORE",
             "Trust store (root CAs) drifted between nodes",
             Severity.CRITICAL,
@@ -85,6 +100,15 @@ def ha_diff(active: NormalizedConfig, standby: NormalizedConfig) -> list[Finding
             Severity.HIGH,
             f"Active mTLS={a_mtls} vs standby mTLS={s_mtls}.",
             "Enable mTLS on the Teams TLS context on both nodes.")
+
+    # SRTP — a failover onto an SRTP-off standby drops Teams media (no audio).
+    if bool(at.srtp_enabled) != bool(st.srtp_enabled):
+        add("HA.DRIFT.SRTP",
+            "SRTP (media encryption) setting differs between nodes",
+            Severity.HIGH,
+            f"Active SRTP={bool(at.srtp_enabled)} vs standby SRTP={bool(st.srtp_enabled)}; "
+            "a failover to the SRTP-off node would drop Teams media (no audio).",
+            "Enable SRTP on the Teams media leg on both nodes.")
 
     # Keep-alive / normalization / codecs / dtmf.
     if at.options_keepalive != st.options_keepalive:

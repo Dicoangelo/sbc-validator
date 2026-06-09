@@ -170,6 +170,34 @@ def test_ha_no_drift_when_identical():
     assert ha_diff(a, a) == []
 
 
+def _ha_node(*, root="DigiCert Global Root G2", srtp=True, introspectable=True):
+    return NormalizedConfig(vendor="x", sip_interfaces=[SipInterface(
+        name="T", role="teams", transport="tls", srtp_enabled=srtp,
+        tls_context=TlsContext(name="T", mtls_enabled=True,
+                               trusted_root_ids=[root] if root else [],
+                               introspectable=introspectable))])
+
+
+def test_ha_trust_store_normalized_no_false_drift():
+    # Same root named two ways across firmware must NOT read as trust-store drift.
+    a, s = _ha_node(root="DigiCert Global Root G2"), _ha_node(root="DigiCertGlobalRootG2")
+    assert "HA.DRIFT.TRUST_STORE" not in {f.check_id for f in ha_diff(a, s)}
+
+
+def test_ha_trust_store_unverifiable_when_not_introspectable():
+    # One node's store is imported separately: report LOW unverifiable, not a false
+    # CRITICAL drift.
+    found = {f.check_id: f.severity for f in
+             ha_diff(_ha_node(root=None, introspectable=False), _ha_node())}
+    assert found.get("HA.DRIFT.TRUST_STORE_UNVERIFIABLE") == Severity.LOW
+    assert "HA.DRIFT.TRUST_STORE" not in found
+
+
+def test_ha_srtp_drift_is_high():
+    found = {f.check_id: f.severity for f in ha_diff(_ha_node(srtp=True), _ha_node(srtp=False))}
+    assert found.get("HA.DRIFT.SRTP") == Severity.HIGH
+
+
 # ---- call-flow simulation --------------------------------------------------
 
 from sbc_validator.call_sim import simulate_call
