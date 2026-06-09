@@ -38,7 +38,7 @@ Container: the image publishes to ghcr.io on a tagged release. Pull a specific
 version once a tag is cut (there is no `:latest` until the first tagged release):
 
 ```bash
-docker pull ghcr.io/dicoangelo/sbc-validator:v0.15.0
+docker pull ghcr.io/dicoangelo/sbc-validator:v0.16.0
 ```
 
 ## See everything in one command
@@ -46,7 +46,7 @@ docker pull ghcr.io/dicoangelo/sbc-validator:v0.15.0
 ```bash
 sbc-validator demo
 # or, air-gapped in a container once the image is published:
-docker run --rm --network none ghcr.io/dicoangelo/sbc-validator:v0.15.0 demo
+docker run --rm --network none ghcr.io/dicoangelo/sbc-validator:v0.16.0 demo
 ```
 
 Runs the full four-vendor showcase: validates a mixed fleet, predicts a call

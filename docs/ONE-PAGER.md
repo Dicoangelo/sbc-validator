@@ -37,7 +37,7 @@ dashboard, and an executive report.
 
 ## Proven vs. honest gaps
 
-- **Proven:** 4 vendors, 8 domains, signed authority-sourced rules, 79 tests in CI,
+- **Proven:** 4 vendors, 8 domains, signed authority-sourced rules, 100 tests in CI,
   air-gapped Docker image, clean-install acceptance (16/16).
 - **Gated (zero false positives until real configs):** routing + security for
   Cisco/Ribbon/Oracle, per-config cipher matching, live probing. The tool stays
