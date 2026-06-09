@@ -36,6 +36,17 @@ class Finding:
             self.domain = self.check_id.split(".", 1)[0]
 
     def is_blocking(self) -> bool:
+        """True when this finding forces a BLOCK verdict.
+
+        Mirrors the verdict mapping in report/risk.py: only a CRITICAL hard-stops
+        a deploy (BLOCK). A HIGH gates to REVIEW, not BLOCK, so it is not
+        "blocking" here. (Previously this returned HIGH-or-worse, contradicting the
+        scorer.)
+        """
+        return self.severity >= Severity.CRITICAL
+
+    def is_review_gating(self) -> bool:
+        """True when this finding gates a deploy to at least REVIEW (HIGH or worse)."""
         return self.severity >= Severity.HIGH
 
 

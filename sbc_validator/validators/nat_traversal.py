@@ -43,27 +43,35 @@ class NatTraversalValidator(AbstractValidator):
         for realm in config.media_realms:
             loc = f"media realm '{realm.name}'"
 
-            # Advertising a private IP to the public side = classic one-way audio
-            if realm.advertised_public_ip is None:
-                res.add(Finding(
-                    check_id="D.NAT.NO_PUBLIC_IP",
-                    title="No public/NAT address advertised",
-                    severity=Severity.HIGH,
-                    detail="Realm advertises no external address; remote endpoints "
-                           "send media to an unreachable private address -> one-way audio.",
-                    remediation="Configure the public NAT/SBC media address for SDP.",
-                    locator=loc,
-                ))
-            elif _is_non_routable(realm.advertised_public_ip):
-                res.add(Finding(
-                    check_id="D.NAT.PRIVATE_ADVERTISED",
-                    title="Non-routable IP advertised as public media address",
-                    severity=Severity.CRITICAL,
-                    detail=f"Realm advertises non-routable IP {realm.advertised_public_ip} "
-                           "in SDP; remote-worker media will not return -> one-way audio.",
-                    remediation="Set the advertised media address to a public, routable NAT IP.",
-                    locator=loc,
-                ))
+            # The public-advertisement checks apply only to a realm facing the
+            # public/Teams side. An "internal"/LAN realm legitimately advertises a
+            # private address, so judging it as a NAT fault is a false BLOCK.
+            if realm.role != "internal":
+                if realm.advertised_public_ip is None:
+                    # Missing advertised address is only a problem when there is no
+                    # routable local address either; a realm bound to a public
+                    # interface needs no separate NAT advertisement.
+                    local_is_public = bool(realm.local_ip) and not _is_non_routable(realm.local_ip)
+                    if not local_is_public:
+                        res.add(Finding(
+                            check_id="D.NAT.NO_PUBLIC_IP",
+                            title="No public/NAT address advertised",
+                            severity=Severity.HIGH,
+                            detail="Realm advertises no external address; remote endpoints "
+                                   "send media to an unreachable private address -> one-way audio.",
+                            remediation="Configure the public NAT/SBC media address for SDP.",
+                            locator=loc,
+                        ))
+                elif _is_non_routable(realm.advertised_public_ip):
+                    res.add(Finding(
+                        check_id="D.NAT.PRIVATE_ADVERTISED",
+                        title="Non-routable IP advertised as public media address",
+                        severity=Severity.CRITICAL,
+                        detail=f"Realm advertises non-routable IP {realm.advertised_public_ip} "
+                               "in SDP; remote-worker media will not return -> one-way audio.",
+                        remediation="Set the advertised media address to a public, routable NAT IP.",
+                        locator=loc,
+                    ))
 
             if require_symmetric and not realm.symmetric_rtp:
                 res.add(Finding(

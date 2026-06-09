@@ -66,6 +66,10 @@ class MediaRealm:
     local_ip: Optional[str] = None
     ice_enabled: bool = False
     symmetric_rtp: bool = False
+    # Which leg this realm serves. An "internal"/LAN realm legitimately uses a
+    # private address, so the public-advertisement checks (domain D) must not fire
+    # on it. "teams"/"carrier"/"unknown" are treated as public-facing.
+    role: str = "unknown"        # "teams" | "carrier" | "internal" | "unknown"
 
 
 @dataclass

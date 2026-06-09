@@ -423,6 +423,34 @@ def test_real_ini_nat_public_media_ip(ruleset):
     assert "D.NAT.PRIVATE_ADVERTISED" not in found and "D.NAT.NO_PUBLIC_IP" not in found
 
 
+def test_nat_internal_realm_private_ip_not_blocked(ruleset):
+    # An internal/LAN realm legitimately uses a private address; judging it as a
+    # public-advertisement fault would be a false CRITICAL/BLOCK on a correct
+    # two-realm topology. Public realm with a private advertised IP still fires.
+    cfg = NormalizedConfig(vendor="x", media_realms=[
+        MediaRealm(name="internal", advertised_public_ip="10.50.0.7",
+                   symmetric_rtp=True, role="internal"),
+        MediaRealm(name="teams", advertised_public_ip="80.0.0.9",
+                   symmetric_rtp=True, role="teams"),
+    ])
+    found = ids(NatTraversalValidator(ruleset).validate(cfg).findings)
+    assert "D.NAT.PRIVATE_ADVERTISED" not in found     # internal realm not flagged
+
+    bad = NormalizedConfig(vendor="x", media_realms=[
+        MediaRealm(name="teams", advertised_public_ip="10.50.0.7",
+                   symmetric_rtp=True, role="teams")])
+    assert "D.NAT.PRIVATE_ADVERTISED" in ids(NatTraversalValidator(ruleset).validate(bad).findings)
+
+
+def test_nat_public_local_ip_needs_no_advertisement(ruleset):
+    # A realm bound to a globally-routable interface needs no separate NAT
+    # advertisement; absence of advertised_public_ip must NOT be a false HIGH.
+    cfg = NormalizedConfig(vendor="x", media_realms=[
+        MediaRealm(name="dmz", advertised_public_ip=None, local_ip="80.0.0.20",
+                   symmetric_rtp=True, role="teams")])
+    assert "D.NAT.NO_PUBLIC_IP" not in ids(NatTraversalValidator(ruleset).validate(cfg).findings)
+
+
 def test_real_ini_routing_and_classification_resolved(ruleset):
     from sbc_validator.validators.routing import RoutingValidator
     cfg = detect_and_parse(REAL_AC.read_text())
