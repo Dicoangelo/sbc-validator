@@ -25,9 +25,11 @@ and the business on a loop.
 
 ## 2. Product gaps
 
-- **Topology-hiding on signaling is missing.** We catch private *media* IPs (D) but
-  not internal IPs leaked in SIP Contact/Via/Record-Route/P-Asserted-Identity. A
-  20-year vet expects topology hiding; it is a core SBC function.
+- **Topology-hiding on signaling (SHIPPED, domain F).** `explain` now flags
+  internal IPs leaked in SIP Contact/Via/Record-Route/P-Asserted-Identity from a
+  capture (`F.TOPOLOGY_LEAK`), the signaling-plane counterpart to the private
+  *media* IP check in D. Remaining: detect the leak from static config, not only
+  from a capture.
 - **Dashboard scaffolding.** The sidebar nav (Findings drill-down, Rule Bundles,
   Reports) is framing without real sub-pages. Acceptable as documented scaffolding,
   but to a technical buyer dead links read as a wireframe.
@@ -52,14 +54,17 @@ and the business on a loop.
 
 ## 4. Prioritized improvements (impact vs. effort, with first steps)
 
-1. **Unblock Cisco/Ribbon/Oracle parsers** (high impact, low-med effort). First
-   step: run the CONFIG-REQUEST campaign with a friendly partner for one real
-   `show running-config` (Cisco) and `show configuration` (Ribbon).
+1. **Unblock Cisco/Ribbon/Oracle routing + ACL extraction** (high impact, low-med
+   effort). The parsers exist; what is gated is domain G (routing) and domain S
+   (access-control) extraction for those three vendors, which stay silent until we
+   model a real config. First step: run the CONFIG-REQUEST campaign with a friendly
+   partner for one real `show running-config` (Cisco) and `show configuration` (Ribbon).
 2. **Plane-aware ACL mapping for domain S** (high impact, med effort). First step:
    map Ribbon `ipAccessControlList` to the AccessControlEntry model + regression
    tests; do NOT naive-map (steering-pools vs ipACLs differ).
-3. **Topology-hiding leak detection** (high impact, med effort). First step: extend
-   `sip_trace.py` to flag RFC1918 IPs in Contact/Via/Record-Route headers (domain F).
+3. **Static-config topology-leak detection** (med impact, med effort). The capture
+   path shipped (`F.TOPOLOGY_LEAK`); extend it to flag internal IPs configured in
+   Contact/Record-Route rewrite rules from static config, not only from a capture.
 4. **Cipher-suite + mTLS assertion** (med impact, low effort). First step: expose
    the TLS context's offered suites and match against the ruleset allowlist.
 5. **Scrub dashboard scaffolding** (med impact, low effort). First step: hide the

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Turnkey demo: validate the full sample fleet (AudioCodes + Cisco CUBE),
+# Turnkey demo: validate the full sample fleet (AudioCodes, Cisco CUBE, Ribbon, Oracle),
 # emit a customer HTML report per SBC, build the dashboard payload, and print
 # the fleet verdict table. Everything runs locally; no network, no config egress.
 #

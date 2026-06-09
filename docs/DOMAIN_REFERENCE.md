@@ -19,15 +19,15 @@ SIP interworking, media handling, and policy/routing.
 
 | Function | What it means | Us |
 |---|---|---|
-| **Topology hiding (B2BUA)** | Hide internal IPs/architecture; never leak private addresses or internal headers to the far side | ◐ (we flag private *media* IPs in D; signaling-plane leakage is a gap) |
+| **Topology hiding (B2BUA)** | Hide internal IPs/architecture; never leak private addresses or internal headers to the far side | ✅ (private *media* IPs in D; signaling-plane leakage in Contact/Via/Record-Route/P-Asserted-Identity via domain F from a capture) |
 | **Signaling encryption (TLS)** | mTLS on the SIP leg; cert chain, EKU, roots | ✅ (domain C) |
-| **Media encryption (SRTP)** | `a=crypto` SRTP on the media leg; Teams requires `AES_CM_128_HMAC_SHA1_80` | ○ (ruleset carries the suite; no validator yet) |
+| **Media encryption (SRTP)** | `a=crypto` SRTP on the media leg; Teams requires `AES_CM_128_HMAC_SHA1_80` | ✅ (domain C `C.SRTP.DISABLED`, parsed for all four vendors; per-config cipher-suite match is roadmap) |
 | **SIP normalization** | Translate SIP dialects/variants between vendors so calls interop | ◐ (we check normalization-profile *presence*, not behavior) |
 | **Transcoding / transrating** | Convert codecs (and bitrates) on the fly; HD/wideband, low-bandwidth, fax/T.38 | ◐ (we check codec *overlap*; no transcode-capability or T.38 check) |
 | **NAT traversal** | Prevent one-way audio: advertise a routable media address, symmetric RTP/latching | ✅ (domain D) |
 | **Call admission control (CAC)** | Cap concurrent sessions; protect against overload and toll/TDoS abuse | ○ |
 | **DDoS / TDoS protection** | Survive floods and rogue endpoints while admitting legitimate calls | — (runtime; monitor-mode roadmap) |
-| **Access lists** | allow / block / grey lists of endpoints | ○ |
+| **Access lists** | allow / block / grey lists of endpoints | ◐ (domain S on real AudioCodes AccessList: default-deny, broad CIDR, media-plane, IPv6 neglect; per-vendor extraction for Cisco/Ribbon/Oracle gated until a real config) |
 | **Routing & classification** | Classify inbound traffic to an IP Group; route both directions Teams<->trunk | ✅ (domain G, when the source carries routing info) |
 | **Routing & policy (advanced)** | Least-cost routing, dial plans, emergency/911, LNP, caller-name, screening | — (business policy, not our wedge) |
 | **HA / resiliency** | No single point of failure; N:1 / N:M / active-active; session + media continuity on failover | ◐ (HA drift `diff` compares two nodes) |
@@ -95,22 +95,24 @@ offline pre-deploy validator.
 
 ## Validator gaps this reference reveals (ranked, actionable)
 
-1. **Topology-hiding / private-IP leakage in signaling (NEW domain, e.g. F).**
-   The book treats topology hiding as a core SBC job. We should detect internal/
-   private (RFC1918) addresses or internal headers exposed toward the Teams/
-   carrier side (Contact, Via, Record-Route, SDP c-line, P-Asserted-Identity).
-   High vet credibility; extends our existing private-IP detection from media to
-   signaling. Needs model fields for header/contact addresses.
-2. **SRTP media-encryption check (extend C).** Teams DR requires SRTP with
-   `AES_CM_128_HMAC_SHA1_80`. We already carry the suite in the ruleset; add a
-   check that the Teams media leg actually enables SRTP. Needs an `srtp` field on
-   the interface/realm + per-vendor parse.
-3. **Transcode-capability awareness (extend E).** When legs share no codec we
-   flag it, but we should also note whether the SBC is configured/licensed to
-   transcode (no overlap + no transcode = no audio). Needs a transcode flag.
-4. **CAC / access-list posture (security hygiene).** Is CAC configured? Are
-   allow/block lists present on the Teams/carrier interface? Larger model lift.
-5. **T.38 fax handling** — niche; only if a design partner needs it.
+Two gaps this reference originally flagged have since shipped:
+
+- ✅ **Topology-hiding / private-IP leakage in signaling (domain F).** SHIPPED.
+  `explain` flags RFC1918 addresses exposed in Contact/Via/Record-Route/
+  P-Asserted-Identity from a capture (`F.TOPOLOGY_LEAK`).
+- ✅ **SRTP media-encryption check (domain C).** SHIPPED. `C.SRTP.DISABLED`, with
+  an `srtp_enabled` field parsed for all four vendors. Per-config cipher-suite
+  matching against the ruleset allowlist remains roadmap.
+
+Still open:
+
+1. **Transcode-capability awareness (extend E).** When legs share no codec we
+   flag it (and flag wideband-to-narrowband downgrade), but we do not yet read a
+   transcode/DSP license flag (no overlap + no transcode = no audio).
+2. **CAC / access-list posture (security hygiene).** Domain S now fires on real
+   AudioCodes access lists; CAC (concurrent-session caps) and per-vendor ACL
+   extraction for Cisco/Ribbon/Oracle remain a larger model lift.
+3. **T.38 fax handling**, niche; only if a design partner needs it.
 
 These are all offline-detectable from config (except the runtime threat model),
 so they fit the local-first wedge. Topology-hiding (#1) is the recommended next

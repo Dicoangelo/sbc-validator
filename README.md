@@ -1,20 +1,21 @@
-# SBC-AutoOps — Local-First SBC Validator
+# SBC-AutoOps: Local-First SBC Validator
 
 ![CI](https://github.com/Dicoangelo/sbc-validator/actions/workflows/ci.yml/badge.svg)
 
 Vendor-agnostic, **local-first** pre-deployment validator for Session Border
 Controllers. Parses an exported config inside the customer trust boundary, runs
-A/B/C/D/E checks, and produces an explainable report + risk score + deploy
-verdict. **Raw configs never leave.** Only rule sets come in; only opt-in
-anonymized findings can go out.
+eight validation domains (A-G plus S), and produces an explainable report + risk
+score + deploy verdict. **Raw configs never leave.** Only rule sets come in; only
+opt-in anonymized findings can go out.
 
-It implements all five validators end-to-end (A syntax/semantic, B interop,
-C TLS/CA — the Microsoft Direct Routing wedge, D NAT / one-way audio, E codec)
-and ships **four real vendor parsers — AudioCodes (`.ini`), Cisco CUBE (IOS-XE),
-Ribbon SBC Core (`set`-config), and Oracle/Acme (ACLI)** — running on a single
-normalized model. Four vendors on one model is the proof that validation is
-genuinely vendor-agnostic: the same C validator catches the 2026 root-CA gap on
-an AudioCodes `.ini` and a Cisco running-config, and the clientAuth-only EKU
+It implements eight validation domains end-to-end (A syntax/semantic, B interop,
+C TLS/CA the Microsoft Direct Routing wedge, D NAT / one-way audio, E codec,
+F topology-leak, G routing/classification, S security/access-control) and ships
+**four real vendor parsers: AudioCodes (`.ini`), Cisco CUBE (IOS-XE), Ribbon SBC
+Core (`set`-config), and Oracle/Acme (ACLI)**, running on a single normalized
+model. Four vendors on one model is the proof that validation is genuinely
+vendor-agnostic: the same C validator catches the 2026 root-CA gap on an
+AudioCodes `.ini` and a Cisco running-config, and the clientAuth-only EKU
 deprecation on a Ribbon `set`-config, all unmodified.
 
 It also detects **HA configuration drift** between an Active and a Standby node
@@ -88,7 +89,7 @@ python -m sbc_validator.cli validate samples/audiocodes_min.ini \
   ("freshness assertion"). A stale/tampered bundle can't silently pass you.
 - Anonymized export requires **both** `--share-anon` and `--consent`. The payload
   contains only `check_id`, `severity`, vendor family, ruleset version, and a
-  salted org token — never locators, FQDNs, CN/SAN, IPs, or free text.
+  salted org token, never locators, FQDNs, CN/SAN, IPs, or free text.
 
 ## Repo layout
 
@@ -169,13 +170,13 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
   G and S fire only when the config source carries the relevant info.
 - **Four real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
   (IOS-XE), Ribbon SBC Core, and Oracle/Acme (ACLI).** The same validators run
-  unmodified across all four — the vendor-agnostic claim, demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
+  unmodified across all four, the vendor-agnostic claim, demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
   clientAuth-only leaf (the EKU deprecation).
 - **AudioCodes parses the real parameter-table `.ini`** a Mediant actually exports
   (indexed `[ Table ]` / `FORMAT` / `[ \Table ]` tables with cross-references;
   Teams leg resolved via ProxySet -> pstnhub). See [AUDIOCODES_INI.md](docs/AUDIOCODES_INI.md).
   Because a real `.ini` carries no cert/trust-store, C reports LOW "verify
-  out-of-band" instead of false-claiming CRITICAL — it distinguishes *absent* from
+  out-of-band" instead of false-claiming CRITICAL: it distinguishes *absent* from
   *not-present-in-this-source*.
 - **Trust-anchor chain validation** (domain C): when a real leaf+chain PEM is
   supplied, verifies each signature in the chain (real PKI, not name-matching),
@@ -214,7 +215,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
   <ruleset_id>` pulls + verifies into the local cache, so `validate` stays offline.
 - **Customer-facing HTML report** (`--html <path>`): self-contained, no JS/network,
   severity chips + verdict banner + per-finding why/fix. Internal artifact only.
-- **Turnkey demo** (`./demo.sh`): validates the 3-vendor fleet, writes an HTML
+- **Turnkey demo** (`./demo.sh`): validates the 4-vendor fleet, writes an HTML
   report per SBC, builds `dashboard_data.json`, runs an HA-drift check, and prints
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
@@ -228,10 +229,10 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
 ## Note on demo certificates
 
 The sample leaf PEMs (`samples/*_leaf.pem`) are self-signed fixtures that exist to
-exercise EKU/SAN/expiry inspection. A production SBC presents a CA-issued leaf;
-trust-anchor validation against a configured root store is the next deepening of
-domain C (the current pass confirms the chain isn't broken, not that it terminates
-at a trusted anchor).
+exercise EKU/SAN/expiry inspection. A production SBC presents a CA-issued leaf.
+Domain C already verifies that a supplied leaf+chain PEM terminates at one of the
+required Microsoft/DigiCert roots (`C.CERT.UNTRUSTED_ANCHOR` / `CHAIN_ANCHORED`);
+the fixtures are self-signed only so this repo carries no third-party CA material.
 
 ## Security note
 
@@ -241,5 +242,3 @@ outside this repo (`~/.sbc-validator/keys/publisher_ed25519.pem`, chmod 600) and
 is used only by the offline signer (`tools/sign_ruleset.py`). The verifier never
 holds the private key. Migrate the private key to an HSM before GA. To rotate:
 generate a new keypair, update `_PINNED_PUBLIC_KEY_B64`, and re-sign the rulesets.
-```
-```

@@ -27,23 +27,26 @@ with the flag below.
 
 ## Install
 
-Container (recommended), pull the pilot image:
-
-```bash
-docker pull ghcr.io/dicoangelo/sbc-validator:latest
-```
-
-Or run from source without a container:
+Run from source (works today):
 
 ```bash
 pip install .            # from the repo
 sbc-validator --help
 ```
 
+Container: the image publishes to ghcr.io on a tagged release. Pull a specific
+version once a tag is cut (there is no `:latest` until the first tagged release):
+
+```bash
+docker pull ghcr.io/dicoangelo/sbc-validator:v0.15.0
+```
+
 ## See everything in one command
 
 ```bash
-docker run --rm --network none ghcr.io/dicoangelo/sbc-validator:latest demo
+sbc-validator demo
+# or, air-gapped in a container once the image is published:
+docker run --rm --network none ghcr.io/dicoangelo/sbc-validator:v0.15.0 demo
 ```
 
 Runs the full four-vendor showcase: validates a mixed fleet, predicts a call

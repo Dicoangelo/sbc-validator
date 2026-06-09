@@ -9,8 +9,9 @@ small signed-rule service the publisher runs.
 ## The three planes
 
 - **Plane A (the product) — engine + local dashboard the CUSTOMER runs** inside
-  their VPC. ~80% built (v0.14.0: 4 vendors, validators A-G, validate/simulate/
-  explain/diff/fleet, signed+authority-sourced ruleset, CI, Docker, 66 tests).
+  their VPC. Built (v0.15.0: 4 vendors, validators A-G plus S, validate/simulate/
+  explain/diff/fleet/serve/demo/report, signed+authority-sourced ruleset, CI,
+  Docker, 79 tests).
 - **Plane B — the signed-rule service the PUBLISHER runs.** The one legitimately
   hosted backend. Client already speaks HTTPS GET + verify; for v1 this is a
   **signed file on object storage** (S3 / GitHub release asset), not a bespoke API.
@@ -36,10 +37,9 @@ small signed-rule service the publisher runs.
 
 Goal: a design partner can `docker run` it air-gapped in their environment.
 
-- [x] **0.1 Key rotation** — offline publisher keypair, pin rotated, ruleset
-  re-signed, dev key removed from working tree, tests use an ephemeral `signing_key`
-  fixture. (commit: this change)
-- [x] **0.1 Key rotation** (commit f5b7ae5).
+- [x] **0.1 Key rotation** (commit f5b7ae5): offline publisher keypair, pin
+  rotated, ruleset re-signed, dev key removed from working tree, tests use an
+  ephemeral `signing_key` fixture.
 - [~] **0.2 Git-history scrub** — DEFERRED by decision (dead key, private repo,
   no users). Trigger: before going public. See gate 1 above.
 - [x] **0.3 Clean packaging** (commit 3721ec8) — broken package-data removed,
