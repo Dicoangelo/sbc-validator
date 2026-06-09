@@ -11,6 +11,12 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${1:-8787}"
 cd "$REPO"
 
+# Never crash on a leftover server: if the port is taken, walk up to a free one.
+while lsof -nP -iTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; do
+  echo "  (port $PORT busy, trying $((PORT+1)))"
+  PORT=$((PORT+1))
+done
+
 if [ ! -x ".venv/bin/sbc-validator" ]; then
   echo "First-time setup (creating the local environment, ~30s) ..."
   python3 -m venv .venv

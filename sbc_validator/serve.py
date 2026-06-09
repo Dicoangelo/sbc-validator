@@ -46,6 +46,8 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str):
             elif path == "/chart.umd.min.js":
                 self._send(200, _asset("chart.umd.min.js"),
                            "application/javascript; charset=utf-8")
+            elif path == "/favicon.ico":
+                self._send(204, b"", "image/x-icon")   # browsers auto-request it; no-op
             elif path == "/dashboard_data.json":
                 payload = build_payload(results_dir, anon=anon, org_salt=org_salt)
                 if payload is None:
