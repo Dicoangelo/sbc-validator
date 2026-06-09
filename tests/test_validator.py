@@ -767,6 +767,18 @@ def test_e_flags_no_cross_overlap(ruleset):
     assert "E.CODEC.NO_CROSS_OVERLAP" in ids(res.findings)
 
 
+def test_dtmf_mixed_and_nonpreferred_still_flags_inconsistent(ruleset):
+    # {inband, info}: both non-preferred AND mixed. The worse config must still get
+    # the MEDIUM inconsistency finding; an elif previously let it escape with only a
+    # LOW, scoring the worse config lower.
+    cfg = NormalizedConfig(vendor="x", sip_interfaces=[
+        SipInterface(name="T", role="teams", dtmf_method="inband", offered_codecs=["PCMU"]),
+        SipInterface(name="C", role="carrier", dtmf_method="info", offered_codecs=["PCMU"]),
+    ])
+    got = {f.check_id for f in CodecValidator(ruleset).validate(cfg).findings}
+    assert "E.DTMF.INCONSISTENT" in got
+
+
 # ---- cert inspection -------------------------------------------------------
 
 # ---- trust-anchor chain validation -----------------------------------------

@@ -91,7 +91,10 @@ class CodecValidator(AbstractValidator):
                 detail=f"Configured DTMF {sorted(dtmf_methods)}; mismatches break IVR menus.",
                 remediation=f"Standardize on {preferred_dtmf} (telephone-event).",
             ))
-        elif len(dtmf_methods) > 1:
+        # Independent of the above: mixed methods are a distinct (worse) problem.
+        # An `elif` here let a config that is BOTH non-preferred AND mixed escape the
+        # MEDIUM inconsistency finding, scoring the worse config lower.
+        if len(dtmf_methods) > 1:
             res.add(Finding(
                 check_id="E.DTMF.INCONSISTENT",
                 title="Inconsistent DTMF methods across legs",

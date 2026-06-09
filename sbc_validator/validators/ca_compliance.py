@@ -20,7 +20,7 @@ and nothing in Teams points at the cert — the classic "scream test".
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 
 from ..models import EKU, NormalizedConfig
 from .. import cert_inspect
@@ -289,7 +289,10 @@ class CaComplianceValidator(AbstractValidator):
         if cert.not_after:
             try:
                 exp = date.fromisoformat(cert.not_after)
-                days = (exp - date.today()).days
+                # not_after is a UTC date (cert_inspect uses not_valid_after_utc);
+                # compare against UTC today, not the local date, to avoid an
+                # off-by-a-day error in negative timezones near the boundary.
+                days = (exp - datetime.now(timezone.utc).date()).days
                 if days < 0:
                     sev, msg = Severity.CRITICAL, f"expired {-days} days ago"
                 elif days <= warn_days:
