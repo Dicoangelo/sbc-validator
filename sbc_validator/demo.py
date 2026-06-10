@@ -34,6 +34,7 @@ _FLEET = [
     ("cisco_cube_dr.txt",     "US-West", "Cisco CUBE"),
     ("ribbon_sbc.cli",        "EU-West", "Ribbon"),
     ("oracle_teams.acli",     "APAC",    "Oracle Acme"),
+    ("perimeta_teams.cli",    "APAC",    "Metaswitch Perimeta"),  # 5th vendor; CLI export carries no inline trust store/cert -> honest "not assessable" notes
     ("audiocodes_exposed.ini", "US-East", "AudioCodes"),  # healthy SBC, exposed firewall (domain S)
 ]
 _SIM_CONFIG = "audiocodes_min.ini"   # a BLOCK config: shows the call dying at TLS
