@@ -213,6 +213,13 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
   it and falling back to the last verified cache on network failure (never falling
   back on a tampered bundle). `python -m sbc_validator.tools.fetch_ruleset <api>
   <ruleset_id>` pulls + verifies into the local cache, so `validate` stays offline.
+- **On-prem AI explanation for `explain`** (`--ai`): a bundled, air-gapped model
+  (protocol-aware SIP tokenization + tiny classifier, pure stdlib, ~2 KB) adds a
+  plain-English failure-class explanation with confidence. Hard rules: it never
+  overrides the deterministic diagnosis (disagreement -> suppressed, stated), no
+  network call ever, and tokenization strips every IP/FQDN/Call-ID before the
+  model sees anything. Trained on a synthetic 6-class corpus (incl. the 2026
+  TLS-handshake wedge); retrains as real captures arrive.
 - **Customer-facing HTML report** (`--html <path>`): self-contained, no JS/network,
   severity chips + verdict banner + per-finding why/fix. Internal artifact only.
 - **Turnkey demo** (`./demo.sh`): validates the 4-vendor fleet, writes an HTML

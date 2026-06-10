@@ -255,6 +255,9 @@ def run_explain(args) -> int:
         print(f"error: could not read capture {args.capture} "
               f"({type(e).__name__}: {e})", file=sys.stderr)
         return 2
+    if getattr(args, "ai", False):
+        from .explainer import explain_capture
+        result["ai_explanation"] = explain_capture(args.capture, result)
     if args.json:
         print(json.dumps(result, indent=2))
         return 0
@@ -275,6 +278,15 @@ def run_explain(args) -> int:
             print(f"      fix: {d['fix']}")
     if not result["calls"] and not result["top_diagnoses"]:
         print("\nNo SIP calls found in the capture.")
+    for b in result.get("ai_explanation", []):
+        print("\n" + "-" * 64)
+        if b["suppressed"]:
+            print(f"AI explanation ({b['scope']}): {b['note']}")
+        else:
+            print(f"AI explanation ({b['scope']}, confidence {b['confidence']:.0%}, "
+                  f"on-prem model, nothing left this machine):")
+            print(f"  [{b['domain']}] {b['explanation']}")
+            print(f"  fix: {b['fix']}")
     return 0
 
 
@@ -426,6 +438,9 @@ def main(argv=None) -> int:
                         help="post-mortem: reconstruct the SIP ladder from a .pcap and diagnose")
     ex.add_argument("capture", help="path to a classic .pcap capture")
     ex.add_argument("--json", action="store_true")
+    ex.add_argument("--ai", action="store_true",
+                    help="add an on-prem AI explanation (bundled model, air-gapped; "
+                         "never overrides the deterministic diagnosis)")
     ex.set_defaults(func=run_explain)
 
     fl = sub.add_parser("fleet",

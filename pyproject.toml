@@ -32,6 +32,7 @@ include = ["sbc_validator*"]
 # stay decoupled from code releases. Pass a bundle with --ruleset, or fetch one.
 [tool.setuptools.package-data]
 "sbc_validator.web" = ["*.html", "*.js"]
+"sbc_validator" = ["data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

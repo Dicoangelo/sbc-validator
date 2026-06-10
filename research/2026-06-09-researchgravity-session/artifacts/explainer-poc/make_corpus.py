@@ -111,7 +111,16 @@ def _jig(rng: random.Random):
                           f"192.168.{rng.randint(0, 250)}.{rng.randint(2, 250)}"])
     cid = f"call-{rng.randrange(16**8):08x}@contoso.com"
     t0 = 1700000000 + rng.uniform(0, 1e6)
-    step = lambda lo=0.02, hi=0.3: rng.uniform(lo, hi)  # noqa: E731
+    # Class-INDEPENDENT gap jitter: every scenario draws message gaps from the
+    # same mixed distribution (instant / fast / slow), so timing buckets cannot
+    # become a spurious class signal. Only causal timing (the unanswered
+    # keepalive window in OPTIONS_BLACKHOLE) is class-specific. Without this the
+    # baseline learned GAP:* artifacts instead of STATUS:488 (caught by the
+    # sample-pcap regression tests, which pace messages differently).
+    def step(lo=None, hi=None):
+        if lo is not None:
+            return rng.uniform(lo, hi)
+        return rng.uniform(*rng.choice([(0.02, 0.3), (0.3, 0.9), (0.9, 4.0)]))
     return sbc, teams, private, cid, t0, step
 
 
@@ -122,8 +131,8 @@ def clean(rng):
         "INVITE sip:+15553334444@pstnhub.microsoft.com SIP/2.0", cid, "1 INVITE",
         sdp=_sdp(sbc, codecs))))]
     t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip("SIP/2.0 100 Trying", cid, "1 INVITE"))))
-    t += dt(0.2, 2.5); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip("SIP/2.0 180 Ringing", cid, "1 INVITE"))))
-    t += dt(0.3, 3.0); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip(
+    t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip("SIP/2.0 180 Ringing", cid, "1 INVITE"))))
+    t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip(
         "SIP/2.0 200 OK", cid, "1 INVITE", sdp=_sdp(teams, [codecs[0]])))))
     t += dt(); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip("ACK sip:teams SIP/2.0", cid, "1 ACK"))))
     for i in range(rng.randint(_MIN_RTP + 1, 10)):
@@ -139,7 +148,7 @@ def reject_488(rng):
         "INVITE sip:+15553334444@pstnhub.microsoft.com SIP/2.0", cid, "1 INVITE",
         sdp=_sdp(sbc, [18]))))]                      # G729-only offer
     t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip("SIP/2.0 100 Trying", cid, "1 INVITE"))))
-    t += dt(0.1, 1.0); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip(
+    t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip(
         "SIP/2.0 488 Not Acceptable Here", cid, "1 INVITE"))))
     t += dt(); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip("ACK sip:teams SIP/2.0", cid, "1 ACK"))))
     return fr, cid
@@ -150,8 +159,8 @@ def one_way_audio(rng):
     fr = [(t, _ipv4_udp(teams, sbc, 5060, 5060, _sip(
         "INVITE sip:+15551112222@contoso.com SIP/2.0", cid, "1 INVITE", sdp=_sdp(teams, [0, 8]))))]
     t += dt(); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip("SIP/2.0 100 Trying", cid, "1 INVITE"))))
-    t += dt(0.2, 2.0); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip("SIP/2.0 180 Ringing", cid, "1 INVITE"))))
-    t += dt(0.3, 2.0); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip(
+    t += dt(); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip("SIP/2.0 180 Ringing", cid, "1 INVITE"))))
+    t += dt(); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip(
         "SIP/2.0 200 OK", cid, "1 INVITE", sdp=_sdp(private, [0])))))   # private c=
     t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip("ACK sip:sbc SIP/2.0", cid, "1 ACK"))))
     for i in range(rng.randint(_MIN_RTP + 1, 10)):                       # one direction only
@@ -167,7 +176,7 @@ def topology_leak(rng):
         "INVITE sip:+15553334444@pstnhub.microsoft.com SIP/2.0", cid, "1 INVITE",
         extra_headers=contact, sdp=_sdp(sbc, [0, 8]))))]
     t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip("SIP/2.0 100 Trying", cid, "1 INVITE"))))
-    t += dt(0.3, 2.0); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip(
+    t += dt(); fr.append((t, _ipv4_udp(teams, sbc, 5060, 5060, _sip(
         "SIP/2.0 200 OK", cid, "1 INVITE", sdp=_sdp(teams, [0])))))
     t += dt(); fr.append((t, _ipv4_udp(sbc, teams, 5060, 5060, _sip("ACK sip:teams SIP/2.0", cid, "1 ACK"))))
     for i in range(rng.randint(_MIN_RTP + 1, 8)):
@@ -197,7 +206,7 @@ def tls_handshake_failed(rng):
     alert = bytes([0x15, 0x03, 0x03, 0x00, 0x02, 0x02, desc])     # fatal alert record
     eph = rng.randint(20000, 60000)
     fr = [(t, _ipv4_tcp(sbc, teams, eph, 5061, hello))]
-    t += dt(0.02, 0.4)
+    t += dt()
     fr.append((t, _ipv4_tcp(teams, sbc, 5061, eph, alert)))
     return fr, cid
 
