@@ -82,6 +82,26 @@ Files read in full:
 - Marketing site corrected to 126 and redeployed live (parallel-session deploy,
   verified showing 126 at sbcvalidator.metaventionsai.com).
 
+## Phase 7 — Full multi-protocol completion (2026-06-10)
+Dico flagged that ResearchGravity is MORE than the session-tracker flow. All protocol
+layers now run for this session:
+- **Canonical session protocol** (research-workflow.md): `status.py` cold start OK;
+  **16 URLs logged** via `log_url.py` (tier/category/relevance/signal — papers,
+  MS Learn authority, competitors, channel candidates); synthesis written to the
+  session scratchpad (Thesis/Gap/Innovation); **checkpoint** `cp-20260610-004701`.
+  Status now reads: URLs 16, Findings 6, Thesis Yes. Archive deferred (thread live:
+  netFound fine-tune pending real captures).
+- **MCP retrieval layer** (the /rg-sweep set): hybrid_search OK, knowledge_graph OK
+  (no SBC entities indexed yet — extraction backlog), react_synthesis OK,
+  **coherence_scan OK** (0 new moments; all recent events already scored; 72 total).
+- **Two RG tooling quirks found:** `checkpoint.py` reads `active_session_id` but the
+  tracker writes `active_session` (workaround: `--session <id>`); the session's
+  local store lives at `researchgravity/scripts/session/.agent/research/` (CWD-relative
+  `get_local_agent_dir()`), which is the de-facto shared store for all sessions.
+- **Not run (deliberate):** /deep-research X pipeline (X API spend; nothing in this
+  thread needs real-time X signal), NotebookLM import (offered, awaiting call),
+  formal Signal Verification Protocol (sources are dated + authority-grade already).
+
 ## Notes superseded from the original log
 - "Did not modify any repo file / did not commit" described Phases 0-4 only. The
   execution sprint (Phases 5-6) deliberately modified and shipped, with every change
