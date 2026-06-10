@@ -205,6 +205,16 @@ class CiscoCubeParser(AbstractParser):
         # every non-identity trustpoint is a trusted root id
         trusted_roots = [name for name in trustpoints if name != identity_name]
 
+        # ---- TLS version floor + cipher list (global, applies to every TLS ctx) ----
+        # CUBE expresses these on `crypto signaling ... tls-version 1.2` and in
+        # `voice class tls-cipher` blocks (` cipher <n> <suite>`). Tristate-safe:
+        # absent -> None -> domain C judges nothing.
+        mver = re.search(r"crypto signaling\b[^\n]*\btls-version\s+(\d+(?:\.\d+)?)", text)
+        tls_version = mver.group(1) if mver else None
+        if tls_version and "." not in tls_version:
+            tls_version += ".0"
+        tls_ciphers = re.findall(r"\n\s*cipher\s+\d+\s+([A-Za-z0-9_+.\-]+)", text) or None
+
         # ---- SIP interfaces from tenants ----
         any_keepalive = global_options_keepalive
         for t in tenants:
@@ -215,6 +225,8 @@ class CiscoCubeParser(AbstractParser):
                     mtls_enabled=True,           # Direct Routing over TLS is mutual
                     presented_cert=leaf,
                     trusted_root_ids=list(trusted_roots),
+                    min_tls_version=tls_version,
+                    cipher_suites=tls_ciphers,
                 )
             cfg.sip_interfaces.append(SipInterface(
                 name=f"tenant{t['id']}",

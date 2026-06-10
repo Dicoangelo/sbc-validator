@@ -17,6 +17,7 @@ set system security pki certificate MicrosoftRSARootCA2017 type remote
 set profiles security tlsProfile TLS_TEAMS clientCertName sbc-ribbon-leaf
 set profiles security tlsProfile TLS_TEAMS authClient true
 set profiles security tlsProfile TLS_TEAMS v1_2 enable
+set profiles security tlsProfile TLS_TEAMS cipherSuite1 TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 #
 # --- Teams zone ---
 set addressContext default zone TEAMS id 1

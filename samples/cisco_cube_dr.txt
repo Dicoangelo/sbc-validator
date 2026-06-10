@@ -34,7 +34,10 @@ crypto pki trustpoint MicrosoftRSARootCA2017
 ! NOTE: DigiCert TLS RSA 4096 Root G5 trustpoint NOT installed -> 6 of 7 required roots.
 ! Microsoft anchors Teams SIP certs in this root (2025-12 update); handshake hard-stops.
 !
-crypto signaling default trustpoint TP-SBC-IDENTITY
+crypto signaling default trustpoint TP-SBC-IDENTITY tls-version 1.2
+!
+voice class tls-cipher 1
+ cipher 1 ecdhe-rsa-aes256-gcm-sha384
 !
 voice service voip
  ip address trusted list

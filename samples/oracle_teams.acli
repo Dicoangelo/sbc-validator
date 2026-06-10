@@ -45,6 +45,8 @@ session-agent
 tls-profile
         name                           TeamsTLS
         end-entity-certificate         sbc-teams-cert
+        tls-version                    tlsv12
+        cipher-list                    ECDHE-RSA-AES256-GCM-SHA384
 
 media-sec-policy
         name                           msmTeams

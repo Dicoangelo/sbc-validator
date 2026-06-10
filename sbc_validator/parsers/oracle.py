@@ -78,6 +78,7 @@ class OracleAcmeParser(AbstractParser):
 
         sip_ifaces, session_agents, realms = [], [], []
         media_profiles, media_sec = [], False
+        tls_profiles: dict[str, dict] = {}
         hostname = None
         for etype, a in _blocks(text):
             if etype == "sip-interface":
@@ -86,6 +87,8 @@ class OracleAcmeParser(AbstractParser):
                 session_agents.append(a)
             elif etype == "realm-config":
                 realms.append(a)
+            elif etype == "tls-profile" and a.get("name"):
+                tls_profiles[a["name"]] = a
             elif etype == "media-profile" and a.get("name"):
                 media_profiles.append(a["name"])
             elif etype in ("media-sec-policy", "sdes-profile"):
@@ -123,6 +126,14 @@ class OracleAcmeParser(AbstractParser):
             tls_name = si.get("tls-profile")
             ctx = None
             if transport == "tls":
+                prof = tls_profiles.get(str(tls_name or ""), {})
+                # Oracle tls-version: tlsv1/11/12/13 -> dotted; "compatibility"/auto
+                # -> None (it negotiates up, so judge nothing). cipher-list -> suites.
+                _VMAP = {"tlsv1": "1.0", "tlsv11": "1.1", "tlsv12": "1.2", "tlsv13": "1.3"}
+                minv = _VMAP.get((prof.get("tls-version") or "").strip().lower())
+                clist = prof.get("cipher-list")
+                ciphers = ([c for c in re.split(r"[\s,:]+", clist) if c]
+                           if clist else None)
                 ctx = TlsContext(
                     name=str(tls_name or f"{rid}-tls"),
                     mtls_enabled=True,
@@ -130,6 +141,8 @@ class OracleAcmeParser(AbstractParser):
                                     if leaf_cert_file else None),
                     trusted_root_ids=[],
                     introspectable=False,
+                    min_tls_version=minv,
+                    cipher_suites=ciphers,
                 )
             ping = sa.get("ping-method") or si.get("options")
             cfg.sip_interfaces.append(SipInterface(

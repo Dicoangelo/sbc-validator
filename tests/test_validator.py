@@ -178,6 +178,22 @@ def test_cipher_name_normalization_iana_openssl():
            _canon_cipher("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384")
 
 
+def test_all_vendors_capture_tls_version_and_cipher(ruleset):
+    """Every vendor parser captures the TLS floor + cipher into the model, in its
+    native spelling, and that spelling canonicalizes to the ruleset's allowlist.
+    Proves the cross-vendor wiring (Cisco lowercase-dashed, Ribbon IANA, Oracle/
+    AudioCodes OpenSSL) feeds the same vendor-neutral domain-C check."""
+    from sbc_validator.validators.tls_policy import _canon_cipher
+    allow = {_canon_cipher(c) for c in ruleset["C"]["allowed_sip_cipher_suites"]}
+    for fname in ("cisco_cube_dr.txt", "ribbon_sbc.cli",
+                  "oracle_teams.acli", "audiocodes_teams_real.ini"):
+        cfg = detect_and_parse((REPO / "samples" / fname).read_text())
+        ctx = cfg.teams_interface().tls_context
+        assert ctx.min_tls_version == "1.2", fname
+        assert ctx.cipher_suites, fname
+        assert any(_canon_cipher(c) in allow for c in ctx.cipher_suites), fname
+
+
 # ---- HA drift detection ----------------------------------------------------
 
 ACTIVE = REPO / "samples" / "clean_pass.ini"

@@ -83,11 +83,20 @@ class RibbonParser(AbstractParser):
 
             elif toks[1:4] == ["profiles", "security", "tlsProfile"] and len(toks) >= 6:
                 pname = toks[4]
-                p = tls_profiles.setdefault(pname, {"cert": None, "mtls": False})
+                p = tls_profiles.setdefault(pname, {"cert": None, "mtls": False,
+                                                    "versions": [], "ciphers": []})
                 if "clientCertName" in toks:
                     p["cert"] = toks[toks.index("clientCertName") + 1]
                 if "authClient" in toks:
                     p["mtls"] = toks[toks.index("authClient") + 1].lower() == "true"
+                # `v1_0 | v1_1 | v1_2 | v1_3  enable` -> that protocol is permitted.
+                for v in ("v1_0", "v1_1", "v1_2", "v1_3"):
+                    if v in toks and toks[toks.index(v) + 1].lower() in ("enable", "enabled", "true"):
+                        p["versions"].append(v[1:].replace("_", "."))
+                # cipherSuite1..N <suite> / cipherSuiteList <suite>
+                for i, t in enumerate(toks):
+                    if t.startswith("cipherSuite") and i + 1 < len(toks):
+                        p["ciphers"].append(toks[i + 1])
 
             elif toks[1:4] == ["addressContext", "default", "zone"] and len(toks) >= 5:
                 zone = toks[4]
@@ -137,11 +146,15 @@ class RibbonParser(AbstractParser):
             ctx = None
             if (z["transport"] or "").lower() == "tls":
                 prof = tls_profiles.get(z["tls_profile"] or "", {})
+                vers = prof.get("versions") or []
+                minv = min(vers, key=lambda s: tuple(int(x) for x in s.split("."))) if vers else None
                 ctx = TlsContext(
                     name=z["tls_profile"] or f"{zone}-tls",
                     mtls_enabled=prof.get("mtls", True),
                     presented_cert=leaf,
                     trusted_root_ids=list(roots),
+                    min_tls_version=minv,
+                    cipher_suites=(prof.get("ciphers") or None),
                 )
             cfg.sip_interfaces.append(SipInterface(
                 name=zone,

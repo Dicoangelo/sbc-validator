@@ -237,6 +237,16 @@ def map_to_config(text: str) -> NormalizedConfig:
                 return f"MsgManip:{str(v).strip()}"
         return None
 
+    # --- TLS version + cipher (AudioCodes TLSContexts params) ---
+    # Conservative: only an explicit single-version TLSVersion pin is mapped
+    # (1->1.0 .. 4->1.3); 0/auto is NOT mapped (it negotiates up, so judge nothing
+    # rather than false-flag a working config). Cipher strings are OpenSSL-form.
+    _AC_VER = {"1": "1.0", "2": "1.1", "3": "1.2", "4": "1.3"}
+    _mver = re.search(r"TLSVersion\s*(?:\d+\s*)?=\s*\"?(\d+)\"?", text)
+    ac_tls_version = _AC_VER.get(_mver.group(1)) if _mver else None
+    _mc = re.search(r"(?:Server|Client)CipherString\s*(?:\d+\s*)?=\s*\"([^\"]+)\"", text)
+    ac_ciphers = [c for c in re.split(r"[:\s,]+", _mc.group(1)) if c] if _mc else None
+
     # --- IPGroup rows are the legs ---
     ig_role: dict[str, str] = {}          # IP Group name -> role (for routing map)
     teams_group = None
@@ -267,6 +277,8 @@ def map_to_config(text: str) -> NormalizedConfig:
                                 if globals_.get("_leaf_cert_file") else None),
                 trusted_root_ids=[],               # imported separately; not in the .ini
                 introspectable=False,              # cert/trust not present in this source
+                min_tls_version=ac_tls_version,
+                cipher_suites=ac_ciphers,
             )
         cfg.sip_interfaces.append(SipInterface(
             name=str(name),
