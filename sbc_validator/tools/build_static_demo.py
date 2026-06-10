@@ -33,7 +33,23 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
-def build(out_dir: Path, ruleset: Path) -> int:
+def _inject_base(html: str, base_path: str) -> str:
+    """Add <base href="…/"> so relative assets resolve even when the host serves
+    the page WITHOUT a trailing slash (Vercel cleanUrls serves /dashboard as the
+    index but leaves the document base at /, breaking ./asset references). The tag
+    lives only in the BUILT copy — the source file stays correct for local serve,
+    where the page is at / and uses the live endpoints. Absolute refs (/scan,
+    /walk) are unaffected; they intentionally hit the root and the Fly rewrite."""
+    if not base_path.endswith("/"):
+        base_path += "/"
+    tag = f'<base href="{base_path}">'
+    if "<base " in html:
+        return html
+    # Insert right after </title>, before the first relative asset (the chart src).
+    return html.replace("</title>", "</title>\n" + tag, 1)
+
+
+def build(out_dir: Path, ruleset: Path, base_path: str = "/dashboard/") -> int:
     root = _repo_root()
     web = root / "sbc_validator" / "web"
     if not ruleset.is_file():
@@ -52,8 +68,11 @@ def build(out_dir: Path, ruleset: Path) -> int:
         return 2
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    # 1. the dashboard view, verbatim (single source of truth, no fork)
-    shutil.copyfile(web / "sbc_dashboard.html", out_dir / "index.html")
+    # 1. the dashboard view (single source of truth, no fork) + a <base> tag so
+    #    relative assets resolve under the hosted path with or without a trailing slash.
+    src_html = (web / "sbc_dashboard.html").read_text(encoding="utf-8")
+    (out_dir / "index.html").write_text(
+        _inject_base(src_html, base_path), encoding="utf-8")
     shutil.copyfile(web / "chart.umd.min.js", out_dir / "chart.umd.min.js")
     # 2. the frozen demo fleet (real verdicts), loaded on page open
     (out_dir / "dashboard_data.json").write_text(
@@ -75,12 +94,15 @@ def build(out_dir: Path, ruleset: Path) -> int:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="freeze the static demo dashboard")
+    ap.add_argument("--base-path", default="/dashboard/",
+                    help="URL path the demo is hosted at (sets <base href>)")
     ap.add_argument("--out", default="marketing/dashboard",
                     help="output dir (default: marketing/dashboard)")
     ap.add_argument("--ruleset", default="rulesets/ms_direct_routing_2026-06.json",
                     help="signed rule bundle to validate the demo fleet against")
     args = ap.parse_args(argv)
-    return build(Path(args.out).resolve(), (_repo_root() / args.ruleset))
+    return build(Path(args.out).resolve(), (_repo_root() / args.ruleset),
+                 base_path=args.base_path)
 
 
 if __name__ == "__main__":
