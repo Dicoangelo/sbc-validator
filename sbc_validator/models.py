@@ -64,6 +64,12 @@ class SipInterface:
     transport: Optional[str] = None          # "tls" | "tcp" | "udp"
     # Tristate (None = not carried by the source): SIP OPTIONS keep-alive enabled.
     options_keepalive: Optional[bool] = None
+    # OPTIONS keep-alive interval in seconds. Microsoft requires 60-180s per trunk.
+    # Tristate: None = the source did not carry an interval (judge nothing).
+    options_keepalive_interval: Optional[int] = None
+    # FQDN the SBC presents in the SIP Contact header. Direct Routing resolves the
+    # tenant from this in carrier/multi-tenant hosting. None = not carried.
+    contact_fqdn: Optional[str] = None
     normalization_profile: Optional[str] = None  # header/SIP manipulation set
     offered_codecs: list[str] = field(default_factory=list)  # e.g. ["PCMU","G722"]
     dtmf_method: Optional[str] = None        # "rfc2833" | "inband" | "info"

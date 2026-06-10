@@ -103,6 +103,9 @@ class AudioCodesParser(AbstractParser):
                 tls_context=tls_contexts.get(ctx_name) if ctx_name else None,
                 transport=cp.get(sect, "transport", fallback=None),
                 options_keepalive=cp.getboolean(sect, "options_keepalive", fallback=False),
+                # Tristate: None when the source omits these (judge nothing).
+                options_keepalive_interval=cp.getint(sect, "options_keepalive_interval", fallback=None),
+                contact_fqdn=cp.get(sect, "contact_fqdn", fallback=None) or None,
                 normalization_profile=cp.get(sect, "normalization_profile", fallback=None) or None,
                 offered_codecs=[c.strip() for c in cp.get(sect, "codecs", fallback="").split(",") if c.strip()],
                 dtmf_method=cp.get(sect, "dtmf_method", fallback=None) or None,

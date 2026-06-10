@@ -25,6 +25,22 @@ def _is_ip(host: str) -> bool:
         return False
 
 
+def _registrable(host: str) -> str:
+    """Last two labels, a cheap registrable-domain proxy (good enough to tell
+    'contoso.com' apart from 'adatum.biz'; not a public-suffix-list parser)."""
+    parts = [p for p in host.split(".") if p]
+    return ".".join(parts[-2:]) if len(parts) >= 2 else host
+
+
+def _same_registered_domain(a: str, b: str) -> bool:
+    """True if a and b are the same host, one is a subdomain of the other, or they
+    share a registrable base. Used to validate a carrier Contact FQDN sits under
+    the SBC's registered domain (customer.sbc1.adatum.biz vs sbc1.adatum.biz)."""
+    if a == b or a.endswith("." + b) or b.endswith("." + a):
+        return True
+    return _registrable(a) == _registrable(b)
+
+
 class InteropValidator(AbstractValidator):
     domain = "B"
 
@@ -77,6 +93,46 @@ class InteropValidator(AbstractValidator):
                 detail="Teams uses OPTIONS pings to track SBC health; without it the "
                        "SBC can be marked down, causing intermittent call failures.",
                 remediation="Enable SIP OPTIONS keep-alive toward Teams.",
+                locator=f"iface '{teams.name}'",
+            ))
+
+        # OPTIONS interval must sit in Microsoft's 60-180s window (authoritative:
+        # "Connect the SBC" — pings MUST NOT be more often than every 60s nor less
+        # often than every 180s per trunk). Bounds are ruleset-overridable; the
+        # defaults are the MS-published values. Tristate-safe (silent if no interval).
+        lo = rules.get("options_interval_min_s", 60)
+        hi = rules.get("options_interval_max_s", 180)
+        iv = teams.options_keepalive_interval
+        if iv is not None and (iv < lo or iv > hi):
+            res.add(Finding(
+                check_id="B.SIP.OPTIONS_INTERVAL",
+                title=f"SIP OPTIONS interval {iv}s is outside Microsoft's {lo}-{hi}s window",
+                severity=Severity.MEDIUM,
+                detail="Direct Routing requires SBC OPTIONS pings no more often than "
+                       f"every {lo}s and no less often than every {hi}s per trunk. Outside "
+                       "this window the SBC can be rate-limited or marked unhealthy, "
+                       "causing intermittent routing failures.",
+                remediation=f"Set the Teams OPTIONS keep-alive interval between {lo} and {hi} seconds.",
+                locator=f"iface '{teams.name}'",
+            ))
+
+        # Contact-header FQDN: Direct Routing resolves the tenant from the Contact
+        # host (not the phone number), so in carrier/multi-tenant hosting each
+        # customer subdomain must sit under the SBC's registered domain. A Contact
+        # FQDN outside that domain lands on the wrong tenant or none. Tristate-safe.
+        cf = (teams.contact_fqdn or "").strip().lower().rstrip(".")
+        sf = (config.sbc_fqdn or "").strip().lower().rstrip(".")
+        if cf and sf and not _same_registered_domain(cf, sf):
+            res.add(Finding(
+                check_id="B.SIP.CONTACT_FQDN",
+                title=f"Contact header FQDN '{cf}' is not under the SBC domain '{sf}'",
+                severity=Severity.HIGH,
+                detail="Direct Routing uses the Contact header FQDN to find the tenant. "
+                       "In carrier/multi-tenant hosting each customer subdomain "
+                       "(customer.sbc.carrier.com) must match the trunk and the wildcard "
+                       "cert; a Contact FQDN outside the registered domain fails the lookup.",
+                remediation="Present the customer's subdomain FQDN (under the SBC's "
+                            "registered domain) in the Contact header for each tenant.",
                 locator=f"iface '{teams.name}'",
             ))
 

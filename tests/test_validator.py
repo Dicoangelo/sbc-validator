@@ -194,6 +194,48 @@ def test_all_vendors_capture_tls_version_and_cipher(ruleset):
         assert any(_canon_cipher(c) in allow for c in ctx.cipher_suites), fname
 
 
+# ---- Domain B: OPTIONS interval + carrier Contact FQDN + wildcard cert ------
+
+def test_options_interval_out_of_range_flagged(ruleset):
+    """MS requires OPTIONS pings every 60-180s; 300s must be flagged."""
+    from sbc_validator.validators.interop import InteropValidator
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_carrier.ini").read_text())
+    assert "B.SIP.OPTIONS_INTERVAL" in ids(InteropValidator(ruleset).validate(cfg).findings)
+
+
+def test_carrier_contact_fqdn_outside_domain_flagged(ruleset):
+    """Direct Routing finds the tenant from the Contact FQDN; one outside the SBC's
+    registered domain (contoso.com vs ...adatum.biz) must be flagged."""
+    from sbc_validator.validators.interop import InteropValidator
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_carrier.ini").read_text())
+    assert "B.SIP.CONTACT_FQDN" in ids(InteropValidator(ruleset).validate(cfg).findings)
+
+
+def test_wildcard_cert_not_flagged_for_carrier(ruleset):
+    """A wildcard cert (*.sbc1.adatum.biz) is valid for multi-tenant hosting and
+    must NOT trigger C.CERT.FQDN_MISMATCH for teams.sbc1.adatum.biz."""
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_carrier.ini").read_text())
+    assert "C.CERT.FQDN_MISMATCH" not in ids(CaComplianceValidator(ruleset).validate(cfg).findings)
+
+
+def test_new_b_checks_silent_when_not_carried(ruleset):
+    """Tristate: a config with no OPTIONS interval / Contact FQDN fires neither."""
+    from sbc_validator.validators.interop import InteropValidator
+    cfg = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    found = ids(InteropValidator(ruleset).validate(cfg).findings)
+    assert "B.SIP.OPTIONS_INTERVAL" not in found and "B.SIP.CONTACT_FQDN" not in found
+
+
+def test_wildcard_and_registered_domain_helpers():
+    from sbc_validator.validators.cert_checks import _name_covers
+    from sbc_validator.validators.interop import _same_registered_domain
+    assert _name_covers("*.sbc1.adatum.biz", "teams.sbc1.adatum.biz")
+    assert not _name_covers("*.sbc1.adatum.biz", "sbc1.adatum.biz")        # apex not covered
+    assert not _name_covers("*.sbc1.adatum.biz", "a.b.sbc1.adatum.biz")    # exactly one label
+    assert _same_registered_domain("contoso.sbc1.adatum.biz", "sbc1.adatum.biz")
+    assert not _same_registered_domain("contoso.com", "sbc1.adatum.biz")
+
+
 # ---- HA drift detection ----------------------------------------------------
 
 ACTIVE = REPO / "samples" / "clean_pass.ini"
