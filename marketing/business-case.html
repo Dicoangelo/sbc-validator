@@ -495,6 +495,10 @@
       <div class="card reveal" style="--d:180ms"><span class="seg">03 · Explain</span><h3 style="margin-top:10px">Diagnose a capture</h3><p>Reconstructs the SIP ladder from a packet capture, detects one-way audio and TLS alerts, and maps each failure back to the config change that fixes it.</p></div>
     </div>
     <p class="reveal" style="margin-top:30px;color:#fff;font-weight:600;font-size:16.5px;max-width:70ch">Plus HA-drift diff, fleet readiness reports, and a CI/CD gate, so the bad config never reaches the change window in the first place.</p>
+    <figure class="reveal" style="--d:240ms;margin:48px 0 0;padding:0">
+      <img src="diagrams/sbc-autoops-architecture-web.png" alt="SBC-AutoOps architecture: four vendor SBC configs (AudioCodes, Cisco CUBE, Ribbon, Oracle Acme) are normalized into one vendor-neutral model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict. The whole pipeline runs air-gapped inside the customer VPC, with only a signed rule bundle inbound and only anonymized findings outbound." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#fff">
+      <figcaption style="margin-top:14px;color:rgba(255,255,255,.62);font-size:14px;max-width:78ch">One independent layer, four vendors, eight domains. Configs never leave your environment: the only thing that crosses the boundary inbound is a signed rule bundle, and the only thing that can leave is anonymized findings you opt into.</figcaption>
+    </figure>
   </div>
 </section>
 
