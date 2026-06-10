@@ -92,7 +92,8 @@
 
   /* ---------- grid ---------- */
   .grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+  .panel:hover{border-color:rgba(157,27,84,.28);box-shadow:0 2px 4px rgba(20,24,31,.05),0 10px 26px rgba(20,24,31,.08);transform:translateY(-1px)}
   .panel > header{display:flex;align-items:center;gap:8px;padding:12px 14px 10px}
   .panel > header svg{width:14px;height:14px;color:var(--ink-faint);flex:none}
   .panel > header h3{font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:0;letter-spacing:.2px}
@@ -105,7 +106,8 @@
   @media(max-width:1180px){.span3,.span4,.span5{grid-column:span 6}.span7,.span8{grid-column:span 12}}
 
   /* stat tile */
-  .stat{background:var(--rail);color:#fff;border-radius:9px;padding:16px 16px 14px;margin:0 0 4px}
+  .stat{background:linear-gradient(160deg,var(--rail),#19212c);color:#fff;border-radius:9px;padding:16px 16px 14px;margin:0 0 4px;position:relative;overflow:hidden}
+  .stat:before{content:"";position:absolute;top:0;left:0;right:30%;height:2px;background:linear-gradient(90deg,var(--garnet),var(--garnet-soft),transparent)}
   .stat .big{font-family:'Archivo',system-ui,sans-serif;font-weight:800;font-size:40px;line-height:1;color:#fff}
   .stat .big.warn{color:#ff8f6b}
   .stat .lbl{font-size:12px;color:#aeb8c4;margin-top:8px}
@@ -127,7 +129,9 @@
   .vendor-pill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--line-soft);color:var(--ink-soft);font-weight:600}
   .verdict{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:11.5px}
   .verdict::before{content:"";width:8px;height:8px;border-radius:50%}
-  .verdict.BLOCK{color:var(--crit)}.verdict.BLOCK::before{background:var(--crit)}
+  .verdict.BLOCK{color:var(--crit)}.verdict.BLOCK::before{background:var(--crit);animation:vpulse 2.2s infinite}
+  @keyframes vpulse{0%{box-shadow:0 0 0 0 rgba(192,57,43,.40)}70%{box-shadow:0 0 0 6px rgba(192,57,43,0)}100%{box-shadow:0 0 0 0 rgba(192,57,43,0)}}
+  @media (prefers-reduced-motion: reduce){.verdict.BLOCK::before{animation:none}.panel:hover{transform:none}}
   .verdict.REVIEW{color:var(--high)}.verdict.REVIEW::before{background:var(--high)}
   .verdict.PASS{color:var(--pass)}.verdict.PASS::before{background:var(--pass)}
   .riskbar{display:inline-block;height:6px;border-radius:3px;background:var(--line);width:64px;vertical-align:middle;margin-right:7px;position:relative;overflow:hidden}
@@ -374,6 +378,14 @@ const TOPF = {
   S:["S.ACL.NO_DEFAULT_DENY","S.ACL.BROAD_CIDR","S.ACL.MEDIA_PLANE_MISSING","S.ACL.IPV6_NEGLECT"]
 };
 const VENDORS=["audiocodes","cisco_cube","ribbon","oracle_acme"];
+
+/* brand-tuned chart defaults (local Chart.js, no CDN) */
+if (window.Chart) {
+  Chart.defaults.font.family="'IBM Plex Sans',system-ui,sans-serif";
+  Chart.defaults.font.size=11;
+  Chart.defaults.color="#6b7480";
+  Chart.defaults.borderColor="rgba(20,24,31,.07)";
+}
 const SITES=["EU-West","US-East","US-West","APAC","DR-Site"];
 
 // deterministic pseudo-random
@@ -447,12 +459,24 @@ function renderAll(fleet, trend){
   destroyCharts();
   const f = applyFilters(fleet);
 
-  // tiles
+  // tiles (count up on first paint, instant on filter changes)
   const by=v=>f.filter(s=>s.summary.verdict===v).length;
-  document.getElementById("stat-block").textContent=by("BLOCK");
-  document.getElementById("stat-total").textContent=f.length;
-  document.getElementById("stat-review").textContent=by("REVIEW");
-  document.getElementById("stat-pass").textContent=by("PASS");
+  const setStat=(id,v)=>{
+    const el=document.getElementById(id);
+    if(window.__statsAnimated || window.matchMedia("(prefers-reduced-motion: reduce)").matches){el.textContent=v;return;}
+    let t0=null;
+    (function tick(ts){
+      if(!t0)t0=ts;
+      const p=Math.min((ts-t0)/850,1), e=1-Math.pow(1-p,3);
+      el.textContent=Math.round(v*e);
+      if(p<1)requestAnimationFrame(tick);
+    })(performance.now());
+  };
+  setStat("stat-block",by("BLOCK"));
+  setStat("stat-total",f.length);
+  setStat("stat-review",by("REVIEW"));
+  setStat("stat-pass",by("PASS"));
+  window.__statsAnimated=true;
   document.getElementById("rs-ver").textContent=(f[0]&&f[0].ruleset_version)||"—";
 
   // domain bar
