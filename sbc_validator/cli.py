@@ -350,6 +350,39 @@ def run_diff(args) -> int:
     return 1 if summary["verdict"] == "BLOCK" else 0
 
 
+def run_probe(args) -> int:
+    """Outside-in readiness: a live TLS handshake to an SBC's public FQDN, graded
+    against the same ruleset the local validator uses. Touches only public
+    endpoints (the FQDN and, as a reference, Microsoft's edge); never a config."""
+    rs = _resolve_ruleset(args.ruleset)
+    if rs is None:
+        print("error: no ruleset found; pass --ruleset <signed bundle>", file=sys.stderr)
+        return 2
+    bundle = _load_ruleset(rs)
+    from .probe import SIP_TLS_PORT, probe
+    print(f"Probing {args.fqdn}:{SIP_TLS_PORT} outside-in (only public endpoints touched) ...")
+    rep = probe(args.fqdn, bundle, check_ms_edge=not args.no_ms_edge)
+    if args.json:
+        print(json.dumps(rep, indent=2))
+        cust = rep["customer"]
+        return 0 if cust.get("grade") in ("A", "B", "INCONCLUSIVE") else 1
+    cust = rep["customer"]
+    print(f"\n  {args.fqdn}")
+    if not cust["reachable"]:
+        print(f"  Grade: INCONCLUSIVE\n  {cust['note']}")
+    else:
+        print(f"  Grade: {cust['grade']}   (TLS {cust.get('tls_version')}, {cust.get('cipher')})")
+        for i in cust["issues"]:
+            print(f"    [{i['severity']:8}] {i['check_id']}  {i['message']}")
+        if not cust["issues"]:
+            print("    Edge readiness checks passed. The other seven domains live in "
+                  "the config, inside-out, where only the local validator reads them.")
+    ms = rep.get("microsoft_edge")
+    if ms:
+        print(f"\n  Reference: {ms['note']}")
+    return 0 if cust.get("grade") in ("A", "B", "INCONCLUSIVE") else 1
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="sbc-validator")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -427,6 +460,15 @@ def main(argv=None) -> int:
     rp.add_argument("--results", default="results", help="dir of per-run JSON (validate --out)")
     rp.add_argument("--out", default=None, help="write HTML here (default: print Markdown)")
     rp.set_defaults(func=run_report)
+
+    pr = sub.add_parser("probe",
+                        help="outside-in readiness: live TLS handshake to an SBC FQDN, graded vs the ruleset")
+    pr.add_argument("fqdn", help="the SBC's public FQDN (probes <fqdn>:5061)")
+    pr.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
+    pr.add_argument("--no-ms-edge", action="store_true",
+                    help="skip the Microsoft-edge ground-truth reference probe")
+    pr.add_argument("--json", action="store_true", help="emit the full report as JSON")
+    pr.set_defaults(func=run_probe)
 
     args = p.parse_args(argv)
     return args.func(args)
