@@ -319,7 +319,8 @@ def run_fleet(args) -> int:
     bundle = _load_ruleset(rs)
     paths = sorted(p for p in glob.glob(os.path.join(args.directory, "*"))
                    if os.path.isfile(p))
-    result = _run_fleet(paths, bundle)
+    result = _run_fleet(paths, bundle,
+                        multi_tenant=getattr(args, "multi_tenant", False))
     if args.json:
         print(json.dumps(result, indent=2))
     else:
@@ -448,6 +449,8 @@ def main(argv=None) -> int:
     fl.add_argument("directory", help="directory of SBC config exports")
     fl.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
     fl.add_argument("--out", default=None, help="write the Markdown report to this path")
+    fl.add_argument("--multi-tenant", action="store_true", dest="multi_tenant",
+                    help="carrier/SBCaaS view: per-tenant readiness + shared-cert cascade risk")
     fl.add_argument("--json", action="store_true")
     fl.set_defaults(func=run_fleet)
 

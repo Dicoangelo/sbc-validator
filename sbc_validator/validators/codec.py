@@ -22,6 +22,12 @@ class CodecValidator(AbstractValidator):
         rules = self.ruleset.get("E", {})
         teams_supported = set(rules.get("teams_supported_codecs", []))
         preferred_dtmf = rules.get("preferred_dtmf", "rfc2833")
+        # Microsoft added AMR-WB to Direct Routing trunks in 2026 (prioritized when
+        # offered). The shipped signed bundle predates it, so accept it here as a
+        # ruleset-overridable code default (same pattern as the OPTIONS-interval
+        # bounds) — a leg offering only AMR-WB must not false-fire NO_TEAMS_OVERLAP.
+        amrwb = rules.get("teams_prioritized_wideband", "AMR-WB")
+        teams_accepts = teams_supported | {amrwb}
 
         teams = config.teams_interface()
         # Tristate: offered_codecs is None when the source carries no codec info
@@ -37,7 +43,7 @@ class CodecValidator(AbstractValidator):
                     remediation="Configure a codec list including a Teams-supported codec.",
                     locator=f"iface '{teams.name}'",
                 ))
-            elif not (offered & teams_supported):
+            elif not (offered & teams_accepts):
                 res.add(Finding(
                     check_id="E.CODEC.NO_TEAMS_OVERLAP",
                     title="No Teams-compatible codec offered",
@@ -109,7 +115,29 @@ class CodecValidator(AbstractValidator):
         # NOT support in-band DTMF (authoritative: Direct Routing protocols / RFC
         # standards page), so menu/IVR digits silently fail. This fires even when
         # another leg uses RFC 2833 (so the general METHOD check above stays quiet).
+        # AMR-WB advisory (2026): Microsoft now offers AMR-WB on Direct Routing
+        # non-bypass trunks (a=rtpmap:121 AMR-WB/16000) and PRIORITIZES it when the
+        # SBC offers it back. Honest severity: calls FALL BACK to another common
+        # codec when absent (Microsoft's own wording), so this is INFO, not a
+        # failure claim. Fires only when the source carries a codec list.
         teams = config.teams_interface()
+        if (teams is not None and teams.offered_codecs is not None
+                and teams.offered_codecs and amrwb not in teams.offered_codecs):
+            res.add(Finding(
+                check_id="E.CODEC.AMRWB_NOT_OFFERED",
+                title="Teams leg does not offer AMR-WB (2026 prioritized wideband)",
+                severity=Severity.INFO,
+                detail="Since 2026 Microsoft offers AMR-WB on Direct Routing trunks "
+                       "and prioritizes it when the SBC offers it back. Without it, "
+                       "calls negotiate another common codec (no outage), at reduced "
+                       "audio quality. Also confirm the SBC tolerates the unknown "
+                       "payload type 121 in Teams' SDP offer.",
+                remediation="Add AMR-WB to the Teams-leg codec list if the SBC "
+                            "supports it (HD audio); otherwise verify graceful "
+                            "fallback against the 2026 Teams SDP offer.",
+                locator=f"iface '{teams.name}'",
+            ))
+
         if teams is not None and teams.dtmf_method == "inband":
             res.add(Finding(
                 check_id="E.DTMF.INBAND_TEAMS",

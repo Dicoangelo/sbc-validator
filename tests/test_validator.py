@@ -1496,3 +1496,56 @@ def test_report_command(tmp_path):
     assert main(["report", "--results", str(out), "--out", str(html)]) == 0
     h = html.read_text()
     assert "Executive Report" in h and "CA migration" in h and "access-control" in h
+
+
+# ---- PRD P0: AMR-WB advisory, IPv6 mixed-mode, multi-tenant cascade ---------
+
+def test_amrwb_advisory_honest_info(ruleset):
+    """Teams now prioritizes AMR-WB when offered; absence is an INFO advisory
+    (calls fall back per Microsoft), never a failure claim."""
+    from sbc_validator.validators.codec import CodecValidator
+    cfg = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    f = [x for x in CodecValidator(ruleset).validate(cfg).findings
+         if x.check_id == "E.CODEC.AMRWB_NOT_OFFERED"]
+    assert f and f[0].severity.name == "INFO"
+    # a leg that offers AMR-WB gets no advisory, and AMR-WB-only must NOT
+    # false-fire NO_TEAMS_OVERLAP (the signed bundle predates AMR-WB)
+    from sbc_validator.models import NormalizedConfig, SipInterface
+    cfg2 = NormalizedConfig(vendor="x", sip_interfaces=[
+        SipInterface(name="T", role="teams", offered_codecs=["AMR-WB"])])
+    found = ids(CodecValidator(ruleset).validate(cfg2).findings)
+    assert "E.CODEC.AMRWB_NOT_OFFERED" not in found
+    assert "E.CODEC.NO_TEAMS_OVERLAP" not in found
+
+
+def test_ipv6_mixed_mode_flagged(ruleset):
+    """Public-facing realms in both address families -> the MS-unsupported mixed
+    mode is flagged; single-family stays silent."""
+    from sbc_validator.models import MediaRealm, NormalizedConfig
+    from sbc_validator.validators.nat_traversal import NatTraversalValidator
+    mixed = NormalizedConfig(vendor="x", media_realms=[
+        MediaRealm(name="v4", advertised_public_ip="80.0.0.10", symmetric_rtp=True),
+        MediaRealm(name="v6", advertised_public_ip="2001:db8::10", symmetric_rtp=True)])
+    found = ids(NatTraversalValidator(ruleset).validate(mixed).findings)
+    assert "D.IPV6.MIXED_MODE" in found
+    single = NormalizedConfig(vendor="x", media_realms=[
+        MediaRealm(name="v4", advertised_public_ip="80.0.0.10", symmetric_rtp=True)])
+    assert "D.IPV6.MIXED_MODE" not in ids(
+        NatTraversalValidator(ruleset).validate(single).findings)
+
+
+def test_multi_tenant_cascade_risk(ruleset):
+    """Carrier view: tenants sharing one wildcard cert share its fate; a blocker
+    on the shared cert flags ALL of them as cascade risk."""
+    from sbc_validator.fleet import run_fleet
+    paths = [str(REPO / "samples" / "tenants" / f) for f in
+             ("woodgrove.ini", "contoso.ini")]
+    result = run_fleet(paths, ruleset, multi_tenant=True)
+    t = result["tenants"]
+    assert t["total"] == 2 and t["ready"] == 1
+    assert len(t["shared_certs"]) == 1
+    c = t["shared_certs"][0]
+    assert c["cert_cn"] == "*.sbc1.adatum.biz" and c["cascade_risk"] is True
+    assert len(t["at_cascade_risk"]) == 2          # BOTH tenants fail together
+    # without the flag, no tenant analysis is computed
+    assert "tenants" not in run_fleet(paths, ruleset)

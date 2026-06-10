@@ -84,4 +84,36 @@ class NatTraversalValidator(AbstractValidator):
                     locator=loc,
                 ))
 
+        # IPv6 mixed mode (authoritative: Microsoft supports IPv6 for Direct
+        # Routing ONLY end-to-end without media bypass; "mixed mode SIP and media
+        # (IPv6/IPv4)" is explicitly unsupported). The deterministic, config-visible
+        # signal is public-facing media addresses in BOTH families. Tristate-safe:
+        # fires only when the source genuinely carries both.
+        def _fam(ip):
+            try:
+                return ipaddress.ip_address(ip).version
+            except (ValueError, TypeError):
+                return None
+        fams = {}
+        for realm in config.media_realms:
+            if realm.role == "internal":
+                continue
+            v = _fam(realm.advertised_public_ip) or _fam(realm.local_ip)
+            if v:
+                fams.setdefault(v, realm.name)
+        if 4 in fams and 6 in fams:
+            res.add(Finding(
+                check_id="D.IPV6.MIXED_MODE",
+                title="Mixed IPv4/IPv6 media addressing on public-facing realms",
+                severity=Severity.MEDIUM,
+                detail="Microsoft Direct Routing supports IPv6 only end-to-end (and "
+                       "only without media bypass); mixed IPv4/IPv6 SIP-and-media is "
+                       f"explicitly unsupported. Realms '{fams[4]}' (v4) and "
+                       f"'{fams[6]}' (v6) advertise different families -> calls can "
+                       "blackhole when the negotiated family flips.",
+                remediation="Run the Direct Routing path single-family end to end "
+                            "(set IPAddressVersion accordingly on the trunk), or "
+                            "separate the v6 estate onto its own trunk.",
+            ))
+
         return res
