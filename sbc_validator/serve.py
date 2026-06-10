@@ -69,6 +69,42 @@ def _walk_text(which: str, bundle) -> str:
     return _ANSI.sub("", buf.getvalue())
 
 
+_demo_cache: dict = {}
+
+
+def _demo_payload(bundle) -> dict:
+    """The curated demo fleet, run through the REAL validators (not synthetic).
+    Computed once per server process and cached; honest mode badge 'demo'."""
+    if "payload" in _demo_cache:
+        return _demo_cache["payload"]
+    if bundle is None:
+        return {"fleet": [], "trend": {"labels": [], "series": {}},
+                "mode": "demo", "_warnings": ["no ruleset loaded"]}
+    from .demo import _FLEET, _validate_one
+    base = _samples_dir().parent          # samples/walkthrough -> samples/
+    fleet = []
+    for fname, site, vendor in _FLEET:
+        p = base / fname
+        if not p.is_file():
+            continue
+        try:
+            cfg, findings, summary = _validate_one(p, bundle)
+        except Exception:
+            continue
+        fleet.append({
+            "sbc": cfg.sbc_fqdn or p.stem, "vendor": cfg.vendor, "site": site,
+            "ruleset_version": bundle.get("bundle_version", "unknown"),
+            "summary": summary,
+            "findings": [{"check_id": f.check_id, "domain": f.domain or
+                          f.check_id.split(".")[0], "severity": f.severity.name}
+                         for f in findings],
+        })
+    payload = {"fleet": fleet, "trend": {"labels": [], "series": {}}, "mode": "demo"}
+    if fleet:
+        _demo_cache["payload"] = payload
+    return payload
+
+
 def _make_handler(results_dir: str, anon: bool, org_salt: str, bundle):
     from .scan_server import scan as _scan
 
@@ -98,6 +134,9 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str, bundle):
                                    "output": _walk_text(which, bundle)}).encode()
                 self._send(200, body, "application/json")
             elif path == "/dashboard_data.json":
+                if parse_qs(u.query).get("demo", ["0"])[0] == "1":
+                    return self._send(200, json.dumps(_demo_payload(bundle)).encode(),
+                                      "application/json")
                 payload = build_payload(results_dir, anon=anon, org_salt=org_salt)
                 if payload is None:
                     payload = {"fleet": [], "trend": {"labels": [], "series": {}},

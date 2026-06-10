@@ -218,8 +218,11 @@
     </div>
     <div class="field grow"></div>
     <div class="field"><label>Data source <span id="mode-badge" class="badge">sample</span></label>
-      <label for="f-file" class="loadbtn">⤓ Load dashboard_data.json</label>
-      <input id="f-file" type="file" accept="application/json,.json" hidden />
+      <div style="display:flex;gap:8px">
+        <button id="f-demo" class="loadbtn" type="button" title="Run the bundled sample fleet through the real validators">▶ Run demo fleet</button>
+        <label for="f-file" class="loadbtn">⤓ Load dashboard_data.json</label>
+        <input id="f-file" type="file" accept="application/json,.json" hidden />
+      </div>
     </div>
   </div>
 
@@ -570,6 +573,14 @@ function rebuildVendorFilter(fleet){
   vendors.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v.replace("_"," ");vf.appendChild(o);});
   if([...vf.options].some(o=>o.value===cur)) vf.value=cur;
 }
+
+document.getElementById("f-demo").addEventListener("click",async()=>{
+  const b=document.getElementById("f-demo"); b.disabled=true; b.textContent="running engine…";
+  try{ const r=await fetch("./dashboard_data.json?demo=1"); const p=await r.json();
+       if(p&&p.fleet&&p.fleet.length) loadPayload(p); else alert("Demo fleet unavailable (serve from a checkout/container with samples + ruleset)."); }
+  catch(err){ alert("Demo fleet needs the live server: sbc-validator serve"); }
+  b.disabled=false; b.textContent="▶ Run demo fleet";
+});
 
 document.getElementById("f-file").addEventListener("change",e=>{
   const file=e.target.files[0]; if(!file) return;
