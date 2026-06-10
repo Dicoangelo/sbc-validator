@@ -96,18 +96,25 @@
     radial-gradient(1000px 460px at 88% -10%, rgba(157,27,84,.09), transparent 62%),
     radial-gradient(760px 380px at -6% 108%, rgba(157,27,84,.06), transparent 58%),
     radial-gradient(rgba(157,27,84,.07) 1px, transparent 1px) 0 0/26px 26px}
+  .hero{--art-h:clamp(420px, 28vw + 130px, 740px);
+    --art-pad:clamp(0px, 16vw - 130px, 200px);
+    --art-space:calc(max((100vw - 1200px)/2, 24px) + var(--art-pad))}
   .hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
     background:url(diagrams/sbc-autoops-hero-truth-layer-trans.png) no-repeat;
-    background-position:calc(14.5vw - 400px) 335px;
-    background-size:auto clamp(420px, 28vw + 130px, 740px)}
-  .hero-grid>div{min-width:0}
-  .term pre{overflow-x:auto}
+    /* plane center sits mid art-space; x-offset = space/2 - 0.6455*H (plane is at 64.55% of height-scaled width) */
+    background-position:calc(var(--art-space)*0.5 - var(--art-h)*0.6455) calc(720px - var(--art-h)*0.5);
+    background-size:auto var(--art-h)}
   @media(max-width:1000px){
+    .hero-grid>div{min-width:0}
     .hero::before{background-position:-140px -20px;background-size:auto 260px;opacity:.32}
     .term pre{overflow-x:auto;font-size:10.5px}
   }
   .hero .wrap{position:relative;z-index:1}
-  @media(min-width:1001px){.hero-grid{margin-left:12%}}
+  @media(min-width:1001px){
+    .hero-grid>div:first-child{order:2}
+    .heroviz{order:1}
+    .hero-grid{padding-left:var(--art-pad)}
+  }
   .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
   @media(max-width:1000px){.hero-grid{grid-template-columns:1fr;gap:44px}}
   .live{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:7px 15px;font-size:12.5px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-card)}
