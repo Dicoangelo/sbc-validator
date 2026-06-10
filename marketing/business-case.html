@@ -97,13 +97,10 @@
     radial-gradient(760px 380px at -6% 108%, rgba(157,27,84,.06), transparent 58%),
     radial-gradient(rgba(157,27,84,.07) 1px, transparent 1px) 0 0/26px 26px}
   .hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-    background:url(diagrams/sbc-autoops-hero-truth-layer-web.png) left center/56% auto no-repeat;
-    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 27%,transparent 45%);
-    mask-image:linear-gradient(90deg,#000 0,#000 27%,transparent 45%)}
-  .hero::after{content:"";position:absolute;left:23%;right:7%;top:50%;height:106px;transform:translateY(-50%);z-index:0;pointer-events:none;opacity:.3;
-    background:repeating-linear-gradient(180deg,var(--garnet) 0 2px,transparent 2px 26px)}
-  @media(max-width:1000px){.hero::before,.hero::after{display:none}}
+    background:url(diagrams/sbc-autoops-hero-truth-layer-trans.png) -120px 375px/auto 450px no-repeat}
+  @media(max-width:1000px){.hero::before{display:none}}
   .hero .wrap{position:relative;z-index:1}
+  @media(min-width:1001px){.hero-grid{margin-left:12%}}
   .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
   @media(max-width:1000px){.hero-grid{grid-template-columns:1fr;gap:44px}}
   .live{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:7px 15px;font-size:12.5px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-card)}
