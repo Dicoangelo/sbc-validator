@@ -33,7 +33,8 @@ REPO = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(REPO))
 
 from sbc_validator.pcap import read_packets                      # noqa: E402
-from sbc_validator.sip_trace import _is_sip, _parse_sip, _looks_rtp, _MIN_RTP  # noqa: E402
+from sbc_validator.sip_trace import (_is_sip, _parse_sip, _looks_rtp, _MIN_RTP,  # noqa: E402
+                                     _fatal_tls_alert)
 from sip_tokenizer import tokenize_call                          # noqa: E402
 
 
@@ -50,6 +51,17 @@ def _ipv4_udp(src, dst, sport, dport, payload: bytes) -> bytes:
 
 def _rtp(pt=0, seq=1, ssrc=0x11223344) -> bytes:
     return struct.pack(">BBHII", 0x80, pt & 0x7F, seq, seq * 160, ssrc) + b"\x00" * 16
+
+
+def _ipv4_tcp(src, dst, sport, dport, payload: bytes) -> bytes:
+    # Minimal 20-byte TCP header (data offset 5, PSH+ACK); the reader keys on
+    # ports + data offset only, checksums unvalidated.
+    tcp = struct.pack(">HHIIBBHHH", sport, dport, 1, 1, 5 << 4, 0x18, 65535, 0, 0) + payload
+    total = 20 + len(tcp)
+    ip = struct.pack(">BBHHHBBH4s4s", 0x45, 0, total, 0, 0x4000, 64, 6, 0,
+                     socket.inet_aton(src), socket.inet_aton(dst)) + tcp
+    return (b"\x02\x00\x00\x00\x00\x02" + b"\x02\x00\x00\x00\x00\x01"
+            + struct.pack(">H", 0x0800) + ip)
 
 
 def _sip(first, call_id, cseq, extra_headers="", sdp: str = "") -> bytes:
@@ -176,12 +188,27 @@ def options_blackhole(rng):
     return fr, cid
 
 
+def tls_handshake_failed(rng):
+    """The 2026 CA wedge itself (domain C): TLS ClientHello answered by a fatal
+    alert on 5061; the call is cryptographically blocked from ever starting."""
+    sbc, teams, _, cid, t, dt = _jig(rng)
+    desc = rng.choice([42, 45, 46, 48, 70])     # bad_cert/expired/unknown/unknown_ca/version
+    hello = bytes([0x16, 0x03, 0x01, 0x00, 0x30]) + bytes(48)     # ClientHello-shaped
+    alert = bytes([0x15, 0x03, 0x03, 0x00, 0x02, 0x02, desc])     # fatal alert record
+    eph = rng.randint(20000, 60000)
+    fr = [(t, _ipv4_tcp(sbc, teams, eph, 5061, hello))]
+    t += dt(0.02, 0.4)
+    fr.append((t, _ipv4_tcp(teams, sbc, 5061, eph, alert)))
+    return fr, cid
+
+
 SCENARIOS = {
     "CLEAN": clean,
     "REJECT_488": reject_488,
     "ONE_WAY_AUDIO": one_way_audio,
     "TOPOLOGY_LEAK": topology_leak,
     "OPTIONS_BLACKHOLE": options_blackhole,
+    "TLS_HANDSHAKE_FAILED": tls_handshake_failed,
 }
 
 
@@ -201,7 +228,9 @@ def pcap_to_tokens(path: str) -> list[str]:
     if flows:
         one_way = any((d_ip, d_port, s_ip, s_port) not in flows
                       for (s_ip, s_port, d_ip, d_port) in flows)
-    tc = tokenize_call(msgs, tls_alert_code=None, rtp_oneway=one_way)
+    alerts = [c for c in (_fatal_tls_alert(p) for p in pkts) if c is not None]
+    tc = tokenize_call(msgs, tls_alert_code=alerts[0] if alerts else None,
+                       rtp_oneway=one_way)
     return tc.tokens
 
 
