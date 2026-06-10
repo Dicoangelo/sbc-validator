@@ -96,6 +96,14 @@
     radial-gradient(1000px 460px at 88% -10%, rgba(157,27,84,.09), transparent 62%),
     radial-gradient(760px 380px at -6% 108%, rgba(157,27,84,.06), transparent 58%),
     radial-gradient(rgba(157,27,84,.07) 1px, transparent 1px) 0 0/26px 26px}
+  .hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:url(diagrams/sbc-autoops-hero-truth-layer-web.png) left center/56% auto no-repeat;
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 27%,transparent 45%);
+    mask-image:linear-gradient(90deg,#000 0,#000 27%,transparent 45%)}
+  .hero::after{content:"";position:absolute;left:23%;right:7%;top:50%;height:106px;transform:translateY(-50%);z-index:0;pointer-events:none;opacity:.3;
+    background:repeating-linear-gradient(180deg,var(--garnet) 0 2px,transparent 2px 26px)}
+  @media(max-width:1000px){.hero::before,.hero::after{display:none}}
+  .hero .wrap{position:relative;z-index:1}
   .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
   @media(max-width:1000px){.hero-grid{grid-template-columns:1fr;gap:44px}}
   .live{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:7px 15px;font-size:12.5px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-card)}
@@ -479,9 +487,6 @@
     <span class="eyebrow reveal">Where it sits</span>
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:22ch">One independent layer that reads <span class="ser g">every vendor.</span></h2>
     <p class="lead reveal" style="--d:120ms;margin-top:18px">Every SBC vendor ships a tool, and every tool sees only its own hardware. Packet capture sees everything and reads nothing without an expert. Between them is the gap no one fills: an independent, cross-vendor layer that checks the config before it ships. That is what this is.</p>
-    <div class="reveal" style="--d:150ms;margin-top:30px">
-      <img src="diagrams/sbc-autoops-hero-truth-layer-web.png" alt="Five tangled vendor configuration streams pass through a single translucent garnet plane and emerge as clean, ordered parallel lines: the independent truth layer." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 36px rgba(16,22,35,.08)">
-    </div>
     <div class="grid g4" style="margin-top:34px">
       <div class="card reveal"><span class="seg" style="color:var(--ink-faint)">The estate</span><h3 style="margin-top:8px">Your SBCs</h3><p>AudioCodes, Cisco, Ribbon, Oracle, Metaswitch. The voice-aware firewall at Layer 5 that every call passes through, and every vendor configures differently.</p></div>
       <div class="card hl reveal" style="--d:80ms"><span class="seg">The independent layer</span><h3 style="margin-top:8px">SBC-AutoOps</h3><p>Reads any vendor's config before deploy and tells you, in plain English, exactly what will break. Never touches the live box.</p></div>
