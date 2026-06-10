@@ -1,23 +1,33 @@
 """
-Local dashboard server.
+Local product surface (dashboard + scanner + walkthrough).
 
     sbc-validator serve [--results results] [--port 8787] [--host 127.0.0.1]
 
-Serves the packaged dashboard viewer plus a live `dashboard_data.json` rebuilt
-from the results directory on every request, so the fleet view refreshes as new
-validate runs land. Pure stdlib, no framework.
+Serves the packaged single-page app with three tabs, all backed by the real engine:
+  * Fleet     — live dashboard_data.json rebuilt from the results directory.
+  * Scanner   — outside-in readiness probe (`POST /scan`), same engine as the public scanner.
+  * Walkthrough — `GET /walk?which=broken|fixed` runs the real `walk` on the bundled
+    samples and returns the actual staged output (ingest → validate → verdict → predict).
 
-Local-first by design: binds to 127.0.0.1 (loopback) by default, so the
-dashboard never leaves the host unless the operator explicitly widens --host.
-The raw configs never travel; only the already-local result JSON is read.
+Pure stdlib, no framework. Local-first: binds to 127.0.0.1 by default; raw configs
+never travel. The scanner only touches public endpoints; the walkthrough only reads
+the bundled sample configs.
 """
 from __future__ import annotations
 
+import contextlib
+import io
 import json
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 from .tools.build_dashboard_data import build_payload
+
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+_WALK_SAMPLES = {"broken": "sbc-teams-01-broken.ini", "fixed": "sbc-teams-01-fixed.ini"}
 
 
 def _viewer_html() -> bytes:
@@ -29,25 +39,64 @@ def _asset(name: str) -> bytes:
     return (resources.files("sbc_validator.web") / name).read_bytes()
 
 
-def _make_handler(results_dir: str, anon: bool, org_salt: str):
+def _samples_dir() -> Path:
+    for cand in (Path("samples/walkthrough"),
+                 Path(__file__).resolve().parent.parent / "samples" / "walkthrough"):
+        if cand.is_dir():
+            return cand
+    return Path("samples/walkthrough")
+
+
+def _walk_text(which: str, bundle) -> str:
+    """Run the real `walk` on a bundled sample and return its staged text output."""
+    name = _WALK_SAMPLES.get(which)
+    if not name:
+        return "unknown sample"
+    if bundle is None:
+        return "no ruleset available (the server could not load a signed bundle)"
+    p = _samples_dir() / name
+    if not p.is_file():
+        return f"sample not found: {p}"
+    from .parsers.audiocodes import detect_and_parse
+    from .walk import walk_report
+    cfg = detect_and_parse(p.read_text(encoding="utf-8", errors="replace"))
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        try:
+            walk_report(cfg, bundle)
+        except Exception as e:           # never 500 the demo
+            buf.write(f"\n[walk error: {type(e).__name__}: {e}]\n")
+    return _ANSI.sub("", buf.getvalue())
+
+
+def _make_handler(results_dir: str, anon: bool, org_salt: str, bundle):
+    from .scan_server import scan as _scan
+
     class Handler(BaseHTTPRequestHandler):
         def _send(self, code, body, ctype):
             self.send_response(code)
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()
             self.wfile.write(body)
 
         def do_GET(self):
-            path = self.path.split("?", 1)[0]
+            u = urlparse(self.path)
+            path = u.path
             if path in ("/", "/sbc_dashboard.html"):
                 self._send(200, _viewer_html(), "text/html; charset=utf-8")
             elif path == "/chart.umd.min.js":
                 self._send(200, _asset("chart.umd.min.js"),
                            "application/javascript; charset=utf-8")
             elif path == "/favicon.ico":
-                self._send(204, b"", "image/x-icon")   # browsers auto-request it; no-op
+                self._send(204, b"", "image/x-icon")
+            elif path == "/walk":
+                which = parse_qs(u.query).get("which", ["fixed"])[0]
+                body = json.dumps({"which": which,
+                                   "output": _walk_text(which, bundle)}).encode()
+                self._send(200, body, "application/json")
             elif path == "/dashboard_data.json":
                 payload = build_payload(results_dir, anon=anon, org_salt=org_salt)
                 if payload is None:
@@ -56,10 +105,25 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str):
                                "ruleset_version": "unknown",
                                "_warnings": [f"no result files in {results_dir} yet "
                                              "(run: sbc-validator validate ... --out " + results_dir + ")"]}
-                body = json.dumps(payload).encode()
-                self._send(200, body, "application/json")
+                self._send(200, json.dumps(payload).encode(), "application/json")
             else:
                 self._send(404, b"not found", "text/plain")
+
+        def do_POST(self):
+            if urlparse(self.path).path != "/scan":
+                return self._send(404, b"not found", "text/plain")
+            try:
+                n = int(self.headers.get("Content-Length", 0))
+                payload = json.loads(self.rfile.read(n) or b"{}")
+                fqdn = payload.get("fqdn", "")
+            except (ValueError, json.JSONDecodeError):
+                return self._send(400, json.dumps({"error": "bad request"}).encode(),
+                                  "application/json")
+            if bundle is None:
+                return self._send(200, json.dumps(
+                    {"error": "scanner unavailable: no ruleset loaded"}).encode(),
+                    "application/json")
+            self._send(200, json.dumps(_scan(fqdn, bundle)).encode(), "application/json")
 
         def log_message(self, *a):  # quiet by default
             pass
@@ -67,14 +131,26 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str):
     return Handler
 
 
+def _load_bundle(args):
+    """Resolve the shipped (or --ruleset) signed bundle for /scan + /walk; None if absent."""
+    try:
+        from .cli import _load_ruleset, _resolve_ruleset
+        rs = _resolve_ruleset(getattr(args, "ruleset", None))
+        return _load_ruleset(rs) if rs else None
+    except Exception:
+        return None
+
+
 def run_serve(args) -> int:
+    bundle = _load_bundle(args)
     handler = _make_handler(args.results, getattr(args, "anon", False),
-                            getattr(args, "org_salt", "unsalted"))
+                            getattr(args, "org_salt", "unsalted"), bundle)
     httpd = ThreadingHTTPServer((args.host, args.port), handler)
     url = f"http://{args.host}:{args.port}/sbc_dashboard.html"
     mode = "anonymized" if getattr(args, "anon", False) else "internal"
-    print(f"SBC Validator dashboard ({mode}) serving at {url}")
-    print(f"  reading results from: {args.results}/   (live: rebuilds on every load)")
+    print(f"SBC-AutoOps console ({mode}) serving at {url}")
+    print(f"  Fleet (reads {args.results}/) · Scanner (outside-in /scan) · "
+          f"Walkthrough (live /walk){'' if bundle else '  [ruleset missing: scanner/walk disabled]'}")
     print("  Ctrl-C to stop. Local-first: bound to "
           + ("loopback only" if args.host in ("127.0.0.1", "localhost") else args.host) + ".")
     try:

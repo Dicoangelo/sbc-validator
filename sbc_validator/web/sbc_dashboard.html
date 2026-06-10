@@ -147,6 +147,26 @@
   .badge.anon{background:#fbeef0;color:var(--garnet)}
   .loadbtn{display:inline-flex;align-items:center;gap:7px;font-size:13px;border:1px solid var(--line);border-radius:7px;padding:9px 13px;cursor:pointer;color:var(--ink-soft);background:#fff;white-space:nowrap}
   .loadbtn:hover{border-color:var(--garnet-soft);color:var(--garnet)}
+
+  /* ---------- tabbed views (Fleet / Scanner / Walkthrough) ---------- */
+  .view[hidden]{display:none}
+  nav a[data-view]{cursor:pointer}
+  /* scanner */
+  #scanFqdn:focus{outline:none;border-color:var(--garnet-soft);box-shadow:0 0 0 3px rgba(157,27,84,.12)}
+  .scan-card{margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:18px;background:#fff}
+  .scan-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .scan-grade{font-family:'Archivo',system-ui,sans-serif;font-weight:800;font-size:24px;color:#fff;padding:4px 14px;border-radius:10px;line-height:1.2}
+  .g-A{background:var(--pass)}.g-B{background:#3c9e7f}.g-C{background:var(--high)}.g-FAIL{background:var(--crit)}.g-INCONCLUSIVE{background:var(--ink-faint)}
+  .scan-issues{list-style:none;margin:14px 0 0;padding:0}
+  .scan-issues li{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line-soft);font-size:13px}
+  .scan-issues .sev{font-family:'IBM Plex Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:5px;white-space:nowrap}
+  .sev.CRITICAL{background:#fdecea;color:var(--crit)}.sev.HIGH{background:#fdf0e3;color:var(--high)}.sev.MEDIUM{background:#fff7e6;color:#9a6b00}.sev.PASS{background:#e6f5ef;color:var(--pass)}
+  /* walkthrough */
+  .wk-toggle{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .wk-toggle button{font-family:inherit;font-size:13px;font-weight:600;border:none;background:#fff;color:var(--ink-soft);padding:9px 16px;cursor:pointer}
+  .wk-toggle button.active{background:var(--garnet);color:#fff}
+  .wk-verdict{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700}
+  .wk-term{background:#161c25;color:#c7d0db;border-radius:10px;padding:18px 20px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.3px;line-height:1.62;overflow-x:auto;white-space:pre;margin:0;min-height:140px}
 </style>
 
 <aside>
@@ -157,7 +177,9 @@
   <nav>
     <div class="navgroup">
       <h4>Favorites</h4>
-      <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Fleet Overview</a>
+      <a class="active" data-view="fleet" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Fleet Overview</a>
+      <a data-view="scanner" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>Readiness Scanner</a>
+      <a data-view="walk" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 4 20 12 6 20 6 4"/></svg>Walkthrough Demo</a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings<em>soon</em></a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles<em>soon</em></a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports<em>soon</em></a>
@@ -186,6 +208,7 @@
     <span class="crumb">Home / <b>Fleet Validation</b></span>
   </div>
 
+  <div id="view-fleet" class="view">
   <div class="filters">
     <div class="field"><label>Vendor</label>
       <select id="f-vendor"><option value="">All vendors</option></select>
@@ -270,6 +293,57 @@
       <header><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><h3>Findings — Severity × Domain</h3></header>
       <div class="body"><div class="heat" id="heat"></div></div>
       <div class="foot"><span>Darker = more findings</span></div>
+    </section>
+  </div>
+  </div><!-- /view-fleet -->
+
+  <!-- ═══ SCANNER ═══ -->
+  <div id="view-scanner" class="view" hidden>
+    <div class="ds-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      <h2>Outside-In Readiness Scanner</h2>
+    </div>
+    <section class="panel" style="max-width:760px">
+      <div class="body" style="padding:20px">
+        <p style="margin:0 0 16px;color:var(--ink-soft);font-size:13.5px;max-width:62ch">Enter an SBC's public hostname. A live TLS handshake is run against it and the edge is graded against Microsoft's 2026 Direct Routing requirements. No config upload; only the public endpoint is touched.</p>
+        <form id="scanForm" style="display:flex;gap:10px;flex-wrap:wrap">
+          <input id="scanFqdn" type="text" placeholder="sbc.contoso.com" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:240px;font-family:'IBM Plex Mono',monospace;font-size:14px;padding:11px 13px;border:1px solid var(--line);border-radius:8px;color:var(--ink)">
+          <button id="scanBtn" type="submit" class="loadbtn" style="background:var(--garnet);color:#fff;border-color:var(--garnet);font-weight:600">Scan</button>
+        </form>
+        <div id="scanCard" class="scan-card" hidden>
+          <div class="scan-row">
+            <span class="mono" id="scanName" style="font-weight:600"></span>
+            <span class="scan-grade" id="scanGrade"></span>
+          </div>
+          <div class="mono" id="scanMeta" style="font-size:12px;color:var(--ink-soft);margin-top:8px"></div>
+          <ul class="scan-issues" id="scanIssues"></ul>
+          <div id="scanNote" style="margin-top:12px;font-size:12.5px;color:var(--ink-soft)"></div>
+        </div>
+      </div>
+      <div class="foot"><span>Same engine as the public scanner. SSRF-guarded, rate-limited. Outside-in only.</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ WALKTHROUGH ═══ -->
+  <div id="view-walk" class="view" hidden>
+    <div class="ds-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+      <h2>Walkthrough — One Broken SBC, One Fixed SBC</h2>
+    </div>
+    <section class="panel">
+      <div class="body" style="padding:18px">
+        <p style="margin:0 0 14px;color:var(--ink-soft);font-size:13.5px;max-width:72ch">Real engine output, live. Run the broken config and the validator blocks it and predicts where in the handshake the call dies. Run the fix and the same SBC passes with two-way audio. That closed loop is the product.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+          <div class="wk-toggle">
+            <button id="wk-broken" class="active" data-which="broken">Broken SBC</button>
+            <button id="wk-fixed" data-which="fixed">Fixed SBC</button>
+          </div>
+          <button id="wkRun" class="loadbtn" style="background:var(--garnet);color:#fff;border-color:var(--garnet);font-weight:600">Run validation</button>
+          <span id="wkVerdict" class="wk-verdict"></span>
+        </div>
+        <pre id="wkOut" class="wk-term">// choose Broken or Fixed, then press Run validation</pre>
+      </div>
+      <div class="foot"><span>Live <b>sbc-validator walk</b> output. The engine runs locally; nothing leaves your machine.</span></div>
     </section>
   </div>
 </main>
@@ -513,5 +587,62 @@ rebuildVendorFilter(SAMPLE_FLEET);
 setMode("sample");
 renderAll(SAMPLE_FLEET, TREND);
 fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadPayload(p); }).catch(()=>{});
+
+/* ---------------- tabs: Fleet / Scanner / Walkthrough ---------------- */
+(function(){
+  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk")};
+  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo"};
+  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough"};
+  function show(v){
+    Object.entries(views).forEach(([k,el])=>{ if(el) el.hidden=(k!==v); });
+    document.querySelectorAll("nav a[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===v));
+    const cb=document.querySelector(".crumb"); if(cb) cb.innerHTML="Home / <b>"+crumbs[v]+"</b>";
+    const h1=document.querySelector(".topbar h1"); if(h1) h1.textContent=titles[v];
+  }
+  document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);}));
+
+  /* scanner */
+  const sf=document.getElementById("scanForm");
+  if(sf) sf.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const fqdn=document.getElementById("scanFqdn").value.trim(); if(!fqdn) return;
+    const btn=document.getElementById("scanBtn"); btn.disabled=true; btn.textContent="Scanning…";
+    let d; try{ const r=await fetch("/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fqdn})}); d=await r.json(); }
+    catch(err){ d={error:"Scanner endpoint unavailable. Serve the dashboard with: sbc-validator serve"}; }
+    btn.disabled=false; btn.textContent="Scan";
+    renderScan(d,fqdn);
+  });
+  function renderScan(d,fqdn){
+    const card=document.getElementById("scanCard"); card.hidden=false;
+    const iss=document.getElementById("scanIssues"); iss.innerHTML=""; document.getElementById("scanMeta").textContent="";
+    const g=document.getElementById("scanGrade");
+    if(d.error){ document.getElementById("scanName").textContent=fqdn; g.textContent="—"; g.className="scan-grade g-INCONCLUSIVE"; document.getElementById("scanNote").textContent=d.error; return; }
+    document.getElementById("scanName").textContent=d.fqdn||fqdn;
+    g.textContent=d.grade||"—"; g.className="scan-grade g-"+(d.grade||"INCONCLUSIVE");
+    if(d.reachable) document.getElementById("scanMeta").innerHTML="TLS "+esc(d.tls_version||"?")+" &middot; "+esc(d.cipher||"cipher n/a");
+    (d.issues||[]).forEach(i=>{ const li=document.createElement("li"); li.innerHTML='<span class="sev '+esc(i.severity)+'">'+esc(i.severity)+'</span><span><b>'+esc(i.message)+'</b><br><span class="mono" style="font-size:11px;color:var(--ink-faint)">'+esc(i.check_id)+'</span></span>'; iss.appendChild(li); });
+    if(d.reachable&&(d.issues||[]).length===0){ const li=document.createElement("li"); li.innerHTML='<span class="sev PASS">PASS</span><span>Edge readiness checks passed.</span>'; iss.appendChild(li); }
+    document.getElementById("scanNote").textContent = d.grade==="INCONCLUSIVE" ? (d.note||"") : "This grades the edge only. The other seven domains live in the config, inside-out.";
+  }
+
+  /* walkthrough */
+  let wkWhich="broken";
+  document.querySelectorAll(".wk-toggle button").forEach(b=>b.addEventListener("click",()=>{
+    wkWhich=b.dataset.which;
+    document.querySelectorAll(".wk-toggle button").forEach(x=>x.classList.toggle("active",x===b));
+  }));
+  const wr=document.getElementById("wkRun");
+  if(wr) wr.addEventListener("click",async()=>{
+    const out=document.getElementById("wkOut"); out.textContent="running the engine…"; wr.disabled=true;
+    document.getElementById("wkVerdict").textContent="";
+    let d; try{ const r=await fetch("/walk?which="+wkWhich); d=await r.json(); }
+    catch(err){ d={output:"Walk endpoint unavailable. Serve the dashboard with: sbc-validator serve"}; }
+    wr.disabled=false;
+    out.textContent=d.output||"(no output)";
+    const txt=d.output||""; const verd=/BLOCK/.test(txt)?"BLOCK":/REVIEW/.test(txt)?"REVIEW":/PASS/.test(txt)?"PASS":"";
+    const v=document.getElementById("wkVerdict");
+    v.textContent=verd?("Verdict: "+verd):""; v.style.color=verd==="PASS"?"var(--pass)":verd==="BLOCK"?"var(--crit)":"var(--high)";
+  });
+})();
 
 </script>
