@@ -364,7 +364,7 @@
           <a class="btn ghost" href="/scanner">Scan your SBC free</a>
           <a class="btn ghost" href="#demo">Run the live demo</a>
         </div>
-        <div class="trustline reveal" style="--d:300ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>145</b> tests in CI · air-gapped</div>
+        <div class="trustline reveal" style="--d:300ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>160</b> tests in CI · air-gapped</div>
       </div>
 
       <div class="heroviz reveal" style="--d:200ms">
@@ -409,7 +409,7 @@
   <div class="wrap">
     <span class="lbl">One model · every major SBC platform</span>
     <div class="vmarks">
-      <b>AudioCodes Mediant</b><i>·</i><b>Cisco CUBE</b><i>·</i><b>Ribbon SBC Core</b><i>·</i><b>Oracle Acme Packet</b>
+      <b>AudioCodes Mediant</b><i>·</i><b>Cisco CUBE</b><i>·</i><b>Ribbon SBC Core</b><i>·</i><b>Oracle Acme Packet</b><i>·</i><b>Metaswitch Perimeta</b>
     </div>
   </div>
 </div>
@@ -555,9 +555,14 @@
     </div>
     <div class="sr-only" role="status" aria-live="polite" id="demoLive"></div>
     <p class="demo-cap reveal muted" style="--d:260ms">Real <span class="mono">sbc-validator walk</span> output. The engine runs locally and air-gapped; nothing here leaves your browser.</p>
+    <figure class="reveal" style="--d:300ms;margin:40px 0 0;padding:0">
+      <img src="diagrams/dashboard-demo.png" alt="SBC-AutoOps fleet dashboard: seven SBCs across five vendors (AudioCodes, Cisco CUBE, Ribbon, Oracle Acme, Metaswitch Perimeta) with deploy verdicts (2 BLOCK, 2 REVIEW, 3 PASS), an open-findings-by-domain bar chart, a findings-by-severity trend line, average risk score per vendor, a deploy-verdict donut, and a severity-by-domain heatmap. Data source labelled demo." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 36px rgba(16,22,35,.10)">
+      <figcaption class="muted" style="margin-top:14px;font-size:14px;max-width:80ch">One SBC in the walk above; the fleet dashboard rolls the whole estate into one verdict per box, with the 2026-readiness picture across all five vendors at a glance. Same engine output, served locally, nothing leaves your environment.</figcaption>
+    </figure>
     <div class="demo-cta reveal" style="--d:320ms;margin-top:30px;display:flex;flex-wrap:wrap;align-items:center;gap:16px 22px">
       <span style="font-size:18px;font-weight:600;max-width:40ch">That was a replay. Now scan your real SBC's edge, free, no config upload.</span>
       <a class="btn" href="/scanner">Scan your SBC free</a>
+      <a class="btn ghost" href="/dashboard/" target="_blank" rel="noopener">Explore the live dashboard</a>
       <a class="btn ghost" href="#cta">Bring this to your fleet</a>
     </div>
   </div>
@@ -642,9 +647,9 @@
     <span class="eyebrow reveal">What runs today</span>
     <h2 class="reveal" style="--d:60ms;margin-top:18px">A working product, <span class="ser g">not a slide.</span></h2>
     <div class="pills reveal" style="--d:120ms">
-      <span class="pill"><b>4</b> real vendor parsers, one model</span>
+      <span class="pill"><b>5</b> real vendor parsers, one model</span>
       <span class="pill"><b>8</b> validation domains live</span>
-      <span class="pill"><b>126</b> automated tests in CI</span>
+      <span class="pill"><b>160</b> automated tests in CI</span>
       <span class="pill"><b>7</b> Microsoft roots, signed authority-sourced rules</span>
       <span class="pill">air-gapped Docker image</span>
       <span class="pill">validate · simulate · explain · diff · fleet</span>
@@ -671,7 +676,7 @@
           <li>Validate, simulate, and explain, plus HA-drift diff</li>
           <li>Fleet readiness reports and a CI/CD gate</li>
           <li>Signed rule bundles, air-gapped Docker image</li>
-          <li>126 automated tests in CI</li>
+          <li>160 automated tests in CI</li>
         </ul>
       </div>
       <div class="card reveal" style="--d:90ms"><span class="seg" style="color:var(--ink-soft)">Next · with design partners</span>
