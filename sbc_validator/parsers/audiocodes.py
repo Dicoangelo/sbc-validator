@@ -78,11 +78,16 @@ class AudioCodesParser(AbstractParser):
                     chain_complete=cp.getboolean(sect, "chain_complete", fallback=False),
                     source_file=cp.get(sect, "cert_file", fallback=None),
                 )
+            ciphers = cp.get(sect, "ciphers", fallback=None)
             tls_contexts[name] = TlsContext(
                 name=name,
                 mtls_enabled=cp.getboolean(sect, "mtls", fallback=False),
                 presented_cert=cert,
                 trusted_root_ids=[r.strip() for r in cp.get(sect, "trusted_roots", fallback="").split(",") if r.strip()],
+                # Tristate: None when the source omits the field (judge nothing).
+                min_tls_version=cp.get(sect, "min_tls", fallback=None) or None,
+                cipher_suites=([c.strip() for c in ciphers.split(",") if c.strip()]
+                               if ciphers is not None else None),
             )
 
         # SIP interfaces: sections like [sip:Teams-SIP]

@@ -45,6 +45,14 @@ class TlsContext:
     # are imported separately and are NOT present in this export. Lets validators
     # say "verify out-of-band" instead of false-claiming a missing cert/trust store.
     introspectable: bool = True
+    # Minimum TLS protocol version this context will accept, e.g. "1.2".
+    # Tristate: None = the source did not carry a version floor (judge nothing).
+    min_tls_version: Optional[str] = None
+    # SIP-TLS cipher suites this context offers, in IANA
+    # ("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384") or OpenSSL
+    # ("ECDHE-RSA-AES256-GCM-SHA384") form. Tristate: None = not carried by the
+    # source (judge nothing); [] = carried but empty.
+    cipher_suites: Optional[list[str]] = None
 
 
 @dataclass

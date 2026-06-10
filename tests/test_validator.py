@@ -149,6 +149,35 @@ def test_ribbon_eku_review_not_block(ruleset):
     assert "C.CA.ROOT_MISSING" not in found     # all 7 roots present
 
 
+# ---- TLS version + cipher policy (ruleset-driven, previously unenforced) ----
+
+def test_tls_weak_version_and_cipher_flagged(ruleset):
+    """The ruleset declares tls_min_version + allowed_sip_cipher_suites; a config
+    that pins TLS 1.0 and a non-accepted cipher set must now be caught (closes the
+    rule-defined-but-unenforced gap)."""
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_weak_tls.ini").read_text())
+    found = ids(CaComplianceValidator(ruleset).validate(cfg).findings)
+    assert "C.TLS.WEAK_VERSION" in found            # TLS 1.0 floor < required 1.2
+    assert "C.TLS.CIPHER_NOT_ALLOWED" in found       # zero overlap with allowlist
+
+
+def test_tls_policy_silent_when_not_carried(ruleset):
+    """Tristate safety: a config that expresses no TLS floor or cipher list must
+    produce neither finding (no false BLOCK on a clean config)."""
+    cfg = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    found = ids(CaComplianceValidator(ruleset).validate(cfg).findings)
+    assert "C.TLS.WEAK_VERSION" not in found
+    assert "C.TLS.CIPHER_NOT_ALLOWED" not in found
+
+
+def test_cipher_name_normalization_iana_openssl():
+    """IANA and OpenSSL spellings of the same suite must compare equal, so an
+    OpenSSL-named config is judged against the IANA-named allowlist correctly."""
+    from sbc_validator.validators.tls_policy import _canon_cipher
+    assert _canon_cipher("ECDHE-RSA-AES256-GCM-SHA384") == \
+           _canon_cipher("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384")
+
+
 # ---- HA drift detection ----------------------------------------------------
 
 ACTIVE = REPO / "samples" / "clean_pass.ini"

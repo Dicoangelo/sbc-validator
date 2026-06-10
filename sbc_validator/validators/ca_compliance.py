@@ -26,6 +26,7 @@ from .base import AbstractValidator, Finding, Severity, ValidatorResult
 # Leaf-cert logic lives in cert_checks; the name helpers are re-exported here
 # because tests (and the module's historical API) import them from this module.
 from .cert_checks import _fqdn_matches, _name_covers, leaf_cert_findings  # noqa: F401
+from .tls_policy import tls_policy_findings
 
 
 def _norm(s) -> str:
@@ -97,6 +98,11 @@ class CaComplianceValidator(AbstractValidator):
                             "AES_CM_128_HMAC_SHA1_80 crypto suite.",
                 locator=f"iface '{teams.name}'",
             ))
+
+        # --- TLS version floor + cipher allowlist (ruleset-driven) ---
+        # Enforces the bundle's tls_min_version + allowed_sip_cipher_suites, which
+        # were defined but previously unchecked. Tristate-safe (silent on unknown).
+        res.findings.extend(tls_policy_findings(ctx, rules))
 
         # --- required root CAs present (count + identity) ---
         # The ruleset lists each required root as {"name", "sha1"} (authoritative,
