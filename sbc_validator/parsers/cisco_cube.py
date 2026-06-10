@@ -208,6 +208,15 @@ class CiscoCubeParser(AbstractParser):
         # every non-identity trustpoint is a trusted root id
         trusted_roots = [name for name in trustpoints if name != identity_name]
 
+        # ---- platform / IOS XE version (for the FN74345 EKU firmware floor) ----
+        # Running-configs open with `version 17.6`; ISR-4000 hardware shows up in
+        # boot lines (`boot system flash:isr4300-...`). Tristate: absent -> None.
+        mv = re.search(r"^version\s+(\d+\.\d+(?:\.\d+)?)\s*$", text, re.M)
+        if mv:
+            cfg.raw_meta["ios_xe_version"] = mv.group(1)
+        if re.search(r"\bisr4\d{3}\b|\bISR4\d{3}\b", text):
+            cfg.raw_meta["platform_hint"] = "isr4000"
+
         # ---- TLS version floor + cipher list (global, applies to every TLS ctx) ----
         # CUBE expresses these on `crypto signaling ... tls-version 1.2` and in
         # `voice class tls-cipher` blocks (` cipher <n> <suite>`). Tristate-safe:

@@ -1549,3 +1549,52 @@ def test_multi_tenant_cascade_risk(ruleset):
     assert len(t["at_cascade_risk"]) == 2          # BOTH tenants fail together
     # without the flag, no tenant analysis is computed
     assert "tenants" not in run_fleet(paths, ruleset)
+
+
+# ---- PRD P3: Gandi issuer advisory, FusionConnect media-trust, FN74345 floor --
+
+def test_issuer_program_unverified_declared_only(ruleset):
+    """Declared-only issuer outside the named DR CAs -> LOW verify advisory;
+    a named CA (DigiCert) stays silent. The Gandi-wildcard class."""
+    base = (REPO / "samples" / "clean_pass.ini").read_text()
+    gandi = base.replace("cert_not_after = 2027-12-31",
+                         "cert_not_after = 2027-12-31\ncert_issuer = Certigna Services CA", 1)
+    found = ids(CaComplianceValidator(ruleset).validate(detect_and_parse(gandi)).findings)
+    assert "C.CERT.ISSUER_PROGRAM_UNVERIFIED" in found
+    named = base.replace("cert_not_after = 2027-12-31",
+                         "cert_not_after = 2027-12-31\ncert_issuer = DigiCert TLS RSA SHA256 2020 CA1", 1)
+    assert "C.CERT.ISSUER_PROGRAM_UNVERIFIED" not in ids(
+        CaComplianceValidator(ruleset).validate(detect_and_parse(named)).findings)
+
+
+def test_fusionconnect_media_trust_note(ruleset):
+    """SRTP on + trust store not provable from the source -> INFO verify note
+    (never a failure claim about Microsoft's relay side). Provable store -> silent."""
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_teams_real.ini").read_text())
+    f = [x for x in CaComplianceValidator(ruleset).validate(cfg).findings
+         if x.check_id == "C.SRTP.MEDIA_TRUST_UNVERIFIED"]
+    assert f and f[0].severity.name == "INFO"
+    clean = detect_and_parse((REPO / "samples" / "clean_pass.ini").read_text())
+    assert "C.SRTP.MEDIA_TRUST_UNVERIFIED" not in ids(
+        CaComplianceValidator(ruleset).validate(clean).findings)
+
+
+def test_iosxe_eku_firmware_floor(ruleset):
+    """FN74345: IOS XE below 26.1.1 -> LOW advisory; on EoL ISR-4000 -> MEDIUM;
+    no version in the source -> silent (tristate)."""
+    base = (REPO / "samples" / "cisco_cube_dr.txt").read_text()
+    assert "C.PLATFORM.IOSXE_EKU_FLOOR" not in ids(          # sample carries no version
+        CaComplianceValidator(ruleset).validate(detect_and_parse(base)).findings)
+    versioned = "version 17.6\n" + base
+    f = [x for x in CaComplianceValidator(ruleset).validate(
+            detect_and_parse(versioned)).findings
+         if x.check_id == "C.PLATFORM.IOSXE_EKU_FLOOR"]
+    assert f and f[0].severity.name == "LOW"
+    isr = versioned + "\nboot system flash:isr4321-universalk9.17.06.01a.SPA.bin\n"
+    f2 = [x for x in CaComplianceValidator(ruleset).validate(
+            detect_and_parse(isr)).findings
+          if x.check_id == "C.PLATFORM.IOSXE_EKU_FLOOR"]
+    assert f2 and f2[0].severity.name == "MEDIUM"
+    fixed = "version 26.1.1\n" + base
+    assert "C.PLATFORM.IOSXE_EKU_FLOOR" not in ids(
+        CaComplianceValidator(ruleset).validate(detect_and_parse(fixed)).findings)

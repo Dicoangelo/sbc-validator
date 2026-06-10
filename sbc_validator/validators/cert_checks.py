@@ -162,6 +162,28 @@ def leaf_cert_findings(ctx, config: NormalizedConfig,
         except ValueError:
             pass
 
+    # Declared-issuer program check (no PEM to verify): when the config declares
+    # who issued the leaf and that CA is none of the named Direct Routing CAs
+    # (MS Learn: "an approved CA such as DigiCert, GlobalSign, Sectigo, or
+    # Entrust") or Microsoft itself, raise the verify-membership advisory. LOW:
+    # we cannot prove non-membership, only that it needs checking (Gandi class).
+    _PROGRAM_TOKENS = ("digicert", "globalsign", "sectigo", "entrust", "microsoft")
+    if (cert.issuer_cn and not cert.source_file
+            and not any(t in cert.issuer_cn.lower() for t in _PROGRAM_TOKENS)):
+        out.append(Finding(
+            check_id="C.CERT.ISSUER_PROGRAM_UNVERIFIED",
+            title=f"Leaf issuer '{cert.issuer_cn}' is not a named Direct Routing CA",
+            severity=Severity.LOW,
+            detail="The declared issuer is not one of the CAs Microsoft names for "
+                   "Direct Routing (DigiCert, GlobalSign, Sectigo, Entrust) or "
+                   "Microsoft. A leaf from a CA outside the Microsoft Trusted Root "
+                   "Program passes local validation and is then reset by Microsoft "
+                   "at the handshake (the Gandi-wildcard incident class).",
+            remediation="Verify this CA is in the Microsoft Trusted Root Program; "
+                        "supply the leaf PEM for a full chain check.",
+            locator=f"cert CN={cert.subject_cn}",
+        ))
+
     # Trust-anchor chain validation: when a real PEM is referenced, verify the
     # chain's signatures and check it anchors to one of the required Microsoft roots.
     # Falls back to the config-declared chain_complete flag otherwise.
@@ -200,15 +222,26 @@ def leaf_cert_findings(ctx, config: NormalizedConfig,
                 remediation="Install the full intermediate chain on the SBC.",
                 locator=loc))
         elif required_shas and chain["terminal_sha1"] not in required_shas:
+            # Honest precision (the Gandi-wildcard class): the Microsoft Trusted
+            # Root PROGRAM is much broader than the 7 service-side roots, so a
+            # chain anchoring elsewhere is not provably bad — but it IS the exact
+            # posture where a leaf passes local validation and Microsoft resets
+            # the handshake if the CA is outside the program. Flag as a verify
+            # step, not a verdict-driving HIGH.
             out.append(Finding(
                 check_id="C.CERT.UNTRUSTED_ANCHOR",
-                title="Certificate chain anchors to a non-Microsoft-trusted root",
-                severity=Severity.HIGH,
+                title="Chain anchors outside the Microsoft service roots — verify "
+                      "program membership",
+                severity=Severity.MEDIUM,
                 detail=f"The chain terminates at root SHA-1 {chain['terminal_sha1']}, "
-                       "which is not one of the required Microsoft/DigiCert roots. "
-                       "Teams will reject a cert from a private/untrusted CA.",
-                remediation="Re-issue the SBC cert from a CA whose root is in the "
-                            "Microsoft Trusted Root Program.",
+                       "not one of the 7 Microsoft/DigiCert service roots. That can be "
+                       "fine (the Microsoft Trusted Root Program covers many CAs), but "
+                       "a leaf from a CA OUTSIDE the program passes local validation "
+                       "and is then reset by Microsoft at the handshake (the "
+                       "Gandi-wildcard incident class).",
+                remediation="Confirm this CA is in the Microsoft Trusted Root Program "
+                            "before deploy; if uncertain, re-issue from DigiCert, "
+                            "GlobalSign, Sectigo, or Entrust.",
                 locator=loc))
         else:
             out.append(Finding(

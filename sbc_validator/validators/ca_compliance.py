@@ -29,6 +29,21 @@ from .cert_checks import _fqdn_matches, _name_covers, leaf_cert_findings  # noqa
 from .tls_policy import tls_policy_findings
 
 
+def _ver_lt(a: str, b: str) -> bool:
+    """Numeric dotted-version compare: '17.6.1a' < '26.1.1'. Non-numeric suffixes
+    are ignored per segment; unparseable versions compare False (judge nothing)."""
+    def parts(v):
+        out = []
+        for seg in str(v).split("."):
+            m = re.match(r"(\d+)", seg)
+            if not m:
+                break
+            out.append(int(m.group(1)))
+        return out
+    pa, pb = parts(a), parts(b)
+    return bool(pa and pb) and pa < pb
+
+
 def _norm(s) -> str:
     """Normalize a CA identifier for tolerant matching: lowercase, strip every
     non-alphanumeric, and fold the 'Certificate Authority' <-> 'CA' synonym. So
@@ -176,6 +191,58 @@ class CaComplianceValidator(AbstractValidator):
                             "context trust store before the next Microsoft rotation.",
                 locator=f"TlsContext '{ctx.name}'",
             ))
+
+        # --- FusionConnect-class media-trust note (honest scope) ---
+        # In that incident, SIGNALING survived while Microsoft's media relays
+        # presented rotated DigiCert certs and SRTP died -> one-way audio with a
+        # clean portal. The relay side is Microsoft's and not config-catchable;
+        # what IS true and checkable: when SRTP is on and this source cannot
+        # prove the full 7-root store (separately-imported or incomplete), the
+        # media stack's trust path is unverified too. INFO: a verify step,
+        # never a failure claim about Microsoft's side.
+        srtp_on = teams.srtp_enabled is True
+        store_unproven = (not ctx.introspectable) or bool(missing)
+        if srtp_on and store_unproven:
+            res.add(Finding(
+                check_id="C.SRTP.MEDIA_TRUST_UNVERIFIED",
+                title="SRTP media trust path not verifiable from this source",
+                severity=Severity.INFO,
+                detail="Microsoft's media relays rotate certificates on the same "
+                       "2026 root set; an SBC whose media stack lacks the new roots "
+                       "gets one-way audio with healthy signaling (the FusionConnect "
+                       "incident class). This source does not prove the full 7-root "
+                       "store, and on some vendors the media stack uses a separate "
+                       "trust store from SIP signaling.",
+                remediation="Confirm all 7 required roots are installed in the trust "
+                            "store the MEDIA/SRTP stack uses, not only the SIP TLS "
+                            "context.",
+                locator=f"iface '{teams.name}'",
+            ))
+
+        # --- Cisco IOS XE firmware floor for the EKU change (FN74345, Critical) ---
+        # The permanent fix for the clientAuth-EKU deprecation is IOS XE 26.1.1
+        # (segregates client/server certs); ISR-4000 hardware is EoL and cannot
+        # run it. Fires only when the parser captured a version (tristate).
+        if config.vendor == "cisco_cube":
+            ver = config.raw_meta.get("ios_xe_version")
+            floor = rules.get("iosxe_eku_fix_version", "26.1.1")
+            if ver and _ver_lt(ver, floor):
+                isr4k = "isr4" in str(config.raw_meta.get("platform_hint", "")).lower()
+                res.add(Finding(
+                    check_id="C.PLATFORM.IOSXE_EKU_FLOOR",
+                    title=f"IOS XE {ver} predates the {floor} EKU fix"
+                          + (" on EoL ISR-4000 hardware" if isr4k else ""),
+                    severity=Severity.MEDIUM if isr4k else Severity.LOW,
+                    detail="Cisco field notice FN74345 (Critical) tracks the public-CA "
+                           f"clientAuth-EKU change; IOS XE {floor} is the permanent fix "
+                           "(segregated client/server certificates). "
+                           + ("ISR-4000 platforms are end-of-life and cannot run it, "
+                              "forcing a hardware refresh." if isr4k else
+                              "Plan the upgrade alongside the 2026 cert work."),
+                    remediation=f"Upgrade to IOS XE {floor} or later"
+                                + ("; ISR-4000 requires replacement hardware "
+                                   "(Catalyst 8000)." if isr4k else "."),
+                ))
 
         # --- leaf certificate checks (deep PKI, EKU, FQDN, expiry, chain) ---
         # Factored into cert_checks to keep this validator focused on the TLS
