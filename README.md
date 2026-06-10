@@ -113,11 +113,12 @@ sbc_validator/
   serve.py / demo.py     local dashboard server; one-command showcase
   fleet.py               directory -> 2026 CA-readiness rollup
   rules/client.py        signed, versioned, rollback-floored rule-bundle client
-  parsers/               audiocodes (.ini table + simple), cisco_cube, ribbon, oracle
+  parsers/               audiocodes (.ini table + simple), cisco_cube, ribbon,
+                         oracle, perimeta (Metaswitch)
   validators/            A syntax, B interop, C ca_compliance, D nat_traversal,
                          E codec, ha_drift, G routing, S access_control
   report/                risk (score+verdict), html (per-SBC), exec (fleet report),
-                         anonymize (opt-in payload)
+                         compliance (control-framework mapping), anonymize (opt-in payload)
   web/sbc_dashboard.html the packaged dashboard viewer
 rulesets/                signed rule bundles
 samples/                 sample configs (intentional misconfigs) for smoke test
@@ -201,6 +202,12 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
   rolls them up into one executive answer - "X of N SBCs ready for the 2026 CA
   migration" - as Markdown (or JSON), with per-SBC verdicts and the most common
   findings. Exits non-zero if any SBC isn't 2026-ready (gateable).
+- **Compliance report** (`report --compliance <mifid2|finra|cjis|hipaa>`): maps each
+  fleet finding to the control family a regulated buyer's change-management procedure
+  cares about (recording continuity, availability, transmission security, access
+  control), so SBC-AutoOps can be named as the audited pre-deploy step. Markdown or
+  self-contained HTML, integrity-protected by a SHA-256 content hash + ruleset stamp
+  (an indicative mapping, not legal advice, and not cryptographic report signing).
 - **HA drift detection** (`diff <active> <standby>`): compares the failover-critical
   fields between two node configs and rates trust-store drift CRITICAL.
 - **Predicted call-flow simulation** (`simulate <config>`): models a real call as
