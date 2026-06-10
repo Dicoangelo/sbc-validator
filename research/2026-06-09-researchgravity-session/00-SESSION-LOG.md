@@ -57,8 +57,32 @@ Files read in full:
 - Logged **3 findings** back to the RG corpus (type=innovation): wedge-decay
   resolution, durable-moat metric, beachhead ICP resolution. See `05-RG-FINDINGS-LOGGED.md`.
 
-## What this session did NOT do
-- Did not modify any repo, archive, vault, or site file.
-- Did not commit anything (this research folder is untracked by design; promote to git
-  only if Dico wants it versioned with the product).
-- Did not run the live demo or scanner (no network calls initiated).
+## Phase 5 — Containment correction (2026-06-09/10)
+- Initial 3 findings were mistakenly logged into the shared `frontier-alpha` RG session;
+  retracted same-session (backup kept). Dico's final ruling: RG-global logging OK, but
+  in a DEDICATED session. Created `sbc-autoops-validato-20260609-235604-69bb2b`
+  (standalone, no impl-project link); re-logged there.
+
+## Phase 6 — Execution sprint (2026-06-10, "fill the vital gaps, all of the above")
+- Track 1 (correctness): H4 score-gate verified shipped; is_blocking() aligned; ghcr
+  image pipeline live (D6 resolved); test-count drift fixed to 126 everywhere; full
+  Philip packet rebuilt from HEAD. Commits 6106f9d (sweep) + packet rebuild.
+- Track 3 (scanner): owned by Dico's PARALLEL session (scan_server, scanner.html,
+  Vercel+Fly deploy, /stats benchmark endpoint). Lane split honored; zero collisions.
+- Track 4 (strategy/FTO): 08-PATENT-FTO-BRIEF.md + 09-STRATEGY-EXECUTION-MEMO.md.
+- Track 2 (explainer) executed to SHIP:
+  - sip_tokenizer.py (privacy-gated, self-testing) -> commit be9fb19
+  - make_corpus.py + eval_baseline.py, 5 classes -> commit 5193c6c
+  - TLS_HANDSHAKE_FAILED wedge class (TCP fatal-alert frames) -> commit 9e3ea22
+  - TIMING-ARTIFACT BUG caught by cross-distribution sample pcaps; fixed with
+    class-independent gap jitter (the ML lesson, logged as finding 6)
+  - PROMOTED INTO THE PRODUCT: `sbc-validator explain <pcap> --ai` — explainer.py,
+    bundled 1.9KB model, CLI flag, 9 tests, 136 total green, demo verdicts
+    unchanged -> commit 397add1
+- Marketing site corrected to 126 and redeployed live (parallel-session deploy,
+  verified showing 126 at sbcvalidator.metaventionsai.com).
+
+## Notes superseded from the original log
+- "Did not modify any repo file / did not commit" described Phases 0-4 only. The
+  execution sprint (Phases 5-6) deliberately modified and shipped, with every change
+  test-verified and pushed: 6106f9d, be9fb19, 5193c6c, 9e3ea22, 397add1.

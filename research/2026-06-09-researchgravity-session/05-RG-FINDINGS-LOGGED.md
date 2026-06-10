@@ -1,14 +1,25 @@
-# Findings — KEPT INDEPENDENT (not merged into the shared RG corpus)
+# Findings — logged to RG global in a DEDICATED, CONTAINED session
 
-**Correction (2026-06-09):** Per Dico's instruction, SBC-AutoOps is an **independent
-project** and must NOT be merged into the shared ResearchGravity framework / the
-`frontier-alpha-r&d-d` session. Three findings were initially logged into that shared
-session this session; they were **retracted** the same session (backup:
-`~/.agent-core/session_tracker.json.bak.2026-06-09-pre-sbc-retract`). The shared corpus is
-restored to its pre-session state (15 findings).
+**Final arrangement (Dico's call, 2026-06-09/10):** RG-global logging is fine; the
+project stays contained. A dedicated standalone RG session
+**`sbc-autoops-validato-20260609-235604-69bb2b`** was created (no `--impl-project`
+link to any existing project) and all SBC findings live there. The earlier accidental
+write into the shared `frontier-alpha-r&d-d` session was retracted (backup:
+`~/.agent-core/session_tracker.json.bak.2026-06-09-pre-sbc-retract`; that session is
+back to its pre-existing 15 findings, untouched).
 
-The three findings below are recorded HERE (in the project's own independent research
-folder) as the canonical, untainted home. They are recommendations, not corpus writes.
+**Six findings logged to the contained session** (full text in the RG session store;
+summarized below + in this folder's docs):
+1. Wedge-decay resolved: deadline -> permanent cadence (Finding 1 below).
+2. Durable moat = observability-semantics matrix, count ~1 (Finding 2 below).
+3. Beachhead ICP = consultancy channel (Finding 3 below).
+4. Prior-art + competitor sweep: whitespace confirmed; LLMcap/PLUME/netFound resolve
+   the air-gap-vs-AI tension (see `06-PRIOR-ART-AND-COMPETITORS.md`).
+5. Flagship shipped (2026-06-10, commit 397add1): `explain --ai` on-prem explanation
+   layer in the product, 136 tests (see `07-ONPREM-EXPLAINER-POC.md` + repo).
+6. ML lesson: synthetic corpora teach timing artifacts; fixed with class-independent
+   gap jitter + cross-distribution regression tests (the generalizable training rule
+   for the future netFound fine-tune).
 
 > NOTE: the shared `frontier-alpha` session already contained 15 SBC-flavoured findings
 > from 2026-05-27 (the original positioning + innovation-frontier research) BEFORE this
