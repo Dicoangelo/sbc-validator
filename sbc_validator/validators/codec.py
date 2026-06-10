@@ -103,4 +103,21 @@ class CodecValidator(AbstractValidator):
                 remediation="Use one DTMF method end to end (RFC 2833 preferred).",
             ))
 
+        # In-band DTMF on the Teams leg specifically: the Microsoft media stack does
+        # NOT support in-band DTMF (authoritative: Direct Routing protocols / RFC
+        # standards page), so menu/IVR digits silently fail. This fires even when
+        # another leg uses RFC 2833 (so the general METHOD check above stays quiet).
+        teams = config.teams_interface()
+        if teams is not None and teams.dtmf_method == "inband":
+            res.add(Finding(
+                check_id="E.DTMF.INBAND_TEAMS",
+                title="In-band DTMF on the Teams leg",
+                severity=Severity.MEDIUM,
+                detail="The Microsoft Teams media stack does not support in-band DTMF; "
+                       "digits for IVRs, conference PINs, and menus will not register. "
+                       "Direct Routing requires out-of-band DTMF (RFC 2833 telephone-event).",
+                remediation="Set the Teams leg DTMF method to RFC 2833 (telephone-event).",
+                locator=f"iface '{teams.name}'",
+            ))
+
         return res

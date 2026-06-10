@@ -145,6 +145,10 @@ class OracleAcmeParser(AbstractParser):
                     cipher_suites=ciphers,
                 )
             ping = sa.get("ping-method") or si.get("options")
+            try:
+                ping_iv = int(sa["ping-interval"]) if sa.get("ping-interval") else None
+            except (ValueError, TypeError):
+                ping_iv = None
             cfg.sip_interfaces.append(SipInterface(
                 name=str(rid or host or "sa"),
                 role=role,
@@ -152,6 +156,7 @@ class OracleAcmeParser(AbstractParser):
                 tls_context=ctx,
                 transport=transport,
                 options_keepalive=bool(ping and "options" in str(ping).lower()),
+                options_keepalive_interval=ping_iv,
                 offered_codecs=list(codecs),
                 srtp_enabled=media_sec and realm_srtp.get(rid, False),
             ))

@@ -66,3 +66,25 @@ def test_probe_injected_connector_touches_no_network():
     assert rep["customer"]["grade"] == "A"
     assert "sip.g1.pstnhub.microsoft.com" in calls
     assert rep["microsoft_edge"]["reachable"] is True
+
+
+def test_probe_verifies_ms_edge_cert_identity():
+    """The MS-edge reference confirms the cert presents Microsoft's published SIP
+    identity (SAN includes sip.pstnhub.microsoft.com) -> 'verified', not just reachable."""
+    def fake(host, **k):
+        leaf = Certificate(subject_cn=host,
+                           sans=["sip.pstnhub.microsoft.com", host],
+                           ekus=[EKU.SERVER_AUTH], not_after="2027-01-01")
+        return HandshakeResult(reachable=True, tls_version="1.2",
+                               cipher="ECDHE-RSA-AES256-GCM-SHA384", leaf=leaf)
+    rep = probe("sbc.contoso.com", _bundle(), connector=fake, check_ms_edge=True)
+    assert rep["microsoft_edge"]["cert_identity_verified"] is True
+
+    # and when the edge cert does NOT present the MS identity, it is not "verified"
+    def fake_wrong(host, **k):
+        leaf = Certificate(subject_cn="evil.example.com", sans=["evil.example.com"],
+                           ekus=[EKU.SERVER_AUTH], not_after="2027-01-01")
+        return HandshakeResult(reachable=True, tls_version="1.2",
+                               cipher="ECDHE-RSA-AES256-GCM-SHA384", leaf=leaf)
+    rep2 = probe("sbc.contoso.com", _bundle(), connector=fake_wrong, check_ms_edge=True)
+    assert rep2["microsoft_edge"]["cert_identity_verified"] is False

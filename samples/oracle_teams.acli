@@ -35,7 +35,7 @@ session-agent
         realm-id                       Teams
         transport-method               StaticTLS
         ping-method                    OPTIONS;hops=0
-        ping-interval                  30
+        ping-interval                  120
 
 session-agent
         hostname                       sbc-trunk.carrier.example

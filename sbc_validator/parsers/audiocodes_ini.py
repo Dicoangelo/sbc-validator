@@ -158,14 +158,19 @@ def map_to_config(text: str) -> NormalizedConfig:
     enable_ms = str(globals_.get("EnableMediaSecurity", "0")).strip().lower() in ("1", "true")
     cfg.sbc_fqdn = globals_.get("SIPGatewayName") or globals_.get("SBCFQDN") or None
 
-    # --- ProxySet index -> name, keepalive, tls context ---
-    ps_name, ps_keepalive, ps_tls = {}, {}, {}
+    # --- ProxySet index -> name, keepalive, interval, tls context ---
+    ps_name, ps_keepalive, ps_tls, ps_keepalive_interval = {}, {}, {}, {}
     for r in tables.get("ProxySet", []):
         idx = r.get("Index")
         name = _get(r, "ProxyName", "ProxySetName", "Name", default=idx)
         ps_name[str(idx)] = str(name)
         ka = _get(r, "ProxyKeepAliveType", "ProxyKeepAlive", "KeepAliveType", default="0")
         ps_keepalive[str(name)] = str(ka).strip().lower() not in ("0", "", "disable", "false")
+        kt = _get(r, "ProxyKeepAliveTime", "KeepAliveTime", default=None)
+        try:
+            ps_keepalive_interval[str(name)] = int(kt) if kt not in (None, "") else None
+        except (ValueError, TypeError):
+            ps_keepalive_interval[str(name)] = None
         ps_tls[str(name)] = _get(r, "TLSContext", "TLSContextName", "TLSContextId")
 
     # --- ProxyIP rows -> per-ProxySet FQDNs + transport ---
@@ -289,6 +294,7 @@ def map_to_config(text: str) -> NormalizedConfig:
             # Honest tristate: None when the ProxySet / IP-Profile carrying the
             # value was not resolvable from this source (do not guess "off").
             options_keepalive=ps_keepalive.get(psname),
+            options_keepalive_interval=ps_keepalive_interval.get(psname),
             normalization_profile=_manip_norm(ig),
             offered_codecs=coders_by_group.get(ipp_coders_ref.get(ippname) or "", []),
             srtp_enabled=ipp_srtp.get(ippname),

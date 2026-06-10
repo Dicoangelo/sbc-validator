@@ -236,6 +236,25 @@ def test_wildcard_and_registered_domain_helpers():
     assert not _same_registered_domain("contoso.com", "sbc1.adatum.biz")
 
 
+def test_options_interval_captured_across_vendors():
+    """Cisco (up-interval), Oracle (ping-interval), real-AudioCodes (ProxyKeepAliveTime)
+    all feed the same vendor-neutral OPTIONS-interval field."""
+    for fname in ("cisco_cube_dr.txt", "oracle_teams.acli", "audiocodes_teams_real.ini"):
+        cfg = detect_and_parse((REPO / "samples" / fname).read_text())
+        assert cfg.teams_interface().options_keepalive_interval == 120, fname
+
+
+def test_inband_dtmf_on_teams_flagged(ruleset):
+    """The Teams media stack does not support in-band DTMF -> flag it even if another
+    leg uses RFC 2833 (so the general E.DTMF.METHOD check would stay quiet)."""
+    from sbc_validator.models import NormalizedConfig, SipInterface
+    from sbc_validator.validators.codec import CodecValidator
+    cfg = NormalizedConfig(vendor="x", sip_interfaces=[
+        SipInterface(name="T", role="teams", dtmf_method="inband"),
+        SipInterface(name="C", role="carrier", dtmf_method="rfc2833")])
+    assert "E.DTMF.INBAND_TEAMS" in ids(CodecValidator(ruleset).validate(cfg).findings)
+
+
 # ---- HA drift detection ----------------------------------------------------
 
 ACTIVE = REPO / "samples" / "clean_pass.ini"

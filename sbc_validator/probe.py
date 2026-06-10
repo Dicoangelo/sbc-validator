@@ -28,6 +28,8 @@ from .validators.tls_policy import _canon_cipher, _ver_tuple
 
 MS_EDGE = "sip.g1.pstnhub.microsoft.com"
 SIP_TLS_PORT = 5061
+# Microsoft's published Direct Routing SIP identities the edge cert should present.
+MS_SIP_IDENTITIES = ("sip.pstnhub.microsoft.com", "sip.g1.pstnhub.microsoft.com")
 
 
 @dataclass
@@ -157,12 +159,25 @@ def probe(fqdn: str, ruleset: dict,
     out = {"fqdn": fqdn, "customer": grade_endpoint(connector(fqdn), fqdn, ruleset)}
     if check_ms_edge:
         ms = connector(MS_EDGE)
+        # Verify the edge's cert presents Microsoft's published SIP identity (MS Plan:
+        # "Check that the certificate Subject Alternative Name includes
+        # sip.pstnhub.microsoft.com"). This is what turns "reachable" into "verified
+        # against Microsoft's own infrastructure".
+        names = []
+        if ms.leaf:
+            names = ([ms.leaf.subject_cn] if ms.leaf.subject_cn else []) + list(ms.leaf.sans or [])
+        identity_ok = (any(_name_covers(n, e) for n in names for e in MS_SIP_IDENTITIES)
+                       if names else None)
         out["microsoft_edge"] = {
             "reachable": ms.reachable,
             "tls_version": ms.tls_version,
             "cipher": ms.cipher,
-            "note": ("Microsoft's Direct Routing edge is live and presenting this "
-                     "TLS posture (ground-truth reference)." if ms.reachable else
-                     f"reference probe to {MS_EDGE} did not complete ({ms.error})"),
+            "cert_identity_verified": identity_ok,
+            "note": (
+                f"Verified against Microsoft's own edge: cert presents {MS_SIP_IDENTITIES[0]}."
+                if identity_ok else
+                ("Microsoft's edge is reachable but its certificate identity could not be "
+                 "confirmed." if ms.reachable else
+                 f"reference probe to {MS_EDGE} did not complete ({ms.error})")),
         }
     return out

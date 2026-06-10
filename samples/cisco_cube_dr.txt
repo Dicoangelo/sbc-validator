@@ -64,7 +64,7 @@ voice class tenant 100
  sip-server dns:sip.pstnhub.microsoft.com
  session transport tcp tls
  srtp-crypto 1
- options-keepalive
+ options-keepalive up-interval 120
  sip-profiles 100
  voice-class codec 1
  dtmf-relay rtp-nte

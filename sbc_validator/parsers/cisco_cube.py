@@ -132,9 +132,9 @@ class CiscoCubeParser(AbstractParser):
             elif h.startswith("voice class tenant "):
                 tid = h.split("voice class tenant ", 1)[1].strip()
                 t = {"id": tid, "role": "unknown", "transport": None,
-                     "options_keepalive": False, "codec_ref": None,
-                     "sip_profiles": None, "dtmf": None, "sip_server": None,
-                     "srtp": False}
+                     "options_keepalive": False, "options_keepalive_interval": None,
+                     "codec_ref": None, "sip_profiles": None, "dtmf": None,
+                     "sip_server": None, "srtp": False}
                 for ln in body:
                     low = ln.lower()
                     if low.startswith("description"):
@@ -156,6 +156,9 @@ class CiscoCubeParser(AbstractParser):
                             t["transport"] = "tcp"
                     elif low == "options-keepalive" or low.startswith("options-keepalive"):
                         t["options_keepalive"] = True
+                        mi = re.search(r"up-interval\s+(\d+)", low)
+                        if mi:
+                            t["options_keepalive_interval"] = int(mi.group(1))
                     elif low.startswith("voice-class codec") or low.startswith("voice class codec"):
                         t["codec_ref"] = ln.split()[-1]
                     elif low.startswith("sip-profiles"):
@@ -235,6 +238,7 @@ class CiscoCubeParser(AbstractParser):
                 tls_context=ctx,
                 transport=t["transport"],
                 options_keepalive=t["options_keepalive"] or any_keepalive,
+                options_keepalive_interval=t["options_keepalive_interval"],
                 normalization_profile=t["sip_profiles"],
                 offered_codecs=codecs.get(t["codec_ref"] or "", []),
                 dtmf_method=t["dtmf"],
