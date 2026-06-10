@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SBC-AutoOps · The independent truth layer for real-time voice</title>
-<meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA/EKU migration failure from the config, before the outage, across AudioCodes, Cisco, Ribbon, and Oracle." />
+<meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA/EKU migration failure from the config, before the outage, across AudioCodes, Cisco, Ribbon, and Oracle. Run the live demo." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
@@ -33,14 +33,16 @@
   a{color:var(--garnet);text-decoration:none}
   a:hover{color:var(--garnet-deep)}
   img,svg{display:block}
+  [hidden]{display:none!important}
   ::selection{background:rgba(157,27,84,.16)}
   a:focus-visible,button:focus-visible,.btn:focus-visible{outline:2px solid var(--garnet);outline-offset:3px;border-radius:8px}
   .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
   .mono{font-family:var(--mono)}
   .muted{color:var(--ink-soft)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--garnet);font-weight:600}
   .eyebrow:before{content:"";width:22px;height:2px;background:var(--garnet);border-radius:2px}
-  section{padding:96px 0}
+  section{padding:96px 0;scroll-margin-top:84px}
   section + section{border-top:1px solid var(--line)}
   .lead{font-size:clamp(17px,1.6vw,19.5px);color:var(--ink-soft);max-width:62ch}
   .ser{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:0}
@@ -57,11 +59,17 @@
   .brand .mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--garnet),var(--garnet-deep));display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800;box-shadow:0 4px 12px rgba(157,27,84,.28)}
   .brand small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink-faint);font-weight:600;text-transform:uppercase;margin-top:1px}
   .bar nav{margin-left:auto;display:flex;gap:26px;align-items:center}
-  .bar nav a{color:var(--ink-soft);font-size:14px;font-weight:500}
+  .bar nav a{color:var(--ink-soft);font-size:14px;font-weight:500;transition:color .15s ease;position:relative}
+  .bar nav a:not(.btn):after{content:"";position:absolute;left:0;right:100%;bottom:-6px;height:2px;background:var(--garnet);border-radius:2px;transition:right .25s ease}
   .bar nav a:hover{color:var(--ink)}
+  .bar nav a.active{color:var(--garnet);font-weight:600}
+  .bar nav a.active:not(.btn):after{right:0}
+  /* the CTA button is white-on-garnet; override the grey nav-link color (specificity) */
+  .bar nav a.btn,.bar nav a.btn:hover,.bar nav a.btn.active{color:#fff}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--garnet);color:#fff;font-family:var(--body);font-weight:600;font-size:14.5px;padding:12px 22px;border-radius:11px;border:1px solid var(--garnet);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease;box-shadow:0 6px 18px rgba(157,27,84,.22)}
   .btn:hover{background:var(--garnet-deep);color:#fff;transform:translateY(-1px);box-shadow:0 10px 26px rgba(157,27,84,.30)}
   .btn:active{transform:translateY(0) scale(.985)}
+  .btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
   .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line);box-shadow:var(--shadow-card)}
   .btn.ghost:hover{border-color:var(--garnet);color:var(--garnet);background:#fff}
   .btn.sm{padding:9px 16px;font-size:13.5px;box-shadow:none}
@@ -111,6 +119,9 @@
   .term .stg{color:#c14d80;font-weight:600;letter-spacing:.06em}
   .term .crit{color:#ff6b5e;font-weight:600}
   .term .high{color:#f0a04b;font-weight:600}
+  .term .med{color:#e6c35c;font-weight:600}
+  .term .ok{color:#5fd39b;font-weight:600}
+  .term .okb{color:#5fd39b;font-weight:700}
   .term .key{color:#9fb3c8}
   .term .blk{color:#ff6b5e;font-weight:700}
   .term .die{color:#ff8a7d;font-weight:600}
@@ -216,6 +227,51 @@
   .gaps p{margin:10px 0 0;font-size:15px;color:var(--ink-soft);line-height:1.68;max-width:84ch}
   .gaps b{color:var(--ink)}
 
+  /* ── interactive demo ────────────────────────── */
+  #demo{background:
+    radial-gradient(900px 420px at 100% 0%, rgba(157,27,84,.05), transparent 60%),
+    radial-gradient(rgba(157,27,84,.05) 1px, transparent 1px) 0 0/26px 26px}
+  .demo-controls{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:34px}
+  .toggle{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;box-shadow:var(--shadow-card)}
+  .toggle button{display:inline-flex;align-items:center;font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.03em;border:none;background:transparent;color:var(--ink-soft);padding:10px 16px;border-radius:9px;cursor:pointer;transition:background .18s ease,color .18s ease}
+  .toggle button:hover{color:var(--ink)}
+  .toggle button[aria-pressed="true"]{background:var(--garnet);color:#fff;box-shadow:0 4px 12px rgba(157,27,84,.25)}
+  .toggle .sw{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:9px;flex:none}
+  .toggle .sw.bad{background:var(--crit)}
+  .toggle .sw.good{background:var(--pass)}
+  .toggle button[aria-pressed="true"] .sw{box-shadow:0 0 0 3px rgba(255,255,255,.28)}
+  .nudge{display:inline-flex;align-items:center;gap:8px;background:#fdf2f7;border:1px solid rgba(157,27,84,.32);color:var(--garnet);font-family:var(--body);font-weight:600;font-size:13.5px;padding:10px 16px;border-radius:11px;cursor:pointer;animation:nudgein .45s ease;transition:background .18s ease}
+  .nudge:hover{background:#f9e4ee}
+  @keyframes nudgein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .loopnote{font-size:13.5px;color:var(--pass);font-weight:600;animation:nudgein .45s ease}
+  .demo-grid{display:grid;grid-template-columns:300px 1fr;gap:22px;margin-top:26px;align-items:start}
+  @media(max-width:900px){.demo-grid{grid-template-columns:1fr}}
+  .cfg{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow-card)}
+  .cfg-file{font-size:12px;color:var(--ink);font-weight:600;padding-bottom:12px;border-bottom:1px solid var(--line);letter-spacing:.01em}
+  .cfg-rows .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+  .cfg-rows .row span{color:var(--ink-soft)}
+  .cfg-rows .row b{font-family:var(--mono);font-size:12.5px;font-weight:600}
+  .cfg-rows .row b.bad{color:var(--crit)}
+  .cfg-rows .row b.ok{color:var(--pass)}
+  .cfg-note{margin:14px 0 0;font-size:12.5px;color:var(--ink-faint);line-height:1.55}
+  .demo-term pre{min-height:460px}
+  @media(max-width:480px){.demo-term pre{min-height:380px}}
+  .demo-term pre.streaming:after{content:"▋";color:#5fd39b;animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .vpill{display:inline-block;font-family:var(--sans);font-weight:800;font-size:13.5px;letter-spacing:.1em;padding:3px 14px;border-radius:7px;line-height:1.5}
+  .vpill.block{background:var(--crit);color:#fff;box-shadow:0 0 18px rgba(192,57,43,.35)}
+  .vpill.pass{background:var(--pass);color:#fff;box-shadow:0 0 18px rgba(31,138,109,.35)}
+  .demo-cap{margin-top:18px;font-size:13px;max-width:72ch}
+  .demo-cap .mono{font-size:12px;color:var(--ink);font-weight:500}
+
+  /* ── roadmap ─────────────────────────────────── */
+  .rlist{list-style:none;margin:14px 0 0;padding:0}
+  .rlist li{position:relative;padding:8px 0 8px 26px;font-size:14px;color:var(--ink-soft);line-height:1.5;border-top:1px solid var(--line-soft)}
+  .rlist li:first-child{border-top:none}
+  .rlist li:before{content:"→";position:absolute;left:1px;top:8px;font-family:var(--mono);font-weight:600;color:var(--ink-faint)}
+  .rlist.done li:before{content:"✓";color:var(--garnet)}
+  .rlist.vis li:before{content:"◇";color:var(--ink-faint)}
+
   /* ── team ────────────────────────────────────── */
   .person{display:flex;gap:18px;align-items:flex-start}
   .person .av{width:58px;height:58px;border-radius:14px;background:linear-gradient(135deg,var(--rail),var(--rail-2));color:#fff;display:grid;place-items:center;font-family:var(--sans);font-weight:800;font-size:20px;flex:none;border:1px solid var(--rail-line)}
@@ -249,6 +305,7 @@
     html{scroll-behavior:auto}
     .reveal{opacity:1;transform:none}
     .term-wrap{animation:none}
+    .demo-term pre.streaming:after{content:""}
   }
   /* never let scroll-reveal hide content in print/PDF export */
   @media print{.reveal{opacity:1!important;transform:none!important}}
@@ -265,8 +322,9 @@
       <span>SBC-AutoOps<small>Metaventions AI</small></span>
     </a>
     <nav aria-label="Primary">
-      <a href="#crisis">The wedge</a>
+      <a href="#crisis">The deadline</a>
       <a href="#how">How it works</a>
+      <a href="#demo">Live demo</a>
       <a href="#market">Market</a>
       <a href="#proof">Proof</a>
       <a class="btn sm" href="#cta">Book a design-partner call</a>
@@ -283,10 +341,10 @@
       <div>
         <span class="live reveal"><span class="dot" aria-hidden="true"></span> Microsoft CA migration: enforcement is live <span class="mono">· MC1235747</span></span>
         <h1 class="reveal" style="--d:80ms">The independent<br><span class="ser g">truth layer</span> for<br>real-time voice.</h1>
-        <p class="lead reveal" style="--d:160ms">Microsoft's 2026 certificate migration is hard-stopping Teams Direct Routing calls at the TLS handshake, across mixed-vendor SBC fleets, with nothing pointing at the cert. SBC-AutoOps catches it from the config, before the outage. Any vendor, one model, plain English. Local-first: raw configs never leave your environment.</p>
+        <p class="lead reveal" style="--d:160ms">Microsoft's 2026 certificate migration is hard-stopping Teams Direct Routing calls at the TLS handshake, and nothing in Teams points at the cert. SBC-AutoOps catches it from the config, before the outage. Any vendor, one model, plain English. Local-first: raw configs never leave your environment.</p>
         <div class="cta-row reveal" style="--d:240ms">
           <a class="btn" href="#cta">Book a design-partner call</a>
-          <a class="btn ghost" href="#how">See it work</a>
+          <a class="btn ghost" href="#demo">Run the live demo</a>
         </div>
         <div class="trustline reveal" style="--d:300ms"><b>4</b> vendor parsers · <b>8</b> validation domains · <b>104</b> tests in CI · air-gapped</div>
 
@@ -355,7 +413,7 @@
 <!-- ═══ CRISIS ═══ -->
 <section id="crisis" style="border-top:none">
   <div class="wrap">
-    <span class="eyebrow reveal">The wedge · why now</span>
+    <span class="eyebrow reveal">Why now · the 2026 deadline</span>
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:21ch">A cryptographic deadline that <span class="ser g">hard-stops</span> voice.</h2>
     <p class="lead reveal" style="--d:120ms;margin-top:18px">Teams Direct Routing runs entirely on mutual TLS between your SBC and Microsoft's SIP proxy. In 2026, Microsoft retires the legacy roots and enforces serverAuth-only certificates. An SBC whose trust store or cert is not updated does not degrade gracefully. It stops, completely.</p>
 
@@ -420,7 +478,7 @@
       <div class="card reveal" style="--d:140ms"><h3>One pane, every vendor</h3><p>AudioCodes, Cisco, Ribbon, Oracle, on-prem or cloud, in a single diagnostic layer.</p></div>
       <div class="card reveal"><h3>SLA protection</h3><p>Catch config drift before it breaks the uptime commitment your contracts and penalties hang on.</p></div>
       <div class="card reveal" style="--d:70ms"><h3>Self-serve independence</h3><p>Stop escalating to vendors, ITSPs, or Microsoft support to learn what your own config already knows.</p></div>
-      <div class="card hl reveal" style="--d:140ms"><h3 style="color:var(--garnet)">Security as the wedge</h3><p>Local-first and air-gapped: raw configs never leave your environment. The security review becomes the reason to adopt, not the blocker.</p></div>
+      <div class="card hl reveal" style="--d:140ms"><h3 style="color:var(--garnet)">Security becomes the reason to buy</h3><p>Local-first and air-gapped: raw configs never leave your environment. The security review that blocks every other tool becomes the reason to adopt this one.</p></div>
     </div>
   </div>
 </section>
@@ -432,11 +490,49 @@
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">Validate the config before the call, not the call after the outage.</h2>
     <p class="lead reveal" style="--d:120ms;margin-top:18px">Four real vendor parsers normalize any config into one model, and the engine runs validation domains over it. Deterministic verdicts, not LLM guesses. It runs inside your environment, fully air-gapped.</p>
     <div class="grid g3" style="margin-top:36px">
-      <div class="card reveal"><span class="seg">01 · Validate</span><h3 style="margin-top:10px">Catch it from config</h3><p>Eight domains: syntax, interop, the TLS/CA wedge with SRTP and trust-anchor chains, NAT and one-way audio, codec, topology leak, routing, security. The 2026 failure is caught before a single packet is sent.</p></div>
+      <div class="card reveal"><span class="seg">01 · Validate</span><h3 style="margin-top:10px">Catch it from config</h3><p>Eight domains: syntax, interop, TLS and CA (the 2026 roots, EKU, SRTP, trust-anchor chains), NAT and one-way audio, codec, topology leak, routing, security. The failure is caught before a single packet is sent.</p></div>
       <div class="card reveal" style="--d:90ms"><span class="seg">02 · Simulate</span><h3 style="margin-top:10px">Predict the call</h3><p>Models the call as a chain (TLS, then SIP, then SDP, then media), predicts exactly how far it gets, names the user-visible symptom, and renders the SIP ladder up to the point of failure.</p></div>
       <div class="card reveal" style="--d:180ms"><span class="seg">03 · Explain</span><h3 style="margin-top:10px">Diagnose a capture</h3><p>Reconstructs the SIP ladder from a packet capture, detects one-way audio and TLS alerts, and maps each failure back to the config change that fixes it.</p></div>
     </div>
     <p class="reveal" style="margin-top:30px;color:#fff;font-weight:600;font-size:16.5px;max-width:70ch">Plus HA-drift diff, fleet readiness reports, and a CI/CD gate, so the bad config never reaches the change window in the first place.</p>
+  </div>
+</section>
+
+<!-- ═══ INTERACTIVE DEMO ═══ -->
+<section id="demo">
+  <div class="wrap">
+    <span class="eyebrow reveal">See it run</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:23ch">One broken SBC. One fixed SBC. <span class="ser g">Run both.</span></h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">This is real engine output, replayed in your browser. Run the broken config and the validator blocks it, then predicts where in the handshake the call dies. Run the fix and the same SBC passes with two-way audio. That closed loop is the product.</p>
+
+    <div class="demo-controls reveal" style="--d:160ms">
+      <div class="toggle" role="group" aria-label="Choose a sample SBC configuration">
+        <button type="button" id="tg-broken" aria-pressed="true"><i class="sw bad" aria-hidden="true"></i>Broken SBC</button>
+        <button type="button" id="tg-fixed" aria-pressed="false"><i class="sw good" aria-hidden="true"></i>Fixed SBC</button>
+      </div>
+      <button type="button" class="btn" id="runBtn" aria-label="Run validation on the selected sample configuration">Run validation</button>
+      <button type="button" class="nudge" id="nudge" hidden>Caught before deploy. Now run the fixed config →</button>
+      <span class="loopnote" id="loopnote" hidden>✓ Same SBC, every finding remediated. That is the loop.</span>
+    </div>
+
+    <div class="demo-grid reveal" style="--d:220ms">
+      <aside class="cfg" aria-label="Key fields of the selected sample configuration">
+        <div class="cfg-file mono" id="cfgFile">sbc-teams-01.broken.ini</div>
+        <div class="cfg-rows" id="cfgRows">
+          <div class="row"><span>transport</span><b class="bad">tcp</b></div>
+          <div class="row"><span>mTLS</span><b class="bad">no</b></div>
+          <div class="row"><span>SRTP</span><b class="bad">no</b></div>
+          <div class="row"><span>Microsoft roots</span><b class="bad">5 / 7</b></div>
+        </div>
+        <p class="cfg-note">Cause and effect: these four fields drive the verdict on the right. Flip the toggle and watch each one go green.</p>
+      </aside>
+      <div class="term demo-term">
+        <div class="tbar"><i class="t1"></i><i class="t2"></i><i class="t3"></i><span id="termTitle">sbc-validator · live walk</span></div>
+        <pre id="demoPre" aria-hidden="true"><span class="dim">// choose a sample, then press Run validation</span></pre>
+      </div>
+    </div>
+    <div class="sr-only" role="status" aria-live="polite" id="demoLive"></div>
+    <p class="demo-cap reveal muted" style="--d:260ms">Real <span class="mono">sbc-validator walk</span> output. The engine runs locally and air-gapped; nothing here leaves your browser.</p>
   </div>
 </section>
 
@@ -447,7 +543,7 @@
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:26ch">Everything else is single-vendor, or watches the call after it fails.</h2>
     <div class="cmpwrap reveal" style="--d:120ms">
       <table class="cmp">
-        <thead><tr><th scope="col">Approach</th><th scope="col">What it does</th><th scope="col">The 2026 wedge</th></tr></thead>
+        <thead><tr><th scope="col">Approach</th><th scope="col">What it does</th><th scope="col">Against the 2026 deadline</th></tr></thead>
         <tbody>
           <tr>
             <td class="name">Post-deployment AIOps</td>
@@ -467,6 +563,13 @@
         </tbody>
       </table>
     </div>
+
+    <h3 class="reveal" style="margin-top:52px;font-size:20px">And why it stays hard to copy</h3>
+    <div class="grid g3" style="margin-top:18px">
+      <div class="card reveal"><span class="seg">Moat 01</span><h3 style="margin-top:8px">Vendor-agnostic Layer 5</h3><p>True SIP and SDP normalization across mixed estates. A vendor is structurally biased to its own hardware; it cannot build the layer that reads everyone's.</p></div>
+      <div class="card reveal" style="--d:90ms"><span class="seg">Moat 02</span><h3 style="margin-top:8px">Security-first, local-first</h3><p>Air-gapped, local execution removes the raw-config-exfiltration objection that kills every other tool in security review. The review stops blocking adoption and starts driving it.</p></div>
+      <div class="card reveal" style="--d:180ms"><span class="seg">Moat 03</span><h3 style="margin-top:8px">A compounding data moat</h3><p>Consented, anonymized failure patterns across the industry become a cross-vendor benchmark no single-vendor tool can assemble. Every fleet validated deepens it.</p></div>
+    </div>
   </div>
 </section>
 
@@ -474,7 +577,7 @@
 <section id="market">
   <div class="wrap">
     <span class="eyebrow reveal">The market</span>
-    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">Large, urgent, and structurally <span class="ser g">underserved.</span></h2>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">Large, urgent, and structurally underserved.</h2>
     <p class="lead reveal" style="--d:120ms;margin-top:18px">Direct Routing saves enterprises 50 to 75 percent on global telephony versus Microsoft Calling Plans. That entire saving, and the uptime it rides on, depends on the SBC being right. SBC-AutoOps is cheap insurance on a high-value, fragile, compliance-bound setup.</p>
     <div class="grid g4" style="margin-top:34px">
       <div class="card kpi reveal"><b>$2.4B</b><span>SBC market by 2035, from $1.1B in 2025 (~8% CAGR)</span></div>
@@ -520,9 +623,50 @@
       <span class="pill">validate · simulate · explain · diff · fleet</span>
     </div>
     <div class="gaps reveal" style="--d:180ms">
-      <h3>The honest gaps, and why they are the moat</h3>
+      <h3>The honest gaps, stated up front</h3>
       <p>Routing and security checks for Cisco, Ribbon, and Oracle, per-config cipher matching, and live probing all stay <b>silent</b> until they are validated against a real config for that vendor. The tool refuses to guess. A wrong verdict, telling a customer to fix the wrong thing, is the one thing this product cannot afford. That discipline is the difference between a diagnostic and a liability.</p>
     </div>
+  </div>
+</section>
+
+<!-- ═══ ROADMAP ═══ -->
+<section id="roadmap">
+  <div class="wrap">
+    <span class="eyebrow reveal">Where it goes</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:26ch">The deadline is the entry point. The lifecycle is the product.</h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Everything in the first column ships today. Everything after it earns its way in the same way the rest of the tool did: validated against real configs, never guessed.</p>
+    <div class="grid g3" style="margin-top:34px">
+      <div class="card hl reveal"><span class="seg">Shipped · running today</span>
+        <h3 style="margin-top:10px">The validator, in production form</h3>
+        <ul class="rlist done">
+          <li>Local-first validator: 4 vendors normalized to one model</li>
+          <li>8 validation domains, including the 2026 CA and EKU checks</li>
+          <li>Validate, simulate, and explain, plus HA-drift diff</li>
+          <li>Fleet readiness reports and a CI/CD gate</li>
+          <li>Signed rule bundles, air-gapped Docker image</li>
+          <li>104 automated tests in CI</li>
+        </ul>
+      </div>
+      <div class="card reveal" style="--d:90ms"><span class="seg" style="color:var(--ink-soft)">Next · with design partners</span>
+        <h3 style="margin-top:10px">Depth across the whole fleet</h3>
+        <ul class="rlist">
+          <li>Routing and security checks live on Cisco, Ribbon, and Oracle; each needs one real config</li>
+          <li>Per-config cipher matching</li>
+          <li>The cross-tenant readiness benchmark</li>
+          <li>Deeper CI/CD and change-management integration</li>
+        </ul>
+      </div>
+      <div class="card reveal" style="--d:180ms"><span class="seg" style="color:var(--ink-faint)">Vision · the lifecycle</span>
+        <h3 style="margin-top:10px">The independent layer for the whole SBC lifecycle</h3>
+        <ul class="rlist vis">
+          <li>Continuous drift detection across the fleet</li>
+          <li>An LLM explainer for SIP ladders</li>
+          <li>Assisted remediation, applied by engineers, never auto-pushed to production</li>
+          <li>STIR/SHAKEN checks and a deepfake-voice sidecar</li>
+        </ul>
+      </div>
+    </div>
+    <p class="muted reveal" style="margin-top:24px;font-size:13.5px;max-width:78ch">Next and Vision are roadmap, not product. Each check stays silent until it is validated against a real config for that vendor.</p>
   </div>
 </section>
 
@@ -560,7 +704,7 @@
       <div>© 2026 Metaventions AI · SBC-AutoOps · The independent truth layer for real-time voice.</div>
       <div class="mono" style="font-size:11px;letter-spacing:.08em">LOCAL-FIRST · AIR-GAPPED · VENDOR-AGNOSTIC</div>
     </div>
-    <p class="disc">Named outages and target organizations are drawn from public market research on the 2026 Microsoft Teams Direct Routing CA migration (Microsoft Message Center MC1235747) and are cited as industry context, not as customer endorsements. Capabilities described as available today are implemented and tested. Routing and security coverage for Cisco, Ribbon, and Oracle, per-config cipher matching, live probing, and any continuous-monitoring or AI-assisted remediation are roadmap and stay silent until validated against real configs.</p>
+    <p class="disc">Named outages and target organizations are drawn from public market research on the 2026 Microsoft Teams Direct Routing CA migration (Microsoft Message Center MC1235747) and are cited as industry context, not as customer endorsements. Capabilities described as available today are implemented and tested. The interactive demo replays recorded engine output in the browser. Routing and security coverage for Cisco, Ribbon, and Oracle, per-config cipher matching, live probing, and any continuous-monitoring or AI-assisted remediation are roadmap and stay silent until validated against real configs.</p>
   </div>
 </footer>
 
@@ -590,6 +734,38 @@
     els.forEach(function(el){ io.observe(el); });
   } else {
     els.forEach(function(el){ el.classList.add("in"); });
+  }
+
+  /* scroll-spy: highlight the nav link for the section in view */
+  var navAs = Array.prototype.slice.call(document.querySelectorAll(".bar nav a:not(.btn)"));
+  var spyTargets = [];
+  navAs.forEach(function(a){
+    var href = a.getAttribute("href") || "";
+    var sec = href.charAt(0) === "#" ? document.getElementById(href.slice(1)) : null;
+    if (sec) spyTargets.push(sec);
+  });
+  function setActive(id){
+    navAs.forEach(function(a){
+      if (a.getAttribute("href") === "#" + id) a.classList.add("active");
+      else a.classList.remove("active");
+    });
+  }
+  if ("IntersectionObserver" in window && spyTargets.length) {
+    var spy = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if (e.isIntersecting) setActive(e.target.id);
+      });
+    }, {rootMargin:"-20% 0px -65% 0px", threshold:0});
+    spyTargets.forEach(function(sec){ spy.observe(sec); });
+    var hero = document.querySelector(".hero");
+    if (hero) {
+      var spyClear = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) setActive("");
+        });
+      }, {rootMargin:"-20% 0px -65% 0px", threshold:0});
+      spyClear.observe(hero);
+    }
   }
 
   /* countdown to the June 15, 2026 final EKU cutover */
@@ -632,6 +808,143 @@
       card.style.transform = "perspective(1100px) rotateY(0) rotateX(0)";
       setTimeout(function(){ card.style.transition = ""; }, 500);
     });
+  }
+
+  /* ── interactive demo: replay real engine output ───────────── */
+  var SAMPLES = {
+    broken: {
+      file: "sbc-teams-01.broken.ini",
+      cfg: [["transport","tcp",0],["mTLS","no",0],["SRTP","no",0],["Microsoft roots","5 / 7",0]],
+      lines: [
+        ['<span class="ps">$</span> <span class="cmd">sbc-validator walk sbc-teams-01.broken.ini</span>', 0],
+        ['', 140],
+        ['  <span class="stg">STAGE 1 · INGEST</span>', 300],
+        ['  <span class="key">Teams leg</span>   transport=tcp   mTLS=no   SRTP=no   roots 5/7', 90],
+        ['', 90],
+        ['  <span class="stg">STAGE 2 · VALIDATE</span>', 320],
+        ['  <span class="crit">[CRITICAL]</span>  C.CA.ROOT_MISSING          <span class="dim">2 of 7 Microsoft roots missing (DigiCert G5 pair)</span>', 140],
+        ['  <span class="crit">[CRITICAL]</span>  D.NAT.PRIVATE_ADVERTISED   <span class="dim">private IP advertised in SDP</span>', 120],
+        ['  <span class="high">[HIGH]</span>      B.SIP.TRANSPORT            <span class="dim">transport is TCP, not TLS</span>', 120],
+        ['  <span class="high">[HIGH]</span>      C.TLS.MTLS_DISABLED        <span class="dim">mutual TLS off</span>', 120],
+        ['  <span class="high">[HIGH]</span>      C.SRTP.DISABLED            <span class="dim">media not encrypted</span>', 120],
+        ['  <span class="med">[MEDIUM]</span>    B.SIP.OPTIONS_KEEPALIVE    <span class="dim">no health keep-alive</span>', 120],
+        ['  <span class="med">[MEDIUM]</span>    D.NAT.NO_SYMMETRIC_RTP     <span class="dim">symmetric RTP off</span>', 120],
+        ['', 90],
+        ['  <span class="stg">STAGE 3 · VERDICT</span>       risk 100/100   →   <span class="vpill block">BLOCK</span>', 420],
+        ['', 90],
+        ['  <span class="stg">STAGE 4 · PREDICT</span>', 300],
+        ['  SBC  --&gt;  TLS ClientHello', 130],
+        ['       &lt;--  unknown CA / handshake failed      <span class="die">&lt;&lt; call dies here</span>', 180],
+        ['  Outcome: <span class="crit">NO_CONNECT</span>  <span class="dim">(dies at TLS handshake)</span>', 220]
+      ]
+    },
+    fixed: {
+      file: "sbc-teams-01.fixed.ini",
+      cfg: [["transport","tls",1],["mTLS","yes",1],["SRTP","yes",1],["Microsoft roots","7 / 7",1]],
+      lines: [
+        ['<span class="ps">$</span> <span class="cmd">sbc-validator walk sbc-teams-01.fixed.ini</span>', 0],
+        ['', 140],
+        ['  <span class="stg">STAGE 1 · INGEST</span>', 300],
+        ['  <span class="key">Teams leg</span>   transport=tls   mTLS=yes   SRTP=yes   roots 7/7', 90],
+        ['', 90],
+        ['  <span class="stg">STAGE 2 · VALIDATE</span>', 320],
+        ['  <span class="key">[A] syntax</span>    <span class="ok">clean</span>      <span class="key">[B] interop</span>   <span class="ok">clean</span>      <span class="key">[C] TLS/CA</span>    <span class="ok">clean</span>', 140],
+        ['  <span class="key">[D] NAT</span>       <span class="ok">clean</span>      <span class="key">[E] codec</span>     <span class="ok">clean</span>      <span class="key">[G] routing</span>   <span class="ok">clean</span>    <span class="key">[S] security</span>  <span class="ok">clean</span>', 140],
+        ['', 90],
+        ['  <span class="stg">STAGE 3 · VERDICT</span>       risk 0/100   →   <span class="vpill pass">PASS</span>', 420],
+        ['', 90],
+        ['  <span class="stg">STAGE 4 · PREDICT</span>', 300],
+        ['  SBC  --&gt;  TLS ClientHello          &lt;--  <span class="ok">TLS handshake OK</span>', 130],
+        ['       --&gt;  OPTIONS                  &lt;--  <span class="ok">200 OK</span>', 130],
+        ['       --&gt;  INVITE  SDP: PCMU,G722   &lt;--  <span class="ok">200 OK</span>  SDP: PCMU   --&gt;  ACK', 130],
+        ['       <span class="ok">===  RTP PCMU bidirectional  ===</span>', 170],
+        ['  Outcome: <span class="okb">STABLE</span>  <span class="dim">(two-way audio using PCMU)</span>', 220]
+      ]
+    }
+  };
+
+  var demoPre = document.getElementById("demoPre"),
+      runBtn = document.getElementById("runBtn"),
+      tgBroken = document.getElementById("tg-broken"),
+      tgFixed = document.getElementById("tg-fixed"),
+      nudge = document.getElementById("nudge"),
+      loopnote = document.getElementById("loopnote"),
+      cfgFile = document.getElementById("cfgFile"),
+      cfgRows = document.getElementById("cfgRows"),
+      demoLive = document.getElementById("demoLive"),
+      termTitle = document.getElementById("termTitle");
+
+  if (demoPre && runBtn) {
+    var sample = "broken", running = false, brokenDone = false;
+
+    var renderCfg = function(){
+      var s = SAMPLES[sample];
+      cfgFile.textContent = s.file;
+      var html = "";
+      s.cfg.forEach(function(r){
+        html += '<div class="row"><span>' + r[0] + '</span><b class="' + (r[2] ? "ok" : "bad") + '">' + r[1] + "</b></div>";
+      });
+      cfgRows.innerHTML = html;
+    };
+
+    var select = function(s){
+      if (running || sample === s) return;
+      sample = s;
+      tgBroken.setAttribute("aria-pressed", s === "broken" ? "true" : "false");
+      tgFixed.setAttribute("aria-pressed", s === "fixed" ? "true" : "false");
+      nudge.hidden = true;
+      loopnote.hidden = true;
+      renderCfg();
+      demoPre.innerHTML = '<span class="dim">// ' + SAMPLES[s].file + ' loaded, press Run validation</span>';
+      demoLive.textContent = SAMPLES[s].file + " loaded.";
+    };
+
+    var finishRun = function(){
+      running = false;
+      runBtn.disabled = false;
+      demoPre.classList.remove("streaming");
+      demoLive.textContent = "Validation finished. " + demoPre.textContent;
+      if (sample === "broken") {
+        brokenDone = true;
+        nudge.hidden = false;
+      } else if (brokenDone) {
+        loopnote.hidden = false;
+      }
+    };
+
+    var run = function(){
+      if (running) return;
+      running = true;
+      runBtn.disabled = true;
+      nudge.hidden = true;
+      loopnote.hidden = true;
+      var lines = SAMPLES[sample].lines;
+      termTitle.textContent = "sbc-validator · walk · " + SAMPLES[sample].file;
+      demoPre.innerHTML = "";
+      demoLive.textContent = "";
+      if (reduced) {
+        demoPre.innerHTML = lines.map(function(l){ return l[0]; }).join("\n");
+        finishRun();
+        return;
+      }
+      demoPre.classList.add("streaming");
+      var i = 0;
+      (function next(){
+        if (i >= lines.length) { finishRun(); return; }
+        var l = lines[i++];
+        demoPre.innerHTML += l[0] + "\n";
+        setTimeout(next, 40 + l[1]);
+      })();
+    };
+
+    tgBroken.addEventListener("click", function(){ select("broken"); });
+    tgFixed.addEventListener("click", function(){ select("fixed"); });
+    runBtn.addEventListener("click", run);
+    nudge.addEventListener("click", function(){
+      select("fixed");
+      run();
+    });
+    renderCfg();
   }
 })();
 </script>
