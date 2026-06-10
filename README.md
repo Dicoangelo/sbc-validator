@@ -8,15 +8,21 @@ eight validation domains (A-G plus S), and produces an explainable report + risk
 score + deploy verdict. **Raw configs never leave.** Only rule sets come in; only
 opt-in anonymized findings can go out.
 
+**Live:**
+[Business case](https://sbcvalidator.metaventionsai.com) ·
+[Free readiness scanner](https://sbcvalidator.metaventionsai.com/scanner) ·
+[State-of-readiness benchmark](https://sbc-autoops-scanner.fly.dev/stats) ·
+[Releases (air-gapped Docker image)](https://github.com/Dicoangelo/sbc-validator/releases)
+
 It implements eight validation domains end-to-end (A syntax/semantic, B interop,
 C TLS/CA the Microsoft Direct Routing wedge, D NAT / one-way audio, E codec,
 F topology-leak, G routing/classification, S security/access-control) and ships
-**four real vendor parsers: AudioCodes (`.ini`), Cisco CUBE (IOS-XE), Ribbon SBC
-Core (`set`-config), and Oracle/Acme (ACLI)**, running on a single normalized
-model. Four vendors on one model is the proof that validation is genuinely
-vendor-agnostic: the same C validator catches the 2026 root-CA gap on an
-AudioCodes `.ini` and a Cisco running-config, and the clientAuth-only EKU
-deprecation on a Ribbon `set`-config, all unmodified.
+**five real vendor parsers: AudioCodes (`.ini`), Cisco CUBE (IOS-XE), Ribbon SBC
+Core (`set`-config), Oracle/Acme (ACLI), and Metaswitch Perimeta (adjacency
+CLI)**, running on a single normalized model. Five vendors on one model is the
+proof that validation is genuinely vendor-agnostic: the same C validator catches
+the 2026 root-CA gap on an AudioCodes `.ini` and a Cisco running-config, and the
+clientAuth-only EKU deprecation on a Ribbon `set`-config, all unmodified.
 
 It also detects **HA configuration drift** between an Active and a Standby node
 (`diff` subcommand): the trust-store-drift case is rated CRITICAL because a
@@ -25,13 +31,18 @@ failover during the 2026 CA rotation onto a drifted standby hard-stops calls.
 ## Quickstart
 
 ```bash
-# one packaged command runs the whole 4-vendor showcase
+# one packaged command runs the whole demo-fleet showcase
 # (validate the fleet -> predict a call -> explain a capture -> 2026 readiness):
 sbc-validator demo
-# then open the live dashboard it just populated:
+# then open the console it just populated (Fleet / Scanner / Walkthrough tabs):
 sbc-validator serve --results results        # http://127.0.0.1:8787
 
-# a single config (any of the four vendors auto-detected):
+# outside-in readiness: live TLS handshake graded against the ruleset
+sbc-validator probe sbc.contoso.com
+# serve the public scanner web front-end yourself:
+sbc-validator scan-serve                     # http://127.0.0.1:8088
+
+# a single config (any of the five vendors auto-detected):
 sbc-validator validate samples/ribbon_sbc.cli \
     --ruleset rulesets/ms_direct_routing_2026-06.json \
     --html report.html          # self-contained customer report
@@ -117,7 +128,7 @@ samples/                 sample configs (intentional misconfigs) for smoke test
 | Doc | For |
 |---|---|
 | **[REVIEW.md](docs/REVIEW.md)** | 5-minute orientation: what's built/proven, the 60-second demo, honest gaps |
-| **[ONE-PAGER.md](docs/ONE-PAGER.md)** | the product at a glance (8 domains x 4 vendors, the wedge, the ask) |
+| **[ONE-PAGER.md](docs/ONE-PAGER.md)** | the product at a glance (8 domains x 5 vendors, the wedge, the ask) |
 | **[MEETING-QA.md](docs/MEETING-QA.md)** | anticipated vet-level questions + honest answers |
 | **[DASHBOARD.md](docs/DASHBOARD.md)** | the local dashboard: panels, data flow, controls |
 | **[RUNBOOK.md](docs/RUNBOOK.md)** | operator guide: install + run air-gapped, fleet readiness, leave-behind report |
@@ -153,8 +164,10 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
 
 ## What's deliberately NOT done yet (roadmap)
 
-- **All four vendor parsers (AudioCodes, Cisco CUBE, Ribbon, Oracle/Acme) are
-  implemented.** Deeper per-vendor construct coverage is ongoing.
+- **All five vendor parsers (AudioCodes, Cisco CUBE, Ribbon, Oracle/Acme,
+  Metaswitch Perimeta) are implemented.** Deeper per-vendor construct coverage is
+  ongoing; anynode and Avaya ASBCE (vendors 6-7) are blocked on real exports
+  (see [CONFIG-REQUEST.md](docs/CONFIG-REQUEST.md)).
 - (Done) CI wired (`.github/workflows/ci.yml`), customer CI gate example in
   `examples/ci/`, and a local-first Docker image (air-gapped smoke in CI).
 - Everything in Phase 3/4 (agentic reasoning, live probing, SaaS).
@@ -168,9 +181,10 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
   F = topology-leak (from pcap), G = routing/classification, and **S = security /
   access-control** (default-deny, broad CIDR, media-plane ACL, IPv6 neglect).
   G and S fire only when the config source carries the relevant info.
-- **Four real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
-  (IOS-XE), Ribbon SBC Core, and Oracle/Acme (ACLI).** The same validators run
-  unmodified across all four, the vendor-agnostic claim, demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
+- **Five real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
+  (IOS-XE), Ribbon SBC Core, Oracle/Acme (ACLI), and Metaswitch Perimeta
+  (adjacency CLI).** The same validators run unmodified across all five, the
+  vendor-agnostic claim, demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
   clientAuth-only leaf (the EKU deprecation).
 - **AudioCodes parses the real parameter-table `.ini`** a Mediant actually exports
   (indexed `[ Table ]` / `FORMAT` / `[ \Table ]` tables with cross-references;
@@ -227,7 +241,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 126 tests) covering all four parsers (incl. the real
+- **Test suite** (`pytest`, 145 tests) covering all five parsers (incl. the real
   AudioCodes table-`.ini`), the eight validation domains, SRTP, HA drift,
   call-flow simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,
