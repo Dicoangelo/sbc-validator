@@ -151,7 +151,7 @@ fetch('/stats').then(r=>r.ok?r.json():null).then(s=>{
   const b=document.getElementById('benchmark');
   const g=s.grades||{}, a=g.A||0, pctA=Math.round((a/s.total)*100), top=(s.top_checks||[])[0];
   b.innerHTML='<h3>State of SBC Readiness</h3><div class="row">'+
-    '<span><b>'+s.total+'</b> edges scanned</span>'+
+    '<span><b>'+s.total+'</b> edge'+(s.total===1?'':'s')+' scanned</span>'+
     '<span><b>'+pctA+'%</b> graded A</span>'+
     (top?'<span class="gap">most common gap: '+top.check_id+' ('+top.count+')</span>':'')+
     '</div><div class="gap" style="margin-top:8px">Aggregated from anonymized scans (grades + check IDs only, never hostnames).</div>';
