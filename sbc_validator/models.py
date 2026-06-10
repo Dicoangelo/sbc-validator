@@ -71,7 +71,11 @@ class SipInterface:
     # tenant from this in carrier/multi-tenant hosting. None = not carried.
     contact_fqdn: Optional[str] = None
     normalization_profile: Optional[str] = None  # header/SIP manipulation set
-    offered_codecs: list[str] = field(default_factory=list)  # e.g. ["PCMU","G722"]
+    # Codecs offered on this leg, e.g. ["PCMU","G722"]. Tristate: None = the
+    # source does not carry codec info at all (e.g. a Perimeta adjacency export,
+    # where codec policy lives outside the adjacency) -> judge nothing; [] = the
+    # source carries codec config and it is empty -> a real finding.
+    offered_codecs: Optional[list[str]] = None
     dtmf_method: Optional[str] = None        # "rfc2833" | "inband" | "info"
     # Tristate (None = not carried): media encryption (SDP a=crypto / SRTP).
     srtp_enabled: Optional[bool] = None

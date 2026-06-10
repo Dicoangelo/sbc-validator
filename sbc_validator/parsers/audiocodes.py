@@ -23,6 +23,7 @@ from .audiocodes_ini import is_table_ini, map_to_config  # real .ini table forma
 from .cisco_cube import CiscoCubeParser  # real second-vendor parser (re-exported)
 from .ribbon import RibbonParser         # real third-vendor parser (re-exported)
 from .oracle import OracleAcmeParser     # real fourth-vendor parser (re-exported)
+from .perimeta import PerimetaParser     # real fifth-vendor parser (re-exported)
 
 
 def _ekus(raw: str) -> list[EKU]:
@@ -107,7 +108,9 @@ class AudioCodesParser(AbstractParser):
                 options_keepalive_interval=cp.getint(sect, "options_keepalive_interval", fallback=None),
                 contact_fqdn=cp.get(sect, "contact_fqdn", fallback=None) or None,
                 normalization_profile=cp.get(sect, "normalization_profile", fallback=None) or None,
-                offered_codecs=[c.strip() for c in cp.get(sect, "codecs", fallback="").split(",") if c.strip()],
+                # Tristate: no `codecs` key -> None (not carried); present -> list.
+                offered_codecs=([c.strip() for c in cp.get(sect, "codecs").split(",") if c.strip()]
+                                if cp.has_option(sect, "codecs") else None),
                 dtmf_method=cp.get(sect, "dtmf_method", fallback=None) or None,
                 srtp_enabled=cp.getboolean(sect, "srtp", fallback=False),
             ))
@@ -128,7 +131,8 @@ class AudioCodesParser(AbstractParser):
         return cfg
 
 
-ALL_PARSERS = [AudioCodesParser, CiscoCubeParser, RibbonParser, OracleAcmeParser]
+ALL_PARSERS = [AudioCodesParser, CiscoCubeParser, RibbonParser, OracleAcmeParser,
+               PerimetaParser]
 
 
 def detect_and_parse(text: str) -> NormalizedConfig:

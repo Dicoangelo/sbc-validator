@@ -24,7 +24,9 @@ class CodecValidator(AbstractValidator):
         preferred_dtmf = rules.get("preferred_dtmf", "rfc2833")
 
         teams = config.teams_interface()
-        if teams is not None and teams_supported:
+        # Tristate: offered_codecs is None when the source carries no codec info
+        # (e.g. Perimeta adjacencies) -> judge nothing. [] = carried and empty.
+        if teams is not None and teams_supported and teams.offered_codecs is not None:
             offered = set(teams.offered_codecs)
             if not offered:
                 res.add(Finding(

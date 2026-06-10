@@ -255,6 +255,58 @@ def test_inband_dtmf_on_teams_flagged(ruleset):
     assert "E.DTMF.INBAND_TEAMS" in ids(CodecValidator(ruleset).validate(cfg).findings)
 
 
+# ---- Metaswitch Perimeta (fifth vendor) -------------------------------------
+
+PERIMETA = REPO / "samples" / "perimeta_teams.cli"
+
+
+def test_perimeta_sniff_and_parse():
+    """Fifth vendor on the same normalized model: adjacency blocks, teams role via
+    the pstnhub signaling-peer, TLS transport, grounded OPTIONS interval."""
+    cfg = detect_and_parse(PERIMETA.read_text())
+    assert cfg.vendor == "metaswitch_perimeta"
+    assert len(cfg.sip_interfaces) == 2
+    teams = cfg.teams_interface()
+    assert teams.name == "TeamsDR" and teams.transport == "tls"
+    assert teams.options_keepalive is True
+    assert teams.options_keepalive_interval == 120
+    assert "TeamsIn" in teams.normalization_profile
+
+
+def test_perimeta_tristate_no_false_fires(ruleset):
+    """Perimeta adjacency exports carry no codec/SRTP/cert material -> domains C/E
+    must say 'verify out-of-band', never false-fire. The C1 lesson, applied."""
+    from sbc_validator.validators.codec import CodecValidator
+    cfg = detect_and_parse(PERIMETA.read_text())
+    found = ids(CaComplianceValidator(ruleset).validate(cfg).findings) | \
+            ids(CodecValidator(ruleset).validate(cfg).findings)
+    assert "E.CODEC.NONE_OFFERED" not in found      # codecs None = not carried
+    assert "C.SRTP.DISABLED" not in found           # srtp None = not carried
+    assert "C.CA.ROOT_MISSING" not in found         # introspectable=False
+    assert "C.CA.TRUST_STORE_UNAVAILABLE" in found  # the honest advisory instead
+
+
+def test_perimeta_feeds_options_interval_check(ruleset):
+    """A Perimeta ping-enable interval outside Microsoft's 60-180s window must
+    fire the grounded B.SIP.OPTIONS_INTERVAL check."""
+    from sbc_validator.validators.interop import InteropValidator
+    text = PERIMETA.read_text().replace("interval 120", "interval 30")
+    cfg = detect_and_parse(text)
+    assert cfg.teams_interface().options_keepalive_interval == 30
+    assert "B.SIP.OPTIONS_INTERVAL" in ids(InteropValidator(ruleset).validate(cfg).findings)
+
+
+def test_codecs_carried_but_empty_still_fires(ruleset):
+    """Tristate boundary: an explicit empty `codecs =` key IS carried-and-empty
+    and must still fire NONE_OFFERED (only absence goes silent)."""
+    from sbc_validator.validators.codec import CodecValidator
+    text = (REPO / "samples" / "clean_pass.ini").read_text().replace(
+        "codecs = PCMU, G722", "codecs = ", 1)
+    cfg = detect_and_parse(text)
+    assert cfg.teams_interface().offered_codecs == []
+    assert "E.CODEC.NONE_OFFERED" in ids(CodecValidator(ruleset).validate(cfg).findings)
+
+
 # ---- HA drift detection ----------------------------------------------------
 
 ACTIVE = REPO / "samples" / "clean_pass.ini"

@@ -240,7 +240,9 @@ class CiscoCubeParser(AbstractParser):
                 options_keepalive=t["options_keepalive"] or any_keepalive,
                 options_keepalive_interval=t["options_keepalive_interval"],
                 normalization_profile=t["sip_profiles"],
-                offered_codecs=codecs.get(t["codec_ref"] or "", []),
+                # Tristate: no voice-class codec reference -> None (not carried).
+                # A ref that exists but resolves to nothing stays [] (real misconfig).
+                offered_codecs=(codecs.get(t["codec_ref"], []) if t["codec_ref"] else None),
                 dtmf_method=t["dtmf"],
                 srtp_enabled=t["srtp"],
             ))

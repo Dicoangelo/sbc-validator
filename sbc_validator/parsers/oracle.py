@@ -157,7 +157,8 @@ class OracleAcmeParser(AbstractParser):
                 transport=transport,
                 options_keepalive=bool(ping and "options" in str(ping).lower()),
                 options_keepalive_interval=ping_iv,
-                offered_codecs=list(codecs),
+                # Tristate: no media-profile blocks in the export -> None (not carried).
+                offered_codecs=list(codecs) if codecs else None,
                 srtp_enabled=media_sec and realm_srtp.get(rid, False),
             ))
         return cfg

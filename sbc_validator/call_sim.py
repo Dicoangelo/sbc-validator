@@ -75,7 +75,7 @@ def _negotiate(config: NormalizedConfig, ruleset: dict):
     """Return (negotiated_codec_on_teams_leg, transcode_required, teams_offered)."""
     teams = config.teams_interface()
     supported = ruleset.get("E", {}).get("teams_supported_codecs", [])
-    teams_offered = teams.offered_codecs if teams else []
+    teams_offered = (teams.offered_codecs or []) if teams else []
     negotiated = next((c for c in teams_offered if c in supported), None)
     legs = [i.offered_codecs for i in config.sip_interfaces if i.offered_codecs]
     transcode = False

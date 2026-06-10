@@ -123,11 +123,11 @@ def ha_diff(active: NormalizedConfig, standby: NormalizedConfig) -> list[Finding
             Severity.MEDIUM,
             f"Active='{at.normalization_profile}' vs standby='{st.normalization_profile}'.",
             "Apply the same normalization profile on both nodes.")
-    if set(at.offered_codecs) != set(st.offered_codecs):
+    if set(at.offered_codecs or []) != set(st.offered_codecs or []):
         add("HA.DRIFT.CODECS",
             "Offered codec set differs between nodes",
             Severity.MEDIUM,
-            f"Active={sorted(at.offered_codecs)} vs standby={sorted(st.offered_codecs)}.",
+            f"Active={sorted(at.offered_codecs or [])} vs standby={sorted(st.offered_codecs or [])}.",
             "Align the codec lists on both nodes.")
     if (at.dtmf_method or None) != (st.dtmf_method or None):
         add("HA.DRIFT.DTMF",

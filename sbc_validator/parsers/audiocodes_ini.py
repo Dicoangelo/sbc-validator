@@ -296,7 +296,8 @@ def map_to_config(text: str) -> NormalizedConfig:
             options_keepalive=ps_keepalive.get(psname),
             options_keepalive_interval=ps_keepalive_interval.get(psname),
             normalization_profile=_manip_norm(ig),
-            offered_codecs=coders_by_group.get(ipp_coders_ref.get(ippname) or "", []),
+            # Tristate: coders-group ref unresolvable/absent -> None (not carried).
+            offered_codecs=coders_by_group.get(ipp_coders_ref.get(ippname) or "") or None,
             srtp_enabled=ipp_srtp.get(ippname),
         ))
 

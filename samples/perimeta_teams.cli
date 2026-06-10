@@ -1,0 +1,46 @@
+# Metaswitch Perimeta (simplified stand-in) — Teams Direct Routing + carrier trunk.
+# Syntax grounded against public Perimeta configs (MiaRec SIPREC guide, TransNexus
+# ClearIP guide, Award Consulting manipulation guide). TLS profiles, certificates,
+# codec policy and media addresses live OUTSIDE the adjacency export on Perimeta,
+# so domains C (deep cert), D and E judge nothing here — verify out-of-band.
+adjacency sip TeamsDR
+    adjacency-limits
+        regs 0
+        regs-rate sustain 0 per-second
+    call-media-policy
+        media-bypass-policy forbid
+    interop
+        ping-enable
+           fail-count 3
+           interval 120
+           lifetime 5
+    message-manipulation
+        edit-profiles inbound TeamsIn
+        edit-profiles outbound TeamsOut
+    adjacency-type preset-peering
+    mandated-transport tls
+    privacy trusted
+    realm "TeamsRTP"
+    service-address "External"
+    signaling-local-port 5061
+    signaling-peer sip.pstnhub.microsoft.com
+    signaling-peer-port 5061
+    statistics-setting detail
+    deactivation-mode normal
+    activate
+
+adjacency sip CarrierTrunk
+    interop
+        ping-enable
+           fail-count 3
+           interval 60
+    adjacency-type preset-peering
+    mandated-transport tcp
+    privacy trusted
+    realm "CarrierRTP"
+    service-address "External"
+    signaling-local-port 5060
+    signaling-peer carrier.example.net
+    signaling-peer-port 5060
+    statistics-setting detail
+    activate

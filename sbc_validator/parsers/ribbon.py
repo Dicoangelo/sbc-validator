@@ -164,7 +164,8 @@ class RibbonParser(AbstractParser):
                 transport=z["transport"],
                 options_keepalive=z["keepalive"],
                 normalization_profile=z["normalization"],
-                offered_codecs=z["codecs"],
+                # Tristate: no codec lines on this trunk group -> None (not carried).
+                offered_codecs=z["codecs"] or None,
                 dtmf_method=z["dtmf"],
                 srtp_enabled=z.get("srtp", False),
             ))
