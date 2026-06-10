@@ -103,8 +103,14 @@ def _make_handler(bundle: dict, log_path):
             self.end_headers()
             self.wfile.write(body)
 
+        def _client_ip(self) -> str:
+            # Behind a proxy (Vercel/Fly), the real client is in X-Forwarded-For;
+            # the first hop is the original client. Falls back to the socket peer.
+            xff = self.headers.get("X-Forwarded-For", "")
+            return xff.split(",")[0].strip() if xff.strip() else self.client_address[0]
+
         def _rate_ok(self) -> bool:
-            ip = self.client_address[0]
+            ip = self._client_ip()
             now = time.monotonic()
             q = hits[ip]
             while q and now - q[0] > _RATE_WINDOW:
