@@ -17,7 +17,7 @@ cross-vendor, pre-deployment tool. Everything that exists is single-vendor (Cisc
 DNA, AudioCodes OVOC, Ribbon LEAP) or post-deployment (AIOps watching MOS/jitter).
 We are the only multi-vendor, pre-deployment layer. "LEAP, but cross-vendor."
 
-## What runs today (8 validation domains x 4 vendors, one model)
+## What runs today (8 validation domains x 5 vendors, one model)
 
 | | Domain | Catches |
 |---|---|---|
@@ -37,7 +37,7 @@ dashboard, and an executive report.
 
 ## Proven vs. honest gaps
 
-- **Proven:** 4 vendors, 8 domains, signed authority-sourced rules, 126 tests in CI,
+- **Proven:** 5 vendors, 8 domains, signed authority-sourced rules, 160 tests in CI,
   air-gapped Docker image, clean-install acceptance (16/16).
 - **Gated (zero false positives until real configs):** routing + security for
   Cisco/Ribbon/Oracle, per-config cipher matching, live probing. The tool stays

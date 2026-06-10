@@ -7,7 +7,7 @@ so the tool audits clean and runs fully air-gapped (`docker run --network none`)
 ## The contract-centred pipeline
 
 Every layer speaks one vendor-neutral shape (`NormalizedConfig`). Parsers produce
-it; validators consume it; they never touch each other. That is why "four vendors,
+it; validators consume it; they never touch each other. That is why "five vendors,
 one engine" is true by construction, not by claim.
 
 ```mermaid
