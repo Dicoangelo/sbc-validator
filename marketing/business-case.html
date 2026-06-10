@@ -403,7 +403,7 @@
   <div class="wrap">
     <span class="eyebrow reveal">Why now · the loudest example</span>
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:22ch">The clearest proof is happening <span class="ser g">right now.</span></h2>
-    <p class="lead reveal" style="--d:120ms;margin-top:18px">Take the most acute case. Teams Direct Routing runs entirely on mutual TLS, and in 2026 Microsoft retired the legacy roots and is enforcing serverAuth-only certificates. An SBC whose trust store is not updated does not degrade gracefully. It stops, completely. And this is not the last forcing event: certificate lifetimes are collapsing toward 47 days, the post-quantum migration is already scheduled, and the carriers keep changing too. The migrations never stop. The fragile config underneath never gets an independent check. That is the permanent problem this layer exists to solve.</p>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Take the most acute case. Teams Direct Routing runs entirely on mutual TLS, and in 2026 Microsoft retired the legacy roots and is enforcing serverAuth-only certificates. An SBC whose trust store is not updated does not degrade gracefully. It stops, completely. And this is not the last forcing event: public-TLS certificate lifetimes are compressing on a fixed schedule (200 days in 2026, 100 in 2027, 47 by 2029), the post-quantum migration is coming, and the carriers keep changing too. Trust now rotates faster than telecom. The migrations never stop. The fragile config underneath never gets an independent check. That is the permanent problem this layer exists to solve.</p>
 
     <div class="failbox reveal" style="--d:160ms">
       <span class="tag">The failure mode</span>
@@ -578,7 +578,7 @@
     <div class="grid g3" style="margin-top:18px">
       <div class="card reveal"><span class="seg">Moat 01</span><h3 style="margin-top:8px">Vendor-agnostic Layer 5</h3><p>True SIP and SDP normalization across mixed estates. A vendor is structurally biased to its own hardware; it cannot build the layer that reads everyone's.</p></div>
       <div class="card reveal" style="--d:90ms"><span class="seg">Moat 02</span><h3 style="margin-top:8px">Security-first, local-first</h3><p>Air-gapped, local execution removes the raw-config-exfiltration objection that kills every other tool in security review. The review stops blocking adoption and starts driving it.</p></div>
-      <div class="card reveal" style="--d:180ms"><span class="seg">Moat 03</span><h3 style="margin-top:8px">A compounding data moat</h3><p>Consented, anonymized failure patterns across the industry become a cross-vendor benchmark no single-vendor tool can assemble. Every fleet validated deepens it.</p></div>
+      <div class="card reveal" style="--d:180ms"><span class="seg">Moat 03</span><h3 style="margin-top:8px">A compounding data moat</h3><p>To be unambiguous for your security team: the raw config never leaves. What can leave, only if you opt in, is anonymized findings (check IDs and severities, never config text or IPs). Those become a cross-vendor benchmark no single-vendor tool can assemble. The pattern compounds; your configuration never does.</p></div>
     </div>
   </div>
 </section>
