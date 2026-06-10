@@ -97,8 +97,15 @@
     radial-gradient(760px 380px at -6% 108%, rgba(157,27,84,.06), transparent 58%),
     radial-gradient(rgba(157,27,84,.07) 1px, transparent 1px) 0 0/26px 26px}
   .hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-    background:url(diagrams/sbc-autoops-hero-truth-layer-trans.png) -165px 335px/auto 530px no-repeat}
-  @media(max-width:1000px){.hero::before{display:none}}
+    background:url(diagrams/sbc-autoops-hero-truth-layer-trans.png) no-repeat;
+    background-position:calc(14.5vw - 400px) 335px;
+    background-size:auto clamp(420px, 28vw + 130px, 740px)}
+  .hero-grid>div{min-width:0}
+  .term pre{overflow-x:auto}
+  @media(max-width:1000px){
+    .hero::before{background-position:-140px -20px;background-size:auto 260px;opacity:.32}
+    .term pre{overflow-x:auto;font-size:10.5px}
+  }
   .hero .wrap{position:relative;z-index:1}
   @media(min-width:1001px){.hero-grid{margin-left:12%}}
   .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
