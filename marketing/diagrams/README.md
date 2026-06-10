@@ -5,7 +5,7 @@ Canonical artifacts, and exactly how to reproduce them, so no session re-derives
 ## Files
 | File | What it is | Engine |
 |---|---|---|
-| `sbc-autoops-architecture-refined.png` | **Canonical architecture** (4K master). Six-zone air-gapped pipeline: INPUT (AudioCodes/Cisco CUBE/Ribbon/Oracle Acme) → PARSERS → NORMALIZED MODEL → VALIDATORS (8 domains) → MODES (validate/simulate/explain) → OUTPUT (PASS/REVIEW/BLOCK). Signed rule bundle "only inbound", anonymized findings out. | researchgravity refined pipeline |
+| `sbc-autoops-architecture-refined.png` | **Canonical architecture** (4K master). Six-zone air-gapped pipeline: INPUT (AudioCodes/Cisco CUBE/Ribbon/Oracle Acme/Metaswitch Perimeta) → PARSERS → NORMALIZED MODEL → VALIDATORS (8 domains) → MODES (validate/simulate/explain) → OUTPUT (PASS/REVIEW/BLOCK). Signed rule bundle "only inbound", anonymized findings out. | researchgravity refined pipeline |
 | `sbc-autoops-architecture-web.png` | 1800px web copy of the above (embedded in `business-case.html` #how). | `sips -Z 1800` |
 | `sbc-autoops-architecture.png` | First-pass architecture (raw nano-banana, no critic). Superseded; kept as alt. | nano-banana-pro raw |
 | `sbc-autoops-positioning.png` | Positioning chart: call-life timeline (red X at TLS handshake) + three coverage bars (AIOps blind / single-vendor siloed / SBC-AutoOps pre-deploy). | nano-banana raw |
