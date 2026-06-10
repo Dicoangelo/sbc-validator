@@ -339,28 +339,14 @@
   <div class="wrap">
     <div class="hero-grid">
       <div>
-        <span class="live reveal"><span class="dot" aria-hidden="true"></span> Microsoft CA migration: enforcement is live <span class="mono">· MC1235747</span></span>
+        <span class="live reveal"><span class="dot" aria-hidden="true"></span> Mission-critical voice had no pre-deployment safety net. Until now.</span>
         <h1 class="reveal" style="--d:80ms">The independent<br><span class="ser g">truth layer</span> for<br>real-time voice.</h1>
-        <p class="lead reveal" style="--d:160ms">Microsoft's 2026 certificate migration is hard-stopping Teams Direct Routing calls at the TLS handshake, and nothing in Teams points at the cert. SBC-AutoOps catches it from the config, before the outage. Any vendor, one model, plain English. Local-first: raw configs never leave your environment.</p>
+        <p class="lead reveal" style="--d:160ms">Every business call crosses a Session Border Controller, the fragile, multi-vendor gateway between your network and the carrier. One misconfiguration and calls fail silently: one-way audio, dead trunks, hours of repair, and you hear about it from users, not a dashboard. SBC-AutoOps is the independent layer that reads any vendor's config and tells you exactly what will break, before you ship it. Local-first and air-gapped: raw configs never leave your environment.</p>
         <div class="cta-row reveal" style="--d:240ms">
           <a class="btn" href="#cta">Book a design-partner call</a>
           <a class="btn ghost" href="#demo">Run the live demo</a>
         </div>
         <div class="trustline reveal" style="--d:300ms"><b>4</b> vendor parsers · <b>8</b> validation domains · <b>104</b> tests in CI · air-gapped</div>
-
-        <div class="countdown reveal" style="--d:360ms" role="timer" aria-live="off" aria-label="Countdown to the June 15 2026 final EKU cutover">
-          <div>
-            <div class="cd-lbl">Final EKU cutover · June 15, 2026</div>
-            <div class="cd-units" id="cdu">
-              <div class="u"><b id="cd-d">--</b><span>days</span></div>
-              <div class="u"><b id="cd-h">--</b><span>hrs</span></div>
-              <div class="u"><b id="cd-m">--</b><span>min</span></div>
-              <div class="u"><b id="cd-s">--</b><span>sec</span></div>
-            </div>
-            <div class="cd-live" id="cdlive">ENFORCEMENT LIVE</div>
-          </div>
-          <div class="cd-sub">The hard root-CA deadline <b>passed March 31</b>. Microsoft's server rollout landed in April. Unvalidated SBCs are failing in production now, and the last cutover lands in days.</div>
-        </div>
       </div>
 
       <div class="heroviz reveal" style="--d:200ms">
@@ -413,9 +399,9 @@
 <!-- ═══ CRISIS ═══ -->
 <section id="crisis" style="border-top:none">
   <div class="wrap">
-    <span class="eyebrow reveal">Why now · the 2026 deadline</span>
-    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:21ch">A cryptographic deadline that <span class="ser g">hard-stops</span> voice.</h2>
-    <p class="lead reveal" style="--d:120ms;margin-top:18px">Teams Direct Routing runs entirely on mutual TLS between your SBC and Microsoft's SIP proxy. In 2026, Microsoft retires the legacy roots and enforces serverAuth-only certificates. An SBC whose trust store or cert is not updated does not degrade gracefully. It stops, completely.</p>
+    <span class="eyebrow reveal">Why now · the loudest example</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:22ch">The clearest proof is happening <span class="ser g">right now.</span></h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Take the most acute case. Teams Direct Routing runs entirely on mutual TLS, and in 2026 Microsoft retired the legacy roots and is enforcing serverAuth-only certificates. An SBC whose trust store is not updated does not degrade gracefully. It stops, completely. And this is not the last forcing event: certificate lifetimes are collapsing toward 47 days, the post-quantum migration is already scheduled, and the carriers keep changing too. The migrations never stop. The fragile config underneath never gets an independent check. That is the permanent problem this layer exists to solve.</p>
 
     <div class="failbox reveal" style="--d:160ms">
       <span class="tag">The failure mode</span>
@@ -428,6 +414,20 @@
       <div class="step past" role="listitem"><div class="node" aria-hidden="true">✓</div><div class="date">Mar 31</div><div class="what">HARD deadline: legacy roots rejected outright</div></div>
       <div class="step past" role="listitem"><div class="node" aria-hidden="true">✓</div><div class="date">April</div><div class="what">Microsoft rolls new certs onto the primary SIP proxy; unpatched peers drop</div></div>
       <div class="step now" role="listitem"><div class="node" aria-hidden="true">!</div><div class="date">Jun 15</div><div class="what">Final EKU cutover: dual-use clientAuth certs removed</div><span class="here" id="tlhere">We are here</span></div>
+    </div>
+
+    <div class="countdown reveal" style="--d:240ms;margin-top:38px" role="timer" aria-live="off" aria-label="Countdown to the June 15 2026 final EKU cutover">
+      <div>
+        <div class="cd-lbl">Next forcing event · June 15, 2026</div>
+        <div class="cd-units" id="cdu">
+          <div class="u"><b id="cd-d">--</b><span>days</span></div>
+          <div class="u"><b id="cd-h">--</b><span>hrs</span></div>
+          <div class="u"><b id="cd-m">--</b><span>min</span></div>
+          <div class="u"><b id="cd-s">--</b><span>sec</span></div>
+        </div>
+        <div class="cd-live" id="cdlive">ENFORCEMENT LIVE</div>
+      </div>
+      <div class="cd-sub">The 2026 root-CA deadline <b>passed March 31</b>; the last cutover lands in days. Then the next one comes, and the one after that. This is the cadence, not the climax.</div>
     </div>
   </div>
 </section>
@@ -454,14 +454,14 @@
 <!-- ═══ MENTAL MODEL ═══ -->
 <section id="model">
   <div class="wrap">
-    <span class="eyebrow reveal">The mental model</span>
-    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">The <span class="ser g">OBD-II scanner</span> for your voice network.</h2>
-    <p class="lead reveal" style="--d:120ms;margin-top:18px">Your car throws a warning light and any shop's scanner reads it, on any make. Your SBCs throw silent failures, and the only tools that read them are locked to one vendor or demand a Wireshark expert. SBC-AutoOps is the universal scanner: plug in any vendor's config, get a plain-English readout of what will break and why.</p>
+    <span class="eyebrow reveal">Where it sits</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:22ch">One independent layer that reads <span class="ser g">every vendor.</span></h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Every SBC vendor ships a tool, and every tool sees only its own hardware. Packet capture sees everything and reads nothing without an expert. Between them is the gap no one fills: an independent, cross-vendor layer that checks the config before it ships. That is what this is.</p>
     <div class="grid g4" style="margin-top:34px">
-      <div class="card reveal"><span class="seg" style="color:var(--ink-faint)">The car</span><h3 style="margin-top:8px">Your SBCs</h3><p>AudioCodes, Cisco, Ribbon, Oracle. The gateway every call in your business passes through.</p></div>
-      <div class="card hl reveal" style="--d:80ms"><span class="seg">The scanner</span><h3 style="margin-top:8px">SBC-AutoOps</h3><p>Any make, automated, explained in plain English. Reads the config; never touches the live box.</p></div>
-      <div class="card reveal" style="--d:160ms"><span class="seg" style="color:var(--ink-faint)">Dealer-only tool</span><h3 style="margin-top:8px">Vendor tools</h3><p>OVOC, RAMP, Element Manager. Locked to one make, blind across a mixed fleet.</p></div>
-      <div class="card reveal" style="--d:240ms"><span class="seg" style="color:var(--ink-faint)">The multimeter</span><h3 style="margin-top:8px">Wireshark</h3><p>Powerful, manual, expert-only. Not something an ops team runs before every change.</p></div>
+      <div class="card reveal"><span class="seg" style="color:var(--ink-faint)">The estate</span><h3 style="margin-top:8px">Your SBCs</h3><p>AudioCodes, Cisco, Ribbon, Oracle. The gateway every call passes through, and every vendor configures it differently.</p></div>
+      <div class="card hl reveal" style="--d:80ms"><span class="seg">The independent layer</span><h3 style="margin-top:8px">SBC-AutoOps</h3><p>Reads any vendor's config before deploy and tells you, in plain English, exactly what will break. Never touches the live box.</p></div>
+      <div class="card reveal" style="--d:160ms"><span class="seg" style="color:var(--ink-faint)">Single-vendor</span><h3 style="margin-top:8px">Vendor tools</h3><p>OVOC, RAMP, Element Manager. Each sees only its own hardware, blind across a mixed fleet.</p></div>
+      <div class="card reveal" style="--d:240ms"><span class="seg" style="color:var(--ink-faint)">Manual</span><h3 style="margin-top:8px">Packet capture</h3><p>Wireshark sees everything and reads nothing without an expert. Not something an ops team runs before every change.</p></div>
     </div>
     <div class="notbox reveal"><b>What we are not:</b> we are not an SBC, and we do not compete with AudioCodes, Cisco, Ribbon, or Oracle. They are channel partners, not competitors. We are the independent layer that reads all of them.</div>
   </div>
