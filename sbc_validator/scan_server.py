@@ -27,11 +27,42 @@ from collections import defaultdict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 
-from .probe import SIP_TLS_PORT, default_connector, grade_endpoint
+from .probe import (MS_EDGE, MS_SIP_IDENTITIES, SIP_TLS_PORT, default_connector,
+                    grade_endpoint)
+from .validators.cert_checks import _name_covers
 
 _FQDN_RE = re.compile(r"^(?=.{1,253}$)([a-zA-Z0-9](-?[a-zA-Z0-9])*\.)+[a-zA-Z]{2,}$")
 _RATE_MAX = 12          # scans
 _RATE_WINDOW = 60.0     # per this many seconds, per client IP
+
+# Cached Microsoft-edge reference: one handshake per TTL, attached to every scan
+# response so the card can say "verified against Microsoft's own infrastructure"
+# without doubling per-request handshakes. Failures cache briefly so a transient
+# outage doesn't stick for an hour.
+_MS_REF_TTL_OK = 3600.0
+_MS_REF_TTL_FAIL = 300.0
+_ms_ref_cache: dict = {"at": 0.0, "ttl": 0.0, "ref": None}
+
+
+def _ms_reference(connector=default_connector) -> dict | None:
+    now = time.monotonic()
+    if now - _ms_ref_cache["at"] < _ms_ref_cache["ttl"]:
+        return _ms_ref_cache["ref"]
+    ref = None
+    try:
+        hs = connector(MS_EDGE)
+        if hs.reachable:
+            names = []
+            if hs.leaf:
+                names = ([hs.leaf.subject_cn] if hs.leaf.subject_cn else []) \
+                        + list(hs.leaf.sans or [])
+            verified = any(_name_covers(n, e) for n in names for e in MS_SIP_IDENTITIES)
+            ref = {"verified": bool(verified), "tls_version": hs.tls_version}
+    except Exception:
+        ref = None
+    _ms_ref_cache.update(at=now, ttl=(_MS_REF_TTL_OK if ref else _MS_REF_TTL_FAIL),
+                         ref=ref)
+    return ref
 
 
 def _resolve_global(fqdn: str) -> str:
@@ -179,6 +210,9 @@ def _make_handler(bundle: dict, log_path):
             result = scan(fqdn, bundle)
             if "error" not in result:
                 _anon_log(log_path, result)
+                ref = _ms_reference()
+                if ref:
+                    result["ms_reference"] = ref
             self._send(200, json.dumps(result).encode(), "application/json")
 
         def log_message(self, *a):

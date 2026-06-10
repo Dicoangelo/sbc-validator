@@ -74,3 +74,22 @@ def test_stats_aggregates_anonymized_log(tmp_path):
     assert s["top_checks"][0]["check_id"] == "C.TLS.WEAK_VERSION"
     assert stats(None)["total"] == 0                       # no log -> empty, no crash
     assert stats(str(tmp_path / "nope.jsonl"))["total"] == 0
+
+
+def test_ms_reference_cached_and_verified(monkeypatch):
+    """One MS-edge handshake per TTL; identity confirmed via SAN; failure cached briefly."""
+    import sbc_validator.scan_server as ss
+    monkeypatch.setattr(ss, "_ms_ref_cache", {"at": 0.0, "ttl": 0.0, "ref": None})
+    calls = []
+
+    def fake(host, **k):
+        calls.append(host)
+        leaf = Certificate(subject_cn=host, sans=["sip.pstnhub.microsoft.com"],
+                           ekus=[EKU.SERVER_AUTH], not_after="2027-01-01")
+        return HandshakeResult(reachable=True, tls_version="1.2",
+                               cipher="ECDHE-RSA-AES256-GCM-SHA384", leaf=leaf)
+
+    r1 = ss._ms_reference(connector=fake)
+    r2 = ss._ms_reference(connector=fake)          # served from cache
+    assert r1 == r2 and r1["verified"] is True
+    assert len(calls) == 1

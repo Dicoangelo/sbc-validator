@@ -87,6 +87,7 @@
     <div class="meta" id="rmeta"></div>
     <ul class="issues" id="rissues"></ul>
     <div class="note" id="rnote"></div>
+    <div id="rref" class="gap" style="margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--ink-soft)" hidden></div>
     <div class="cta" id="rcta" style="display:none">
       <a href="mailto:dicoangelo@metaventionsai.com?subject=SBC-AutoOps%20inside-out%20check">Get the full inside-out check</a>
       <span style="color:var(--ink-faint)">The other 7 domains live in the config, behind your firewall.</span>
@@ -143,6 +144,12 @@ function render(d, fqdn){
   }
   if(d.grade==='INCONCLUSIVE'){ el('rnote').textContent=d.note||''; }
   else { el('rnote').textContent='This grades the edge only. Direct Routing also depends on NAT/media, ACLs, codecs, routing and SIP normalization inside the config.'; el('rcta').style.display='flex'; }
+  // graded against Microsoft's LIVE edge, not just a spec
+  const ref=document.getElementById('rref');
+  if(d.ms_reference && d.ms_reference.verified){
+    ref.innerHTML='<span class="ok">&#10003;</span> Checked against Microsoft’s live Direct Routing edge (sip.pstnhub.microsoft.com identity verified).';
+    ref.hidden=false;
+  } else { ref.hidden=true; }
 }
 
 // State of SBC Readiness — aggregate, anonymized (grades + check IDs only, never hostnames).
