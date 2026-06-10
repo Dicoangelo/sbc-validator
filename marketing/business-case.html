@@ -97,24 +97,29 @@
     radial-gradient(760px 380px at -6% 108%, rgba(157,27,84,.06), transparent 58%),
     radial-gradient(rgba(157,27,84,.07) 1px, transparent 1px) 0 0/26px 26px}
   .hero{--art-h:clamp(420px, 28vw + 130px, 740px);
-    --art-pad:clamp(0px, 16vw - 130px, 200px);
-    --art-space:calc(max((100vw - 1200px)/2, 24px) + var(--art-pad))}
+    --art-space:calc((100vw - 720px)/2)}
   .hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
     background:url(diagrams/sbc-autoops-hero-truth-layer-trans.png) no-repeat;
     /* plane center sits mid art-space; x-offset = space/2 - 0.6455*H (plane is at 64.55% of height-scaled width) */
-    background-position:calc(var(--art-space)*0.5 - var(--art-h)*0.6455) calc(720px - var(--art-h)*0.5);
+    background-position:calc(var(--art-space)*0.5 - var(--art-h)*0.6455) calc(850px - var(--art-h)*0.5);
     background-size:auto var(--art-h)}
   @media(max-width:1000px){
-    .hero-grid>div{min-width:0}
+    .hero-top{text-align:center}
+    .hero-stack .heroviz{min-width:0}
     .hero::before{background-position:-140px -20px;background-size:auto 260px;opacity:.32}
     .term pre{overflow-x:auto;font-size:10.5px}
   }
   .hero .wrap{position:relative;z-index:1}
-  @media(min-width:1001px){
-    .hero-grid>div:first-child{order:2}
-    .heroviz{order:1}
-    .hero-grid{padding-left:var(--art-pad)}
-  }
+  .hero-stack{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .hero-top{display:flex;align-items:center;justify-content:center;gap:44px;flex-wrap:wrap;text-align:left}
+  .hero-top .live{flex:none}
+  .hero-top h1{margin:0}
+  .hero-stack .lead{margin:26px auto 0}
+  .hero-stack .heroviz{margin-top:40px;width:min(760px,100%)}
+  .hero-emph{margin-top:36px;font-size:20px;line-height:1.45;max-width:52ch;font-weight:600}
+  .hero-stack .cta-row{justify-content:center}
+  .statgrid{text-align:center}
+  .statgrid>div{display:flex;flex-direction:column;align-items:center}
   .hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
   @media(max-width:1000px){.hero-grid{grid-template-columns:1fr;gap:44px}}
   .live{display:inline-flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:7px 15px;font-size:12.5px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-card)}
@@ -372,19 +377,12 @@
 <!-- ═══ HERO ═══ -->
 <section class="hero" style="border-top:none">
   <div class="wrap">
-    <div class="hero-grid">
-      <div>
-        <span class="live reveal"><span class="dot" aria-hidden="true"></span> Mission-critical voice had no pre-deployment safety net. Until now.</span>
-        <h1 class="reveal" style="--d:80ms">The independent<br><span class="ser g">truth layer</span> for<br>real-time voice.</h1>
-        <p class="lead reveal" style="--d:160ms">Every business call crosses a Session Border Controller, the fragile, multi-vendor gateway between your network and the carrier. One misconfiguration and calls fail silently: one-way audio, dead trunks, hours of repair, and you hear about it from users, not a dashboard. SBC-AutoOps is the independent layer that reads any vendor's config and tells you exactly what will break, before you ship it. Local-first and air-gapped: raw configs never leave your environment.</p>
-        <p class="reveal" style="--d:200ms;margin-top:22px;font-size:20px;line-height:1.45;max-width:52ch;font-weight:600">You cannot monitor a call that is <span class="ser g">cryptographically blocked from ever starting.</span> The only place to catch it is the config, before you ship.</p>
-        <div class="cta-row reveal" style="--d:240ms">
-          <a class="btn" href="#cta">Book a design-partner call</a>
-          <a class="btn ghost" href="/scanner">Scan your SBC free</a>
-          <a class="btn ghost" href="#demo">Run the live demo</a>
-        </div>
-        <div class="trustline reveal" style="--d:300ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>160</b> tests in CI · air-gapped</div>
+    <div class="hero-stack">
+      <div class="hero-top reveal">
+        <span class="live"><span class="dot" aria-hidden="true"></span> Mission-critical voice had no<br>pre-deployment safety net. Until now.</span>
+        <h1 style="--d:80ms">The independent<br><span class="ser g">truth layer</span> for<br>real-time voice.</h1>
       </div>
+      <p class="lead reveal" style="--d:160ms">Every business call crosses a Session Border Controller, the fragile, multi-vendor gateway between your network and the carrier. One misconfiguration and calls fail silently: one-way audio, dead trunks, hours of repair, and you hear about it from users, not a dashboard. SBC-AutoOps is the independent layer that reads any vendor's config and tells you exactly what will break, before you ship it. Local-first and air-gapped: raw configs never leave your environment.</p>
 
       <div class="heroviz reveal" style="--d:200ms">
         <div class="glow" aria-hidden="true"></div>
@@ -412,6 +410,14 @@
           </div>
         </div>
       </div>
+
+      <p class="reveal hero-emph" style="--d:120ms">You cannot monitor a call that is <span class="ser g">cryptographically blocked from ever starting.</span> The only place to catch it is the config, before you ship.</p>
+      <div class="cta-row reveal" style="--d:160ms">
+        <a class="btn" href="#cta">Book a design-partner call</a>
+        <a class="btn ghost" href="/scanner">Scan your SBC free</a>
+        <a class="btn ghost" href="#demo">Run the live demo</a>
+      </div>
+      <div class="trustline reveal" style="--d:200ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>160</b> tests in CI · air-gapped</div>
     </div>
 
     <div class="statgrid reveal" style="--d:120ms">
