@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="en">
 <!--
   SBC-AutoOps — Fleet Validation Dashboard
   Single-file, dependency-light (Chart.js from CDN). Light enterprise theme
@@ -210,10 +212,10 @@
 
   <div id="view-fleet" class="view">
   <div class="filters">
-    <div class="field"><label>Vendor</label>
+    <div class="field"><label for="f-vendor">Vendor</label>
       <select id="f-vendor"><option value="">All vendors</option></select>
     </div>
-    <div class="field"><label>Verdict</label>
+    <div class="field"><label for="f-verdict">Verdict</label>
       <select id="f-verdict"><option value="">All verdicts</option><option>BLOCK</option><option>REVIEW</option><option>PASS</option></select>
     </div>
     <div class="field grow"></div>
@@ -310,7 +312,7 @@
       <div class="body" style="padding:20px">
         <p style="margin:0 0 16px;color:var(--ink-soft);font-size:13.5px;max-width:62ch">Enter an SBC's public hostname. A live TLS handshake is run against it and the edge is graded against Microsoft's 2026 Direct Routing requirements. No config upload; only the public endpoint is touched.</p>
         <form id="scanForm" style="display:flex;gap:10px;flex-wrap:wrap">
-          <input id="scanFqdn" type="text" placeholder="sbc.contoso.com" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:240px;font-family:'IBM Plex Mono',monospace;font-size:14px;padding:11px 13px;border:1px solid var(--line);border-radius:8px;color:var(--ink)">
+          <input id="scanFqdn" type="text" aria-label="SBC public hostname" placeholder="sbc.contoso.com" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:240px;font-family:'IBM Plex Mono',monospace;font-size:14px;padding:11px 13px;border:1px solid var(--line);border-radius:8px;color:var(--ink)">
           <button id="scanBtn" type="submit" class="loadbtn" style="background:var(--garnet);color:#fff;border-color:var(--garnet);font-weight:600">Scan</button>
         </form>
         <div id="scanCard" class="scan-card" hidden>
@@ -664,3 +666,4 @@ fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadP
 })();
 
 </script>
+</html>
