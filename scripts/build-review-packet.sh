@@ -21,7 +21,7 @@ git archive --format=tar.gz --prefix=sbc-validator/ \
 echo "  tarball:  sbc_validator_${HASH}.tar.gz"
 
 # 2. Render every handoff doc to PDF.
-for d in EXEC-BRIEFING REVIEW WALKTHROUGH REVIEW-FINDINGS ARCHITECTURE ONE-PAGER MEETING-QA CONFIG-REQUEST VALIDATOR-COVERAGE; do
+for d in EXEC-BRIEFING PRE-COMMIT-CONTROL REVIEW WALKTHROUGH REVIEW-FINDINGS ARCHITECTURE ONE-PAGER MEETING-QA CONFIG-REQUEST VALIDATOR-COVERAGE; do
   pandoc "docs/$d.md" -o "$PKT/$d.pdf" --pdf-engine=weasyprint 2>/dev/null
   echo "  pdf:      $d.pdf"
 done

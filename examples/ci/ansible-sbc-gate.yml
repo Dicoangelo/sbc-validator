@@ -1,0 +1,42 @@
+# Example: an Ansible play that gates an SBC config change on sbc-validator.
+#
+# The IaC-mandated workflow (TP ICAP / SocGen: scripted SBC configuration and
+# provisioning): render the candidate config, VALIDATE it, and only then run
+# YOUR deploy task. The validator never pushes to the SBC — if the verdict is
+# REVIEW or worse the play fails before your deploy task is reached, and the
+# failed JSON report is kept as the audit artifact.
+---
+- name: SBC config change with a pre-deploy validation gate
+  hosts: localhost
+  gather_facts: false
+  vars:
+    candidate_config: "{{ playbook_dir }}/rendered/sbc-teams-01.ini"
+    report_dir: "{{ playbook_dir }}/validation-reports"
+
+  tasks:
+    - name: Render the candidate SBC config (your templating step)
+      ansible.builtin.template:
+        src: sbc-teams-01.ini.j2
+        dest: "{{ candidate_config }}"
+
+    - name: Gate — validate the candidate before anything touches the SBC
+      ansible.builtin.command:
+        argv:
+          - sbc-validator
+          - validate
+          - "{{ candidate_config }}"
+          - --fail-on
+          - review
+          - --json
+          - --out
+          - "{{ report_dir }}"
+      register: sbc_validation
+      changed_when: false
+      # non-zero exit (REVIEW/BLOCK) fails the play right here; the JSON
+      # verdict in report_dir is the signed-off audit trail for the change.
+
+    - name: Deploy to the SBC (YOUR task — vendor REST/CLI/SCP; never ours)
+      ansible.builtin.debug:
+        msg: >-
+          Validation passed — run your vendor deploy here (AudioCodes REST,
+          Cisco CLI, Ribbon API). The validator is the check, not the deployer.

@@ -360,7 +360,15 @@ def run_diff(args) -> int:
             print(f"           fix  : {f.remediation}")
         if not findings:
             print("No drift. Standby matches active on all failover-critical fields.")
-    return 1 if summary["verdict"] == "BLOCK" else 0
+    # Exit gate. Default preserves historical behavior (fail only on BLOCK);
+    # `--fail-on any` turns this into a golden-vs-current drift tripwire for
+    # cron/CI: ANY drift finding fails the job.
+    fail_on = getattr(args, "fail_on", "block") or "block"
+    if fail_on == "any":
+        return 1 if findings else 0
+    levels = {"PASS": 0, "REVIEW": 1, "BLOCK": 2}
+    threshold = {"block": 2, "review": 1}[fail_on]
+    return 1 if levels.get(summary["verdict"], 0) >= threshold else 0
 
 
 def run_probe(args) -> int:
@@ -416,9 +424,14 @@ def main(argv=None) -> int:
                    help="CI gate: exit non-zero on this verdict or worse (default: block)")
     v.set_defaults(func=run)
 
-    d = sub.add_parser("diff", help="detect HA config drift between two node configs")
-    d.add_argument("active", help="active node config export")
-    d.add_argument("standby", help="standby node config export")
+    d = sub.add_parser("diff", help="detect config drift between two configs "
+                                    "(HA active/standby, or golden vs current)")
+    d.add_argument("active", help="baseline config (active node, or last-known-good)")
+    d.add_argument("standby", help="comparison config (standby node, or current export)")
+    d.add_argument("--fail-on", choices=["block", "review", "any"], default="block",
+                   dest="fail_on",
+                   help="exit non-zero at this threshold; 'any' = any drift finding "
+                        "(the golden-config tripwire for cron/CI)")
     d.add_argument("--json", action="store_true")
     d.set_defaults(func=run_diff)
 

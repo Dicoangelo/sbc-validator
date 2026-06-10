@@ -1598,3 +1598,13 @@ def test_iosxe_eku_firmware_floor(ruleset):
     fixed = "version 26.1.1\n" + base
     assert "C.PLATFORM.IOSXE_EKU_FLOOR" not in ids(
         CaComplianceValidator(ruleset).validate(detect_and_parse(fixed)).findings)
+
+
+def test_diff_fail_on_any_drift_tripwire(ruleset):
+    """The golden-config tripwire: --fail-on any exits non-zero on ANY drift
+    finding; default (block) keeps historical behavior for the same pair."""
+    from sbc_validator.cli import main
+    golden = str(REPO / "samples" / "clean_pass.ini")
+    drifted = str(REPO / "samples" / "audiocodes_standby.ini")
+    assert main(["diff", golden, drifted, "--fail-on", "any"]) == 1
+    assert main(["diff", golden, golden, "--fail-on", "any"]) == 0   # no drift -> 0
