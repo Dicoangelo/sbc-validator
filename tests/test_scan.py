@@ -57,3 +57,20 @@ def test_scan_grades_public_target(monkeypatch):
     out = scan("sbc.contoso.com", _bundle(), connector=_ok_connector)
     assert out["grade"] == "A", out
     assert out["fqdn"] == "sbc.contoso.com"
+
+
+def test_stats_aggregates_anonymized_log(tmp_path):
+    """The /stats aggregator summarizes grades + check-IDs only; no FQDN ever in the log."""
+    from sbc_validator.scan_server import stats
+    p = tmp_path / "scans.jsonl"
+    p.write_text("\n".join([
+        '{"grade":"A","reachable":true,"checks":[]}',
+        '{"grade":"C","reachable":true,"checks":["C.TLS.WEAK_VERSION"]}',
+        '{"grade":"FAIL","reachable":true,"checks":["C.CERT.EXPIRY","C.TLS.WEAK_VERSION"]}',
+    ]) + "\n")
+    s = stats(str(p))
+    assert s["total"] == 3 and s["reachable"] == 3
+    assert s["grades"]["A"] == 1 and s["grades"]["FAIL"] == 1
+    assert s["top_checks"][0]["check_id"] == "C.TLS.WEAK_VERSION"
+    assert stats(None)["total"] == 0                       # no log -> empty, no crash
+    assert stats(str(tmp_path / "nope.jsonl"))["total"] == 0

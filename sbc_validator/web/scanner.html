@@ -56,6 +56,11 @@
          padding:11px 18px;border-radius:10px}
   .foot{margin-top:40px;font-size:12.5px;color:var(--ink-faint);font-family:var(--mono)}
   .ok{color:var(--pass)}
+  .bench{margin-top:34px;border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--ink-soft)}
+  .bench h3{margin:0 0 10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--garnet);font-weight:700}
+  .bench .row{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:baseline}
+  .bench b{font-family:var(--mono);color:var(--ink);font-weight:600}
+  .bench .gap{font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
 </style>
 </head>
 <body>
@@ -88,6 +93,7 @@
     </div>
   </div>
 
+  <div id="benchmark" class="bench" hidden></div>
   <div class="foot">Zero external requests. Configs never leave your environment.</div>
 </div>
 
@@ -138,6 +144,19 @@ function render(d, fqdn){
   if(d.grade==='INCONCLUSIVE'){ el('rnote').textContent=d.note||''; }
   else { el('rnote').textContent='This grades the edge only. Direct Routing also depends on NAT/media, ACLs, codecs, routing and SIP normalization inside the config.'; el('rcta').style.display='flex'; }
 }
+
+// State of SBC Readiness — aggregate, anonymized (grades + check IDs only, never hostnames).
+fetch('/stats').then(r=>r.ok?r.json():null).then(s=>{
+  if(!s || !s.total) return;
+  const b=document.getElementById('benchmark');
+  const g=s.grades||{}, a=g.A||0, pctA=Math.round((a/s.total)*100), top=(s.top_checks||[])[0];
+  b.innerHTML='<h3>State of SBC Readiness</h3><div class="row">'+
+    '<span><b>'+s.total+'</b> edges scanned</span>'+
+    '<span><b>'+pctA+'%</b> graded A</span>'+
+    (top?'<span class="gap">most common gap: '+top.check_id+' ('+top.count+')</span>':'')+
+    '</div><div class="gap" style="margin-top:8px">Aggregated from anonymized scans (grades + check IDs only, never hostnames).</div>';
+  b.hidden=false;
+}).catch(()=>{});
 </script>
 </body>
 </html>

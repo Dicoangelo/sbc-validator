@@ -86,6 +86,37 @@ def _anon_log(log_path, result: dict) -> None:
         pass
 
 
+def stats(log_path) -> dict:
+    """Aggregate the anonymized scan log into a 'State of SBC Readiness' summary.
+    Reads only grades + check-IDs (the log never held an FQDN). Privacy-safe by
+    construction: there is nothing identifying in the log to expose."""
+    import os
+    from collections import Counter
+    out = {"total": 0, "reachable": 0, "grades": {}, "top_checks": []}
+    if not log_path or not os.path.exists(log_path):
+        return out
+    grades, checks = Counter(), Counter()
+    try:
+        with open(log_path, encoding="utf-8") as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                out["total"] += 1
+                if r.get("reachable"):
+                    out["reachable"] += 1
+                if r.get("grade"):
+                    grades[r["grade"]] += 1
+                for c in r.get("checks", []):
+                    checks[c] += 1
+    except OSError:
+        return out
+    out["grades"] = dict(grades)
+    out["top_checks"] = [{"check_id": c, "count": n} for c, n in checks.most_common(8)]
+    return out
+
+
 def _page() -> bytes:
     return (resources.files("sbc_validator.web") / "scanner.html").read_bytes()
 
@@ -124,6 +155,8 @@ def _make_handler(bundle: dict, log_path):
             path = self.path.split("?", 1)[0]
             if path in ("/", "/index.html"):
                 self._send(200, _page(), "text/html; charset=utf-8")
+            elif path == "/stats":
+                self._send(200, json.dumps(stats(log_path)).encode(), "application/json")
             elif path == "/favicon.ico":
                 self._send(204, b"", "image/x-icon")
             else:
