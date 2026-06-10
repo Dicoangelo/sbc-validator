@@ -1,272 +1,184 @@
-# SBC-AutoOps: Local-First SBC Validator
+<img src="https://capsule-render.vercel.app/api?type=waving&height=300&color=0:1a0a12,50:6e1340,100:9d1b54&text=SBC-AutoOps&fontSize=66&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=The%20independent%20pre-deployment%20truth%20layer%20for%20real-time%20voice&descSize=17&descAlignY=56&descAlign=50" width="100%" alt="SBC-AutoOps"/>
 
-![CI](https://github.com/Dicoangelo/sbc-validator/actions/workflows/ci.yml/badge.svg)
+<div align="center">
 
-Vendor-agnostic, **local-first** pre-deployment validator for Session Border
-Controllers. Parses an exported config inside the customer trust boundary, runs
-eight validation domains (A-G plus S), and produces an explainable report + risk
-score + deploy verdict. **Raw configs never leave.** Only rule sets come in; only
-opt-in anonymized findings can go out.
+<img src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=600&size=21&duration=3200&pause=1000&color=9D1B54&center=true&vCenter=true&multiline=false&repeat=true&width=760&height=40&lines=5+Vendor+Parsers+%E2%80%A2+8+Validation+Domains+%E2%80%A2+Deterministic+Verdicts+%E2%80%A2+Air-Gapped" alt="Typing SVG" />
 
-**Live:**
-[Business case](https://sbcvalidator.metaventionsai.com) ·
-[Free readiness scanner](https://sbcvalidator.metaventionsai.com/scanner) ·
-[State-of-readiness benchmark](https://sbc-autoops-scanner.fly.dev/stats) ·
-[Releases (air-gapped Docker image)](https://github.com/Dicoangelo/sbc-validator/releases)
+<br/>
 
-It implements eight validation domains end-to-end (A syntax/semantic, B interop,
-C TLS/CA the Microsoft Direct Routing wedge, D NAT / one-way audio, E codec,
-F topology-leak, G routing/classification, S security/access-control) and ships
-**five real vendor parsers: AudioCodes (`.ini`), Cisco CUBE (IOS-XE), Ribbon SBC
-Core (`set`-config), Oracle/Acme (ACLI), and Metaswitch Perimeta (adjacency
-CLI)**, running on a single normalized model. Five vendors on one model is the
-proof that validation is genuinely vendor-agnostic: the same C validator catches
-the 2026 root-CA gap on an AudioCodes `.ini` and a Cisco running-config, and the
-clientAuth-only EKU deprecation on a Ribbon `set`-config, all unmodified.
+[![Built by Dico Angelo](https://img.shields.io/badge/Built_by-Dico_Angelo-9d1b54?style=for-the-badge&logo=github&logoColor=white&labelColor=2b0a18)](https://github.com/Dicoangelo)
+<img src="https://img.shields.io/badge/Telecom-Philip_Drammeh-6e1340?style=for-the-badge&labelColor=2b0a18" alt="Telecom architecture by Philip Drammeh" />
+[![Live demo](https://img.shields.io/badge/Live-Business_Case-9d1b54?style=for-the-badge&labelColor=2b0a18)](https://sbcvalidator.metaventionsai.com)
+[![Free scanner](https://img.shields.io/badge/Free-Readiness_Scanner-9d1b54?style=for-the-badge&labelColor=2b0a18)](https://sbcvalidator.metaventionsai.com/scanner)
+[![License](https://img.shields.io/badge/License-Proprietary-6e1340?style=for-the-badge&labelColor=2b0a18)](#license)
 
-It also detects **HA configuration drift** between an Active and a Standby node
-(`diff` subcommand): the trust-store-drift case is rated CRITICAL because a
-failover during the 2026 CA rotation onto a drifted standby hard-stops calls.
+<br/>
 
-## Quickstart
+<img src="https://img.shields.io/badge/Tests-165-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Tests" />
+<img src="https://img.shields.io/badge/Vendors-5-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Vendors" />
+<img src="https://img.shields.io/badge/Domains-8-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Domains" />
+<img src="https://img.shields.io/badge/Checks-59-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Checks" />
+<img src="https://img.shields.io/badge/Verdicts-PASS%2FREVIEW%2FBLOCK-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Verdicts" />
+
+<br/><br/>
+
+<img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=2b0a18" alt="Python" />
+<img src="https://img.shields.io/badge/Docker-Air--gapped-2496ED?style=for-the-badge&logo=docker&logoColor=white&labelColor=2b0a18" alt="Docker" />
+<img src="https://img.shields.io/badge/Rulesets-Ed25519_signed-9945FF?style=for-the-badge&logoColor=white&labelColor=2b0a18" alt="Ed25519" />
+<img src="https://img.shields.io/badge/Stdlib-only_engine-1e7e34?style=for-the-badge&labelColor=2b0a18" alt="Stdlib" />
+
+<br/>
+
+*Reads any SBC vendor's config before deploy and tells you, in plain English, exactly what will break. Local-first and air-gapped: raw configs never leave your environment.*
+
+</div>
+
+<br/>
+
+> **Every business call crosses a Session Border Controller** — the fragile, multi-vendor gateway between your network and the carrier. One misconfiguration and calls fail silently: one-way audio, dead trunks, hours of repair, and you hear about it from users, not a dashboard. SBC-AutoOps is the independent layer that catches the break in the **config**, before you ship it.
+
+<br/>
+
+## Architecture
+
+<div align="center">
+<img src="marketing/diagrams/sbc-autoops-architecture-web.png" width="92%" alt="SBC-AutoOps architecture: five vendor configs normalized into one model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict, air-gapped, signed rules in and anonymized findings out."/>
+</div>
+
+```mermaid
+flowchart LR
+  subgraph IN["Vendor SBC configs"]
+    A["AudioCodes"]; C["Cisco CUBE"]; R["Ribbon"]; O["Oracle Acme"]; M["Metaswitch Perimeta"]
+  end
+  IN --> P["Parsers"] --> N["Normalized model"] --> V["Validators · 8 domains"] --> MD["Modes"] --> VD{"Verdict"}
+  VD --> PASS(["PASS"]); VD --> REVIEW(["REVIEW"]); VD --> BLOCK(["BLOCK"])
+  RB["Signed rule bundle"] -. inbound .-> V
+  V -. opt-in .-> AF["Anonymized findings"]
+
+  classDef garnet fill:#9d1b54,stroke:#2b0a18,color:#fff;
+  classDef wine fill:#2b0a18,stroke:#9d1b54,color:#fff;
+  class P,N,V,MD garnet;
+  class A,C,R,O,M,RB,AF wine;
+```
+
+<div align="center">
+
+```
+   VALIDATE              →            PREDICT             →           EXPLAIN
+   read the config                    model the call                 diagnose a capture
+   across 8 domains                   TLS → SIP → SDP → media         reconstruct the SIP ladder
+
+   ════════════════════════════════════════════════════════════════════════════════════════
+
+   • Deterministic verdicts, not LLM guesses        • Air-gapped, local-first execution
+   • Microsoft-authoritative 2026 CA / EKU rules    • Ed25519-signed rulesets, rollback refusal
+   • Refuses to guess: silent where it cannot prove • Five vendors, one normalized model
+```
+
+</div>
+
+<br/>
+
+## Five vendors, one model
+
+| Vendor | Format | Depth |
+|---|---|---|
+| **AudioCodes** | `.ini` (table + simple) | Full: TLS, cert, SRTP, codec, NAT, routing, security |
+| **Cisco CUBE** | IOS-XE | TLS, cert, SRTP, codec, NAT (routing/security roadmap) |
+| **Ribbon** | SBC Core `set-config` | TLS, cert, SRTP, codec, NAT (routing/security roadmap) |
+| **Oracle Acme** | Acme Packet ACLI | TLS, cert, SRTP, codec, NAT (routing/security roadmap) |
+| **Metaswitch Perimeta** | adjacency CLI | Interop / transport posture. Trust store, cert and codec live outside the export, so those domains stay silent and are verified out of band. |
+
+*The engine refuses to guess. Where a config format cannot prove a fact, the verdict says "verify out-of-band" rather than inventing one.*
+
+## Eight validation domains
+
+| | Domain | Catches |
+|---|---|---|
+| **A** | Syntax / semantic | Malformed config, dangling references |
+| **B** | Interop | TLS transport, OPTIONS keep-alive, header normalization |
+| **C** | TLS / CA — *the 2026 wedge* | Missing Microsoft roots, mTLS off, SRTP off, EKU, chain validity |
+| **D** | NAT / media | Private IP in SDP, missing symmetric RTP → one-way audio |
+| **E** | Codec | Cross-leg overlap, forced transcode, DTMF |
+| **F** | Topology leak | Private-IP leakage on the signaling plane |
+| **G** | Routing / classification | 404 / unclassified Teams routing |
+| **S** | Security | ACL default-deny, broad CIDR, shadowing |
+
+## Quick start
 
 ```bash
 # one packaged command runs the whole demo-fleet showcase
-# (validate the fleet -> predict a call -> explain a capture -> 2026 readiness):
 sbc-validator demo
-# then open the console it just populated (Fleet / Scanner / Walkthrough tabs):
-sbc-validator serve --results results        # http://127.0.0.1:8787
 
-# outside-in readiness: live TLS handshake graded against the ruleset
-sbc-validator probe sbc.contoso.com
-# serve the public scanner web front-end yourself:
-sbc-validator scan-serve                     # http://127.0.0.1:8088
-
-# a single config (any of the five vendors auto-detected):
-sbc-validator validate samples/ribbon_sbc.cli \
-    --ruleset rulesets/ms_direct_routing_2026-06.json \
-    --html report.html          # self-contained customer report
-
-# HA drift: compare an active node against its standby
-sbc-validator diff samples/clean_pass.ini samples/audiocodes_standby.ini
-```
-
-### Use it as a CI/CD pre-deployment gate (shift-left)
-
-`validate` returns a non-zero exit code so it drops straight into a pipeline and
-blocks a broken Direct Routing config before it ships:
-
-```bash
-# fail the build on REVIEW or worse (default is BLOCK only)
+# validate a single config (any of the five vendors auto-detected)
 sbc-validator validate sbc-configs/teams.ini \
-    --ruleset rulesets/ms_direct_routing_2026-06.json --fail-on review
-```
-
-A ready-to-use GitHub Actions workflow is in
-[`examples/ci/sbc-pre-deploy-gate.yml`](examples/ci/sbc-pre-deploy-gate.yml):
-it validates changed configs on every PR (and runs an HA-drift check), failing
-the build on a bad config. Raw configs never leave the runner; only the exit code
-gates the PR.
-
-### Run as a local-first container
-
-The validation engine ships as a container that runs inside the customer
-environment. `validate` needs no network (the signed rule bundle is baked in), so
-it runs fully air-gapped, which is the proof that raw configs never leave:
-
-```bash
-docker build -t sbc-validator .
-docker run --rm --network none -v "$PWD/configs:/work" sbc-validator \
-    validate /work/teams.ini --ruleset rulesets/ms_direct_routing_2026-06.json
-```
-
-`--network none` is the point: the container has no path to exfiltrate anything.
-The image runs as a non-root user; CI builds it and runs the air-gapped smoke.
-
-Add `--json` for machine output. Opt-in anonymized telemetry (off by default,
-double-gated):
-
-```bash
-python -m sbc_validator.cli validate samples/audiocodes_min.ini \
     --ruleset rulesets/ms_direct_routing_2026-06.json \
-    --share-anon --consent --org-salt <your-salt>
+    --html report.html
+
+# predict the call, diagnose a capture, diff an HA pair, roll up a fleet
+sbc-validator simulate sbc-configs/teams.ini
+sbc-validator explain capture.pcap
+sbc-validator diff active.ini standby.ini --fail-on review
+sbc-validator fleet sbc-configs/
+
+# map findings to a regulatory control framework
+sbc-validator report --compliance mifid2 --results results/
+
+# outside-in: live TLS handshake to an SBC edge, graded vs the ruleset
+sbc-validator probe sbc.contoso.com
+
+# the local dashboard (reads results/, never leaves the box)
+sbc-validator serve
 ```
 
-## Trust-boundary guarantees (enforced in code)
+`validate` returns a non-zero exit code, so it drops straight into CI and fails the build before a non-compliant config reaches the change window.
 
-- Parsing + validation are pure-local; no network calls in the data path.
-- The rule client is the only inbound channel. Bundles are **versioned + signed**
-  and verified before use; the verified version is stamped into every report
-  ("freshness assertion"). A stale/tampered bundle can't silently pass you.
-- Anonymized export requires **both** `--share-anon` and `--consent`. The payload
-  contains only `check_id`, `severity`, vendor family, ruleset version, and a
-  salted org token, never locators, FQDNs, CN/SAN, IPs, or free text.
+## See it
 
-## Repo layout
+<div align="center">
+<img src="marketing/diagrams/dashboard-demo.png" width="92%" alt="SBC-AutoOps fleet dashboard: seven SBCs across five vendors with deploy verdicts, findings-by-domain and severity-trend charts, average risk per vendor, a verdict donut, and a severity-by-domain heatmap."/>
+</div>
+
+- **[Live business case](https://sbcvalidator.metaventionsai.com)** — the product, the 2026 deadline, the market
+- **[Free readiness scanner](https://sbcvalidator.metaventionsai.com/scanner)** — outside-in TLS grade for any SBC FQDN, no config upload
+- **[Live dashboard demo](https://sbcvalidator.metaventionsai.com/dashboard/)** — the fleet view, sample data
+- **[State-of-readiness benchmark](https://sbc-autoops-scanner.fly.dev/stats)** — anonymized aggregate grades
+
+## What's verified, stated up front
+
+Capabilities described as available are implemented and tested (**165 tests in CI**, three Python versions). Routing and security depth for Cisco, Ribbon, and Oracle, per-config cipher matching, and live probing stay **silent** until validated against a real config for that vendor. Metaswitch Perimeta is read from an adjacency-CLI export that does not carry the trust store, certificate, or codec policy inline, so those domains stay silent for it. The tool refuses to guess — a wrong verdict is the one thing a pre-deployment control cannot afford.
+
+## Project layout
 
 ```
 sbc_validator/
   models.py              normalized vendor-neutral config model
-  cli.py                 entrypoint: validate/simulate/explain/diff/fleet/serve/demo/report
-  call_sim.py            deterministic call-flow prediction (TLS->SIP->SDP->media)
-  sip_trace.py / pcap.py pcap post-mortem ("explain"); pure-stdlib pcap reader
-  serve.py / demo.py     local dashboard server; one-command showcase
-  fleet.py               directory -> 2026 CA-readiness rollup
+  cli.py                 entrypoint: validate/simulate/explain/diff/fleet/serve/report/probe/demo
+  parsers/               audiocodes, cisco_cube, ribbon, oracle, perimeta (Metaswitch)
+  validators/            A syntax, B interop, C ca/tls, D nat, E codec, ha_drift, G routing, S security
+  report/                risk, html (per-SBC), exec (fleet), compliance (control frameworks), anonymize
   rules/client.py        signed, versioned, rollback-floored rule-bundle client
-  parsers/               audiocodes (.ini table + simple), cisco_cube, ribbon,
-                         oracle, perimeta (Metaswitch)
-  validators/            A syntax, B interop, C ca_compliance, D nat_traversal,
-                         E codec, ha_drift, G routing, S access_control
-  report/                risk (score+verdict), html (per-SBC), exec (fleet report),
-                         compliance (control-framework mapping), anonymize (opt-in payload)
-  web/sbc_dashboard.html the packaged dashboard viewer
-rulesets/                signed rule bundles
-samples/                 sample configs (intentional misconfigs) for smoke test
+  call_sim.py            deterministic call-flow prediction (TLS → SIP → SDP → media)
+  web/                   the packaged dashboard + scanner front-ends
+marketing/               the business case, architecture diagrams, hosted demo dashboard
+rulesets/                Microsoft-authoritative 2026 Direct Routing rule bundle (Ed25519-signed)
 ```
 
-## Documentation
+<br/>
 
-| Doc | For |
-|---|---|
-| **[REVIEW.md](docs/REVIEW.md)** | 5-minute orientation: what's built/proven, the 60-second demo, honest gaps |
-| **[ONE-PAGER.md](docs/ONE-PAGER.md)** | the product at a glance (8 domains x 5 vendors, the wedge, the ask) |
-| **[MEETING-QA.md](docs/MEETING-QA.md)** | anticipated vet-level questions + honest answers |
-| **[DASHBOARD.md](docs/DASHBOARD.md)** | the local dashboard: panels, data flow, controls |
-| **[RUNBOOK.md](docs/RUNBOOK.md)** | operator guide: install + run air-gapped, fleet readiness, leave-behind report |
-| **[CONFIG-REQUEST.md](docs/CONFIG-REQUEST.md)** | exactly what real config to export per vendor (the unlock for routing + security) |
-| **[VALIDATOR-COVERAGE.md](docs/VALIDATOR-COVERAGE.md)** | coverage vs. the canonical SBC failure-mode taxonomy + backlog |
-| **[PRODUCTION-PLAN.md](docs/PRODUCTION-PLAN.md)** | the three planes (engine / rule service / telemetry) + hard gates |
-| **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)** | where every Microsoft DR rule is sourced + the re-sign workflow |
-| **[AUDIOCODES_INI.md](docs/AUDIOCODES_INI.md)** | the real AudioCodes table-`.ini` grammar -> normalized model |
+## License
 
-## Microsoft Direct Routing 2026 facts encoded (sourced + verified 2026-06-07)
+Proprietary — © 2026, all rights reserved. Not licensed for redistribution. A commercial product in active development; partnership and design-partner inquiries welcome.
 
-Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)**.
+<br/>
 
-- Trust store must contain **all 7 required Microsoft/DigiCert root CAs**, each
-  with its SHA-1 thumbprint, in the signed ruleset. This now includes the new
-  **DigiCert TLS ECC P384 Root G5** and **DigiCert TLS RSA 4096 Root G5** that
-  Microsoft is migrating onto (the earlier placeholder list wrongly carried the
-  retired Baltimore root and a bogus 2018 root, and missed the G5 pair).
-- Root matching is **naming-tolerant**: `DigiCert Global Root G2`,
-  `DigiCertGlobalRootG2`, and the SHA-1 thumbprint all match.
-- SBC leaf cert must include the **Server Authentication EKU** (enforced June
-  2026); clientAuth-only / dual-use server certs are deprecated → warned.
-- **TLS 1.2**; SIP cipher allowlist and SRTP `AES_CM_128_HMAC_SHA1_80` are carried
-  in the ruleset (active cipher/TLS-version validation is roadmap).
-- Timeline: trust-store remediation by end of Feb 2026, server-side cert rotation
-  from April 2026, serverAuth-EKU enforcement June 2026. Failure mode is a hard
-  TLS handshake stop (the "scream test" this prevents). Microsoft test endpoint:
-  `sip.g1.pstnhub.microsoft.com:5061`.
+<div align="center">
 
-> **Before production:** re-verify the root list against Microsoft's live Azure
-> Certificate Authority details page and re-sign the bundle (see docs/RULE_AUTHORITY.md).
-> The values here are sourced and dated, not frozen; CA lists change.
+**Built by [Dico Angelo](https://github.com/Dicoangelo)** — AI builder and systems architect.
+**Telecom architecture by Philip Drammeh** — ex-Microsoft Teams Direct Routing specialist.
 
-## What's deliberately NOT done yet (roadmap)
+*Telecom domain depth meets AI build velocity.*
 
-- **All five vendor parsers (AudioCodes, Cisco CUBE, Ribbon, Oracle/Acme,
-  Metaswitch Perimeta) are implemented.** Deeper per-vendor construct coverage is
-  ongoing; anynode and Avaya ASBCE (vendors 6-7) are blocked on real exports
-  (see [CONFIG-REQUEST.md](docs/CONFIG-REQUEST.md)).
-- (Done) CI wired (`.github/workflows/ci.yml`), customer CI gate example in
-  `examples/ci/`, and a local-first Docker image (air-gapped smoke in CI).
-- Everything in Phase 3/4 (agentic reasoning, live probing, SaaS).
+</div>
 
-## Now implemented
-
-- **Eight validation domains, all live** and ruleset-driven where applicable:
-  A = syntax/semantic baseline, B = interop (incl. carrier-leg keep-alive and
-  IP-as-identity), C = TLS/CA wedge (incl. **SRTP** + trust-anchor chain +
-  wildcard-aware CN/SAN), D = NAT, E = codec (incl. transcode/DSP awareness),
-  F = topology-leak (from pcap), G = routing/classification, and **S = security /
-  access-control** (default-deny, broad CIDR, media-plane ACL, IPv6 neglect).
-  G and S fire only when the config source carries the relevant info.
-- **Five real vendor parsers on one normalized model: AudioCodes, Cisco CUBE
-  (IOS-XE), Ribbon SBC Core, Oracle/Acme (ACLI), and Metaswitch Perimeta
-  (adjacency CLI).** The same validators run unmodified across all five, the
-  vendor-agnostic claim, demonstrated. Cisco BLOCKs on a missing 2026 root CA; Ribbon REVIEWs on a
-  clientAuth-only leaf (the EKU deprecation).
-- **AudioCodes parses the real parameter-table `.ini`** a Mediant actually exports
-  (indexed `[ Table ]` / `FORMAT` / `[ \Table ]` tables with cross-references;
-  Teams leg resolved via ProxySet -> pstnhub). See [AUDIOCODES_INI.md](docs/AUDIOCODES_INI.md).
-  Because a real `.ini` carries no cert/trust-store, C reports LOW "verify
-  out-of-band" instead of false-claiming CRITICAL: it distinguishes *absent* from
-  *not-present-in-this-source*.
-- **Trust-anchor chain validation** (domain C): when a real leaf+chain PEM is
-  supplied, verifies each signature in the chain (real PKI, not name-matching),
-  walks to the self-signed root, and flags a self-signed leaf, a broken chain, or
-  a chain anchored to a root that is NOT one of the required Microsoft/DigiCert
-  roots (`C.CERT.SELF_SIGNED` / `CHAIN_INVALID` / `UNTRUSTED_ANCHOR` / anchored OK).
-- **Fleet readiness report** (`fleet <dir>`): validates a directory of configs and
-  rolls them up into one executive answer - "X of N SBCs ready for the 2026 CA
-  migration" - as Markdown (or JSON), with per-SBC verdicts and the most common
-  findings. Exits non-zero if any SBC isn't 2026-ready (gateable).
-- **Compliance report** (`report --compliance <mifid2|finra|cjis|hipaa>`): maps each
-  fleet finding to the control family a regulated buyer's change-management procedure
-  cares about (recording continuity, availability, transmission security, access
-  control), so SBC-AutoOps can be named as the audited pre-deploy step. Markdown or
-  self-contained HTML, integrity-protected by a SHA-256 content hash + ruleset stamp
-  (an indicative mapping, not legal advice, and not cryptographic report signing).
-- **HA drift detection** (`diff <active> <standby>`): compares the failover-critical
-  fields between two node configs and rates trust-store drift CRITICAL.
-- **Predicted call-flow simulation** (`simulate <config>`): models a real call as
-  a chain (TLS handshake -> SIP signaling -> SDP offer/answer -> media path),
-  predicts how far it gets, names the user-visible symptom, and renders the SIP
-  ladder up to the failure. Deterministic and offline (originates no traffic).
-  Every `validate` report (text + HTML) also carries the predicted outcome.
-- **PCAP explainer** (`explain <capture.pcap>`): the post-mortem twin of
-  `simulate`. A pure-stdlib classic-pcap reader (no Wireshark/tshark/scapy)
-  reconstructs the SIP ladder from a real capture, detects RTP flow direction
-  (one-way audio), and explains why a call failed (488 codec, private media IP,
-  unanswered OPTIONS, TLS alert), mapping each cause back to a validator domain
-  (B/C/D/E) and the config fix. Also detects **topology leaks** (domain F): private/
-  internal IPs exposed in Contact/Via/Record-Route/P-Asserted-Identity headers, the
-  signaling-plane counterpart to B2BUA topology hiding. Scope: SIP-over-UDP + RTP,
-  with a best-effort note for TLS-encrypted SIP. Sample captures + generator in `samples/`.
-- **Real certificate inspection** (`cert_inspect.py`, via `cryptography`):
-  EKU, SAN, expiry, issuer, local chain-build; C runs it on any referenced cert.
-- **Ed25519 bundle signing** with a pinned publisher public key; tampered
-  bundles are rejected before use. Sign/re-sign via
-  `python -m sbc_validator.tools.sign_ruleset <bundle> <key.pem>`.
-- **Remote signed-rule transport**: `RuleClient` can pull a bundle from a central
-  rule API over a stdlib HTTPS GET, verifying the signature BEFORE caching/using
-  it and falling back to the last verified cache on network failure (never falling
-  back on a tampered bundle). `python -m sbc_validator.tools.fetch_ruleset <api>
-  <ruleset_id>` pulls + verifies into the local cache, so `validate` stays offline.
-- **On-prem AI explanation for `explain`** (`--ai`): a bundled, air-gapped model
-  (protocol-aware SIP tokenization + tiny classifier, pure stdlib, ~2 KB) adds a
-  plain-English failure-class explanation with confidence. Hard rules: it never
-  overrides the deterministic diagnosis (disagreement -> suppressed, stated), no
-  network call ever, and tokenization strips every IP/FQDN/Call-ID before the
-  model sees anything. Trained on a synthetic 6-class corpus (incl. the 2026
-  TLS-handshake wedge); retrains as real captures arrive.
-- **Customer-facing HTML report** (`--html <path>`): self-contained, no JS/network,
-  severity chips + verdict banner + per-finding why/fix. Internal artifact only.
-- **Turnkey demo** (`./demo.sh`): validates the 4-vendor fleet, writes an HTML
-  report per SBC, builds `dashboard_data.json`, runs an HA-drift check, and prints
-  the verdict table.
-- **Installable package** (`pip install -e .`) exposing the `sbc-validator`
-  console command.
-- **Test suite** (`pytest`, 160 tests) covering all five parsers (incl. the real
-  AudioCodes table-`.ini`), the eight validation domains, SRTP, HA drift,
-  call-flow simulation, the pcap explainer (incl. topology leak), the real-config
-  no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,
-  and HTML rendering.
-
-## Note on demo certificates
-
-The sample leaf PEMs (`samples/*_leaf.pem`) are self-signed fixtures that exist to
-exercise EKU/SAN/expiry inspection. A production SBC presents a CA-issued leaf.
-Domain C already verifies that a supplied leaf+chain PEM terminates at one of the
-required Microsoft/DigiCert roots (`C.CERT.UNTRUSTED_ANCHOR` / `CHAIN_ANCHORED`);
-the fixtures are self-signed only so this repo carries no third-party CA material.
-
-## Security note
-
-The rule-bundle signing key is split: the **public** half is pinned in
-`rules/client.py` (`_PINNED_PUBLIC_KEY_B64`); the **private** half lives offline,
-outside this repo (`~/.sbc-validator/keys/publisher_ed25519.pem`, chmod 600) and
-is used only by the offline signer (`tools/sign_ruleset.py`). The verifier never
-holds the private key. Migrate the private key to an HSM before GA. To rotate:
-generate a new keypair, update `_PINNED_PUBLIC_KEY_B64`, and re-sign the rulesets.
+<img src="https://capsule-render.vercel.app/api?type=waving&height=120&color=0:9d1b54,50:6e1340,100:1a0a12&section=footer" width="100%"/>
