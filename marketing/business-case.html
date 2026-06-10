@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SBC-AutoOps · The independent truth layer for real-time voice</title>
 <meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA/EKU migration failure from the config, before the outage, across AudioCodes, Cisco, Ribbon, and Oracle. Run the live demo." />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<!-- Self-hosted fonts: zero external requests. The page proves the air-gap claim. -->
+<link rel="preload" href="fonts/inter-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/archivo-800-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
   :root{
     --garnet:#9d1b54; --garnet-soft:#c14d80; --garnet-deep:#7a1340;
