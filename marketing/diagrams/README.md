@@ -9,6 +9,33 @@ Canonical artifacts, and exactly how to reproduce them, so no session re-derives
 | `sbc-autoops-architecture-web.png` | 1800px web copy of the above (embedded in `business-case.html` #how). | `sips -Z 1800` |
 | `sbc-autoops-architecture.png` | First-pass architecture (raw nano-banana, no critic). Superseded; kept as alt. | nano-banana-pro raw |
 | `sbc-autoops-positioning.png` | Positioning chart: call-life timeline (red X at TLS handshake) + three coverage bars (AIOps blind / single-vendor siloed / SBC-AutoOps pre-deploy). | nano-banana raw |
+| `sbc-autoops-forcing-calendar-refined.png` | **Forcing-event calendar 2026-2029** (4K master). Timeline: Wave 1 Microsoft CA/EKU (Mar 7-roots / Apr edge rotation / Jun serverAuth-only), Wave 2 cert-lifetime step chart 398→200→100→47 days, Wave 3 Chrome root policy, Wave 4 PQC. Footer: "each wave = a new signed rule bundle, same engine." Source: `insights/09-cadence-forcing-events.md`. The "cadence, not climax" evidence image. | researchgravity refined pipeline |
+| `sbc-autoops-forcing-calendar-web.png` | 1800px web copy of the above. | `sips -Z 1800` |
+| `sbc-autoops-call-death-chain-refined.png` | **Where Calls Die** (4K master). Four-link chain TLS→SIP→SDP→media→STABLE, each with failure card: verdict (NO_CONNECT/REJECTED/NO_MEDIA/ONE_WAY_AUDIO), user symptom, two real check IDs. Source: `sbc_validator/call_sim.py` hardstop maps. | researchgravity refined pipeline |
+| `sbc-autoops-call-death-chain-web.png` | 1800px web copy of the above. | `sips -Z 1800` |
+| `sbc-autoops-silent-failure.png` | Editorial narrative image: NOC with all-green dashboards while voice is silently dead ("you hear about it from users, not a dashboard"). Hero / LinkedIn / outreach asset. Web copy is `-web.jpg` (photo → jpeg). | nano-banana-pro raw (2K) |
+| `sbc-autoops-hero-truth-layer.png` | **Front-end hero visual** (4K + `-web.png`). Abstract "truth layer": five chaotic vendor streams pass through a translucent garnet plane and emerge as ordered parallel lines. NO text; right side intentionally quiet (terminal widget sits there). For the light hero on business-case.html. | refined pipeline (SUPERMAX council spec) |
+| `sbc-autoops-architecture-dark.png` | **Dark-theme architecture** (4K + `-web.png`) for the `#how` dark section. Six zones on rail blue-black `#161c25`, uniform faint-white panels, terminal-palette verdict pills, "Air-gapped in VPC" dashed boundary, "signed rules in"/"anon findings out" chips. | refined pipeline (SUPERMAX council spec) |
+
+| `sbc-autoops-call-death-chain-dark.png` | **Dark-theme call-death chain** (4K + `-web.png`) for the `#regulated` dark section. Four garnet-soft chain links → STABLE pill, four failure cards with VERDICT/SYMPTOMS/CHECK-ID eyebrows and real check IDs. | refined pipeline (SUPERMAX council spec) |
+| `sbc-autoops-og-banner.png` | **OG/social banner** (4K + `-web.png`; export 1200×630 for og:image). Brand mark + "The independent *truth* layer / for real-time voice" + mono trustline. Supersedes `og-card.png` candidate. | refined pipeline (SUPERMAX council spec) |
+
+### SUPERMAX front-end set (2026-06-10)
+All four specs live in `SPECS-frontend-set.md`, authored by the sbc-image-council
+(brand-guardian constraint sheet → design-engineer specs → team-lead renders →
+visual-qa scoring). Six renders total for four keepers (~$1.85): architecture-dark
+v1 leaked critic meta-text, call-death-chain v1 leaked "15%...90%" size-hierarchy
+percentages. Both failure masters remain in `~/visual_assets/` for reference.
+
+**New banked lessons (2026-06-10):**
+- The critic can inject its OWN meta-text two ways: style words as labels
+  ("Curved garnet arrow...") AND size-hierarchy percentages ("15%"). Specs must
+  enumerate ALL allowed visible strings and explicitly ban the percent character.
+- Dark sections use the rail palette `#161c25→#141a23` with garnet-soft `#c14d80`
+  accents and terminal verdict colors (`#5fd39b`/`#ff6b5e`) — NOT ink `#15181e`
+  or raw garnet. Source: brand-guardian constraint sheet.
+- The model loves giving each diagram zone its own pastel fill. Pin: "ALL panels
+  IDENTICAL faint translucent white; no teal/lavender/amber/gold panels."
 
 ## The custom config (paperbanana + nanobanana) — THE method to use
 The high-quality path is the **researchgravity refined pipeline**, not raw nano-banana.

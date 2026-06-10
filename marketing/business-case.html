@@ -13,13 +13,13 @@
 <meta property="og:title" content="SBC-AutoOps · The independent truth layer for real-time voice" />
 <meta property="og:description" content="Validate any vendor's SBC config before deployment. Catch the 2026 Teams Direct Routing CA/EKU failure from the config, before the outage. Free outside-in scanner included." />
 <meta property="og:url" content="https://sbcvalidator.metaventionsai.com/" />
-<meta property="og:image" content="https://sbcvalidator.metaventionsai.com/diagrams/og-card.png" />
+<meta property="og:image" content="https://sbcvalidator.metaventionsai.com/diagrams/og-banner-1200x630.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="SBC-AutoOps · The independent truth layer for real-time voice" />
 <meta name="twitter:description" content="Validate any vendor's SBC config before deployment. Free outside-in Direct Routing readiness scanner." />
-<meta name="twitter:image" content="https://sbcvalidator.metaventionsai.com/diagrams/og-card.png" />
+<meta name="twitter:image" content="https://sbcvalidator.metaventionsai.com/diagrams/og-banner-1200x630.png" />
 <!-- Self-hosted fonts: zero external requests. The page proves the air-gap claim. -->
 <link rel="preload" href="fonts/inter-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/archivo-800-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -447,6 +447,10 @@
       </div>
       <div class="cd-sub">The 2026 root-CA deadline <b>passed end of March</b>; the serverAuth-EKU enforcement lands this month. Then the next one comes, and the one after that. This is the cadence, not the climax.</div>
     </div>
+
+    <div class="reveal" style="--d:280ms;margin-top:38px">
+      <img src="diagrams/sbc-autoops-forcing-calendar-web.png" alt="The SBC forcing-event calendar, 2026 to 2029: Wave 1 is the Microsoft CA and EKU migration (March 2026 seven roots required, April 2026 edge certificate rotation with handshake hard-fail, June 2026 serverAuth-only EKU). Wave 2 compresses public-TLS certificate lifetimes from 398 to 200 to 100 to 47 days, about eight renewals a year by 2029. Wave 3 is recurring Chrome root policy; Wave 4 is post-quantum TLS. Each wave is a new signed rule bundle on the same engine." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 36px rgba(16,22,35,.10)">
+    </div>
   </div>
 </section>
 
@@ -475,6 +479,9 @@
     <span class="eyebrow reveal">Where it sits</span>
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:22ch">One independent layer that reads <span class="ser g">every vendor.</span></h2>
     <p class="lead reveal" style="--d:120ms;margin-top:18px">Every SBC vendor ships a tool, and every tool sees only its own hardware. Packet capture sees everything and reads nothing without an expert. Between them is the gap no one fills: an independent, cross-vendor layer that checks the config before it ships. That is what this is.</p>
+    <div class="reveal" style="--d:150ms;margin-top:30px">
+      <img src="diagrams/sbc-autoops-hero-truth-layer-web.png" alt="Five tangled vendor configuration streams pass through a single translucent garnet plane and emerge as clean, ordered parallel lines: the independent truth layer." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 36px rgba(16,22,35,.08)">
+    </div>
     <div class="grid g4" style="margin-top:34px">
       <div class="card reveal"><span class="seg" style="color:var(--ink-faint)">The estate</span><h3 style="margin-top:8px">Your SBCs</h3><p>AudioCodes, Cisco, Ribbon, Oracle, Metaswitch. The voice-aware firewall at Layer 5 that every call passes through, and every vendor configures differently.</p></div>
       <div class="card hl reveal" style="--d:80ms"><span class="seg">The independent layer</span><h3 style="margin-top:8px">SBC-AutoOps</h3><p>Reads any vendor's config before deploy and tells you, in plain English, exactly what will break. Never touches the live box.</p></div>
@@ -514,7 +521,7 @@
     </div>
     <p class="reveal" style="margin-top:30px;color:#fff;font-weight:600;font-size:16.5px;max-width:70ch">Plus HA-drift diff against a known-good baseline, fleet readiness reports, and a CI/CD gate that catches non-compliant config before it reaches the change window, not after.</p>
     <figure class="reveal" style="--d:240ms;margin:48px 0 0;padding:0">
-      <img src="diagrams/sbc-autoops-architecture-web.png" alt="SBC-AutoOps architecture: five vendor SBC configs (AudioCodes, Cisco CUBE, Ribbon, Oracle Acme, Metaswitch Perimeta) are normalized into one vendor-neutral model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict. The whole pipeline runs air-gapped inside the customer VPC, with only a signed rule bundle inbound and only anonymized findings outbound." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#fff">
+      <img src="diagrams/sbc-autoops-architecture-dark-web.png" alt="SBC-AutoOps architecture: five vendor SBC configs (AudioCodes, Cisco CUBE, Ribbon, Oracle Acme, Metaswitch Perimeta) are normalized into one vendor-neutral model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict. The whole pipeline runs air-gapped inside the customer VPC, with only a signed rule bundle inbound and only anonymized findings outbound." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.12)">
       <figcaption style="margin-top:14px;color:rgba(255,255,255,.62);font-size:14px;max-width:78ch">One independent layer, five vendors, eight domains. Configs never leave your environment: the only thing that crosses the boundary inbound is a signed rule bundle, and the only thing that can leave is anonymized findings you opt into.</figcaption>
     </figure>
   </div>
@@ -637,6 +644,10 @@
       <div class="card reveal"><span class="seg">Financial · MiFID II / FINRA</span><h3 style="margin-top:10px">Societe Generale · TP ICAP</h3><p style="margin-top:8px">HA Oracle clustering for trader voice with WORM-compliant recording; multi-vendor cloud migration on AudioCodes + Cisco CUBE. If TLS fails, unrecorded calls must be blocked, or it is a fine.</p></div>
       <div class="card reveal" style="--d:90ms"><span class="seg">Health · Public safety · HIPAA / CJIS</span><h3 style="margin-top:10px">UCF · Falck EMS</h3><p style="margin-top:8px">CJIS-compliant police routing, HIPAA clinics, and global emergency triage that cannot drop a packet. Survivable branch appliances must trust the new DigiCert roots.</p></div>
       <div class="card reveal" style="--d:180ms"><span class="seg">Defense · Manufacturing</span><h3 style="margin-top:10px">US DoD · Bosch Group</h3><p style="margin-top:8px">JITC-certified Ribbon with FIPS-140-2 at the DoD; HA AudioCodes pairs running Local Media Optimization across Bosch factory floors worldwide.</p></div>
+    </div>
+
+    <div class="reveal" style="--d:240ms;margin-top:38px">
+      <img src="diagrams/sbc-autoops-call-death-chain-dark-web.png" alt="Where calls die: a call is a four-link chain of TLS handshake, SIP signaling, SDP offer and answer, and media path, ending in a STABLE call. Four failure cards show where it breaks: NO_CONNECT (never registers, C.CA.ROOT_MISSING, C.TLS.MTLS_DISABLED), REJECTED (403 or 404 from Teams, B.SIP.IDENTITY_IS_IP, G.CLASS.UNCLASSIFIED), NO_MEDIA (sets up with no audio, E.CODEC.NONE_OFFERED, E.CODEC.NO_OVERLAP), and ONE_WAY_AUDIO (callers can't hear, D.NAT.PRIVATE_IP, C.SRTP.DISABLED)." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.12)">
     </div>
   </div>
 </section>

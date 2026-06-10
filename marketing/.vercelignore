@@ -1,0 +1,11 @@
+# 4K masters and specs stay local; only -web copies, og exports, and demo shots deploy
+diagrams/*-refined.png
+diagrams/sbc-autoops-hero-truth-layer.png
+diagrams/sbc-autoops-architecture-dark.png
+diagrams/sbc-autoops-call-death-chain-dark.png
+diagrams/sbc-autoops-og-banner.png
+diagrams/sbc-autoops-silent-failure.png
+diagrams/sbc-autoops-architecture.png
+diagrams/SPECS-frontend-set.md
+diagrams/README.md
+fonts/*.zip
