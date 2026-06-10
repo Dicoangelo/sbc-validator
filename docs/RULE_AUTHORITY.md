@@ -11,10 +11,11 @@ verified, and how to keep it current without silent drift.
 | Rule area | Source | Last verified |
 |---|---|---|
 | Required root CAs (7) + SHA-1 thumbprints | Microsoft Learn, *Direct Routing What's New*, "Update on upcoming certificate changes (2025-12-12)" | 2026-06-07 |
-| serverAuth EKU requirement (eff. June 2026); clientAuth EKU status | same | 2026-06-07 |
-| TLS 1.2 + the four SIP cipher suites; SRTP `AES_CM_128_HMAC_SHA1_80` | Microsoft Learn, *Azure direct routing infrastructure requirements* | 2026-06-07 |
-| Test endpoint `sip.g1.pstnhub.microsoft.com:5061`; April-2026 server-side rotation | Microsoft Learn, *Direct Routing What's New*, "Testing endpoint (2026-02-16)" | 2026-06-07 |
-| Teams-supported codecs (SILK, G.711, G.722, G.729) | *Azure direct routing infrastructure requirements* | 2026-06-07 |
+| serverAuth EKU REQUIRED on SBC leaf (always). PRECISION: MS SIP interface still ACCEPTS SBC certs WITHOUT clientAuth EKU "for the foreseeable future"; the June-2026 change is that public CAs stop issuing clientAuth in server certs (Chrome Root Program v1.6), so certs become serverAuth-only. MS may require clientAuth on SBC certs in the future (not yet). | *Direct Routing What's New*, "Clarification on Client Authentication EKU" + "Update (2025-12-12)" | 2026-06-09 |
+| TLS 1.2 (forced) + the four SIP cipher suites; SRTP `AES_CM_128_HMAC_SHA1_80` | Microsoft Learn, *[Connect your SBC to Direct Routing](https://learn.microsoft.com/en-us/microsoftteams/direct-routing-connect-the-sbc)* — "Microsoft forces TLS1.2... one of the following cipher suites: ...256_GCM_SHA384, ...128_GCM_SHA256, ...256_CBC_SHA384, ...128_CBC_SHA256". EXACT match to ruleset verified 2026-06-09. SRTP suite from *What's New* SDP example. | 2026-06-09 |
+| Test endpoint `sip.g1.pstnhub.microsoft.com:5061`; end-March SBC-side / April-2026 server-side rotation | Microsoft Learn, *Direct Routing What's New*, "Testing endpoint (2026-02-16)" | 2026-06-09 |
+| Teams-supported codecs (SILK, G.711, G.722, G.729, AMR-WB newly enabled) | *Direct Routing plan* (codecs) + *What's New* (AMR-WB) | 2026-06-09 |
+| SIP OPTIONS interval: 60-180s per trunk/endpoint; in-band DTMF NOT supported; SDES-SRTP required | *Connect the SBC* + *Direct Routing protocols (RFC standards)* | 2026-06-09 |
 
 URLs:
 - https://learn.microsoft.com/en-us/microsoftteams/direct-routing-whats-new
