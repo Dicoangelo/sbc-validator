@@ -4,7 +4,22 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SBC-AutoOps · The independent truth layer for real-time voice</title>
-<meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA/EKU migration failure from the config, before the outage, across AudioCodes, Cisco, Ribbon, and Oracle. Run the live demo." />
+<meta name="description" content="Local-first, vendor-agnostic SBC validation. Catch the 2026 Microsoft Teams Direct Routing CA/EKU migration failure from the config, before the outage, across AudioCodes, Cisco, Ribbon, Oracle, and Metaswitch. Run the live demo." />
+<link rel="canonical" href="https://sbcvalidator.metaventionsai.com/" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%239d1b54'/%3E%3Ctext x='16' y='22' font-family='Arial,sans-serif' font-size='18' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
+<!-- Social cards -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="SBC-AutoOps" />
+<meta property="og:title" content="SBC-AutoOps · The independent truth layer for real-time voice" />
+<meta property="og:description" content="Validate any vendor's SBC config before deployment. Catch the 2026 Teams Direct Routing CA/EKU failure from the config, before the outage. Free outside-in scanner included." />
+<meta property="og:url" content="https://sbcvalidator.metaventionsai.com/" />
+<meta property="og:image" content="https://sbcvalidator.metaventionsai.com/diagrams/og-card.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="SBC-AutoOps · The independent truth layer for real-time voice" />
+<meta name="twitter:description" content="Validate any vendor's SBC config before deployment. Free outside-in Direct Routing readiness scanner." />
+<meta name="twitter:image" content="https://sbcvalidator.metaventionsai.com/diagrams/og-card.png" />
 <!-- Self-hosted fonts: zero external requests. The page proves the air-gap claim. -->
 <link rel="preload" href="fonts/inter-400-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/archivo-800-normal-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -349,7 +364,7 @@
           <a class="btn ghost" href="/scanner">Scan your SBC free</a>
           <a class="btn ghost" href="#demo">Run the live demo</a>
         </div>
-        <div class="trustline reveal" style="--d:300ms"><b>4</b> vendor parsers · <b>8</b> validation domains · <b>126</b> tests in CI · air-gapped</div>
+        <div class="trustline reveal" style="--d:300ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>145</b> tests in CI · air-gapped</div>
       </div>
 
       <div class="heroviz reveal" style="--d:200ms">
@@ -461,7 +476,7 @@
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:22ch">One independent layer that reads <span class="ser g">every vendor.</span></h2>
     <p class="lead reveal" style="--d:120ms;margin-top:18px">Every SBC vendor ships a tool, and every tool sees only its own hardware. Packet capture sees everything and reads nothing without an expert. Between them is the gap no one fills: an independent, cross-vendor layer that checks the config before it ships. That is what this is.</p>
     <div class="grid g4" style="margin-top:34px">
-      <div class="card reveal"><span class="seg" style="color:var(--ink-faint)">The estate</span><h3 style="margin-top:8px">Your SBCs</h3><p>AudioCodes, Cisco, Ribbon, Oracle. The voice-aware firewall at Layer 5 that every call passes through, and every vendor configures differently.</p></div>
+      <div class="card reveal"><span class="seg" style="color:var(--ink-faint)">The estate</span><h3 style="margin-top:8px">Your SBCs</h3><p>AudioCodes, Cisco, Ribbon, Oracle, Metaswitch. The voice-aware firewall at Layer 5 that every call passes through, and every vendor configures differently.</p></div>
       <div class="card hl reveal" style="--d:80ms"><span class="seg">The independent layer</span><h3 style="margin-top:8px">SBC-AutoOps</h3><p>Reads any vendor's config before deploy and tells you, in plain English, exactly what will break. Never touches the live box.</p></div>
       <div class="card reveal" style="--d:160ms"><span class="seg" style="color:var(--ink-faint)">Single-vendor</span><h3 style="margin-top:8px">Vendor tools</h3><p>OVOC, RAMP, Element Manager. Each sees only its own hardware, blind across a mixed fleet.</p></div>
       <div class="card reveal" style="--d:240ms"><span class="seg" style="color:var(--ink-faint)">Manual</span><h3 style="margin-top:8px">Packet capture</h3><p>Wireshark sees everything and reads nothing without an expert. Not something an ops team runs before every change.</p></div>
@@ -478,7 +493,7 @@
     <div class="grid g3" style="margin-top:34px">
       <div class="card reveal"><h3>Zero-outage deployments</h3><p>Validate certs, trust stores, and HA pairs before production. The silent failure never ships.</p></div>
       <div class="card reveal" style="--d:70ms"><h3>MTTR from hours to minutes</h3><p>Replace 4 to 12 hours of manual log forensics with an instant readout and the exact thing to fix.</p></div>
-      <div class="card reveal" style="--d:140ms"><h3>One pane, every vendor</h3><p>AudioCodes, Cisco, Ribbon, Oracle, on-prem or cloud, in a single diagnostic layer.</p></div>
+      <div class="card reveal" style="--d:140ms"><h3>One pane, every vendor</h3><p>AudioCodes, Cisco, Ribbon, Oracle, Metaswitch, on-prem or cloud, in a single diagnostic layer.</p></div>
       <div class="card reveal"><h3>SLA protection</h3><p>Catch config drift before it breaks the uptime commitment your contracts and penalties hang on.</p></div>
       <div class="card reveal" style="--d:70ms"><h3>Self-serve independence</h3><p>Stop escalating to vendors, ITSPs, or Microsoft support to learn what your own config already knows.</p></div>
       <div class="card hl reveal" style="--d:140ms"><h3 style="color:var(--garnet)">Security becomes the reason to buy</h3><p>Local-first and air-gapped: raw configs never leave your environment. The security review that blocks every other tool becomes the reason to adopt this one.</p></div>
@@ -491,7 +506,7 @@
   <div class="wrap">
     <span class="eyebrow reveal">How it works</span>
     <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">Validate the config before the call, not the call after the outage.</h2>
-    <p class="lead reveal" style="--d:120ms;margin-top:18px">Four real vendor parsers normalize any config into one model, and the engine runs validation domains over it. Deterministic verdicts, not LLM guesses. It runs inside your environment, fully air-gapped.</p>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">Five real vendor parsers normalize any config into one model, and the engine runs validation domains over it. Deterministic verdicts, not LLM guesses. It runs inside your environment, fully air-gapped.</p>
     <div class="grid g3" style="margin-top:36px">
       <div class="card reveal"><span class="seg">01 · Validate</span><h3 style="margin-top:10px">Catch it from config</h3><p>Eight domains: syntax, interop, TLS and CA (the 2026 roots, EKU, SRTP, trust-anchor chains), NAT and one-way audio, codec, topology leak, routing, security. The failure is caught before a single packet is sent.</p></div>
       <div class="card reveal" style="--d:90ms"><span class="seg">02 · Simulate</span><h3 style="margin-top:10px">Predict the call</h3><p>Models the call as a chain (TLS, then SIP, then SDP, then media), predicts exactly how far it gets, names the user-visible symptom, and renders the SIP ladder up to the point of failure.</p></div>
@@ -499,8 +514,8 @@
     </div>
     <p class="reveal" style="margin-top:30px;color:#fff;font-weight:600;font-size:16.5px;max-width:70ch">Plus HA-drift diff against a known-good baseline, fleet readiness reports, and a CI/CD gate that catches non-compliant config before it reaches the change window, not after.</p>
     <figure class="reveal" style="--d:240ms;margin:48px 0 0;padding:0">
-      <img src="diagrams/sbc-autoops-architecture-web.png" alt="SBC-AutoOps architecture: four vendor SBC configs (AudioCodes, Cisco CUBE, Ribbon, Oracle Acme) are normalized into one vendor-neutral model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict. The whole pipeline runs air-gapped inside the customer VPC, with only a signed rule bundle inbound and only anonymized findings outbound." loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#fff">
-      <figcaption style="margin-top:14px;color:rgba(255,255,255,.62);font-size:14px;max-width:78ch">One independent layer, four vendors, eight domains. Configs never leave your environment: the only thing that crosses the boundary inbound is a signed rule bundle, and the only thing that can leave is anonymized findings you opt into.</figcaption>
+      <img src="diagrams/sbc-autoops-architecture-web.png" alt="SBC-AutoOps architecture: four vendor SBC configs (AudioCodes, Cisco CUBE, Ribbon, Oracle Acme) are normalized into one vendor-neutral model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict. The whole pipeline runs air-gapped inside the customer VPC, with only a signed rule bundle inbound and only anonymized findings outbound. (A fifth vendor, Metaswitch Perimeta, has since been added.)" loading="lazy" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#fff">
+      <figcaption style="margin-top:14px;color:rgba(255,255,255,.62);font-size:14px;max-width:78ch">One independent layer, five vendors, eight domains. Configs never leave your environment: the only thing that crosses the boundary inbound is a signed rule bundle, and the only thing that can leave is anonymized findings you opt into.</figcaption>
     </figure>
   </div>
 </section>
