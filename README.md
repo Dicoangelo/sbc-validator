@@ -220,7 +220,7 @@ Every rule is sourced and cited in **[RULE_AUTHORITY.md](docs/RULE_AUTHORITY.md)
   the verdict table.
 - **Installable package** (`pip install -e .`) exposing the `sbc-validator`
   console command.
-- **Test suite** (`pytest`, 100 tests) covering all four parsers (incl. the real
+- **Test suite** (`pytest`, 126 tests) covering all four parsers (incl. the real
   AudioCodes table-`.ini`), the eight validation domains, SRTP, HA drift,
   call-flow simulation, the pcap explainer (incl. topology leak), the real-config
   no-false-CRITICAL guard, signing verify/tamper, cert inspection, risk scoring,

@@ -11,7 +11,7 @@ small signed-rule service the publisher runs.
 - **Plane A (the product) — engine + local dashboard the CUSTOMER runs** inside
   their VPC. Built (v0.16.1: 4 vendors, validators A-G plus S, validate/simulate/
   explain/diff/fleet/serve/demo/report, signed+authority-sourced ruleset, CI,
-  Docker, 100 tests).
+  Docker, 126 tests).
 - **Plane B — the signed-rule service the PUBLISHER runs.** The one legitimately
   hosted backend. Client already speaks HTTPS GET + verify; for v1 this is a
   **signed file on object storage** (S3 / GitHub release asset), not a bespoke API.

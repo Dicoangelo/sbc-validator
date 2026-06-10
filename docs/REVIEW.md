@@ -27,7 +27,7 @@ rolls up 2026 Microsoft CA-migration readiness.
   F topology-leak (pcap), G routing, **S security/access-control**.
 - **Signed rule channel:** Ed25519-signed, authority-sourced (7 Microsoft roots
   from Microsoft Learn), HTTPS-only, rollback-floored; offline publisher key.
-- **Productized:** 100 tests in CI (3 Python versions), air-gapped Docker image,
+- **Productized:** 126 tests in CI (3 Python versions), air-gapped Docker image,
   clean-install acceptance harness (16/16), CI/CD gate, a one-tag-away release.
 
 ## What's deliberately NOT done (and why)

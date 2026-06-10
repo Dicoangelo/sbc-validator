@@ -197,7 +197,7 @@ dashboard (`serve`), an executive report (`report`), and a one-command `demo`.
 
 ## 10. Roadmap and honest gaps
 
-- **Proven today:** 4 vendors, 8 domains, signed authority-sourced rules, ~79 tests
+- **Proven today:** 4 vendors, 8 domains, signed authority-sourced rules, 126 tests
   in CI, air-gapped Docker, clean-install acceptance, 8 commands.
 - **Gated (zero false positives until real configs):** routing (G) and security
   (S) for Cisco/Ribbon/Oracle; per-config cipher/mTLS matching; SRTP-RTP
