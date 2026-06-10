@@ -1,4 +1,8 @@
 {
   "cleanUrls": true,
-  "rewrites": [{ "source": "/", "destination": "/business-case" }]
+  "rewrites": [
+    { "source": "/", "destination": "/business-case" },
+    { "source": "/scanner", "destination": "https://sbc-autoops-scanner.fly.dev/" },
+    { "source": "/scan", "destination": "https://sbc-autoops-scanner.fly.dev/scan" }
+  ]
 }
