@@ -55,18 +55,23 @@ def _parse_leaf_der(der: bytes) -> Optional[Certificate]:
 
 
 def default_connector(host: str, port: int = SIP_TLS_PORT,
-                      timeout: float = 8.0) -> HandshakeResult:
+                      timeout: float = 8.0,
+                      connect_host: Optional[str] = None) -> HandshakeResult:
     """Live TLS handshake purely to INSPECT (not trust) the presented cert.
 
     Uses CERT_NONE on purpose: we are an outside-in scanner reading what the edge
     presents, like SSL Labs, not a peer trying to establish a trusted session.
-    Only ever called from the CLI; tests inject their own connector.
+    Only ever called from the CLI / scan server; tests inject their own connector.
+
+    `connect_host` overrides the socket target while SNI stays `host`: the scan
+    server resolves+validates the FQDN to a known-global IP first (SSRF guard),
+    then connects to THAT ip so a DNS rebind cannot redirect us to an internal host.
     """
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     try:
-        with socket.create_connection((host, port), timeout=timeout) as raw:
+        with socket.create_connection((connect_host or host, port), timeout=timeout) as raw:
             with ctx.wrap_socket(raw, server_hostname=host) as s:
                 der = s.getpeercert(binary_form=True)
                 ver = s.version()

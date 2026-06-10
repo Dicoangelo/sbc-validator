@@ -470,6 +470,15 @@ def main(argv=None) -> int:
     pr.add_argument("--json", action="store_true", help="emit the full report as JSON")
     pr.set_defaults(func=run_probe)
 
+    ss = sub.add_parser("scan-serve",
+                        help="serve the public outside-in readiness scanner (web front-end for probe)")
+    ss.add_argument("--host", default="127.0.0.1", help="bind host (default loopback; widen to expose)")
+    ss.add_argument("--port", type=int, default=8088, help="bind port (default 8088)")
+    ss.add_argument("--ruleset", default=None, help="signed rule bundle (default: the shipped one)")
+    ss.add_argument("--log", default=None, help="append anonymized grades (no FQDN) to this JSONL")
+    ss.set_defaults(func=lambda a: __import__("sbc_validator.scan_server",
+                                              fromlist=["run_scan_serve"]).run_scan_serve(a))
+
     args = p.parse_args(argv)
     return args.func(args)
 

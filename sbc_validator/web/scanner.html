@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SBC-AutoOps · Direct Routing Readiness Scanner</title>
+<!-- Zero external requests by design: this scanner proves the air-gapped trust model. -->
+<style>
+  :root{--garnet:#9d1b54;--garnet-deep:#7a1340;--ink:#15181e;--ink-soft:#525a66;
+        --ink-faint:#8b95a1;--line:#e4e7ec;--bg:#f7f8fa;--panel:#fff;
+        --pass:#1f8a6d;--warn:#e07a1f;--crit:#c0392b;
+        --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--ink);
+       line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:640px;margin:0 auto;padding:64px 22px 80px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:16px;letter-spacing:-.01em}
+  .brand .mk{width:30px;height:30px;border-radius:8px;background:var(--garnet);color:#fff;
+             display:grid;place-items:center;font-weight:800}
+  .brand small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+               text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-top:1px}
+  h1{font-size:clamp(28px,5vw,40px);letter-spacing:-.025em;line-height:1.08;margin:34px 0 10px}
+  .lead{color:var(--ink-soft);font-size:17px;max-width:52ch}
+  form{display:flex;gap:10px;margin:30px 0 6px;flex-wrap:wrap}
+  input[type=text]{flex:1;min-width:240px;font-size:16px;font-family:var(--mono);
+       padding:14px 16px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--ink)}
+  input[type=text]:focus{outline:none;border-color:var(--garnet);box-shadow:0 0 0 3px rgba(157,27,84,.14)}
+  button{font-size:15px;font-weight:600;font-family:var(--sans);color:#fff;background:var(--garnet);
+       border:1px solid var(--garnet);border-radius:11px;padding:14px 24px;cursor:pointer;
+       transition:background .15s ease}
+  button:hover{background:var(--garnet-deep)}
+  button:disabled{opacity:.6;cursor:progress}
+  .hint{font-size:13px;color:var(--ink-faint)}
+  .card{margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+        padding:24px;box-shadow:0 1px 2px rgba(21,24,30,.04),0 10px 30px rgba(21,24,30,.05);display:none}
+  .card.show{display:block;animation:in .3s ease}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .crow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .fqdn{font-family:var(--mono);font-size:15px;font-weight:600;word-break:break-all}
+  .grade{font-size:30px;font-weight:800;letter-spacing:-.02em;padding:6px 18px;border-radius:12px;color:#fff}
+  .g-A{background:var(--pass)} .g-B{background:#3c9e7f} .g-C{background:var(--warn)}
+  .g-FAIL{background:var(--crit)} .g-INCONCLUSIVE{background:var(--ink-faint)}
+  .meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:12px}
+  ul.issues{list-style:none;margin:18px 0 0;padding:0}
+  ul.issues li{display:flex;gap:10px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line)}
+  .sev{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+       padding:3px 7px;border-radius:5px;white-space:nowrap}
+  .s-CRITICAL{background:#fdecea;color:var(--crit)} .s-HIGH{background:#fdf0e3;color:var(--warn)}
+  .s-MEDIUM{background:#fff7e6;color:#9a6b00}
+  .imsg{font-size:14px}.cid{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  .note{margin-top:16px;font-size:13.5px;color:var(--ink-soft);background:#faf3f7;
+        border:1px solid #f0d9e5;border-radius:10px;padding:12px 14px}
+  .cta{margin-top:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:14px}
+  .cta a{color:#fff;background:var(--garnet);text-decoration:none;font-weight:600;
+         padding:11px 18px;border-radius:10px}
+  .foot{margin-top:40px;font-size:12.5px;color:var(--ink-faint);font-family:var(--mono)}
+  .ok{color:var(--pass)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="mk">S</span><span>SBC-AutoOps<small>Metaventions AI</small></span></div>
+
+  <h1>Is your SBC ready for Direct Routing?</h1>
+  <p class="lead">Enter your SBC's public hostname. We run a live TLS handshake against it
+    and grade the edge against Microsoft's 2026 requirements. No login, no config upload,
+    only your public endpoint is touched.</p>
+
+  <form id="f">
+    <input type="text" id="fqdn" placeholder="sbc.contoso.com" autocomplete="off"
+           autocapitalize="off" spellcheck="false" aria-label="SBC hostname">
+    <button id="go" type="submit">Scan</button>
+  </form>
+  <div class="hint">Outside-in only. We check the handshake, certificate, TLS version and cipher.</div>
+
+  <div class="card" id="card">
+    <div class="crow">
+      <div class="fqdn" id="rfqdn"></div>
+      <div class="grade" id="rgrade"></div>
+    </div>
+    <div class="meta" id="rmeta"></div>
+    <ul class="issues" id="rissues"></ul>
+    <div class="note" id="rnote"></div>
+    <div class="cta" id="rcta" style="display:none">
+      <a href="mailto:dicoangelo@metaventionsai.com?subject=SBC-AutoOps%20inside-out%20check">Get the full inside-out check</a>
+      <span style="color:var(--ink-faint)">The other 7 domains live in the config, behind your firewall.</span>
+    </div>
+  </div>
+
+  <div class="foot">Zero external requests. Configs never leave your environment.</div>
+</div>
+
+<script>
+const f=document.getElementById('f'), go=document.getElementById('go'),
+      card=document.getElementById('card');
+f.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fqdn=document.getElementById('fqdn').value.trim();
+  if(!fqdn) return;
+  go.disabled=true; go.textContent='Scanning…';
+  try{
+    const r=await fetch('/scan',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fqdn})});
+    const d=await r.json();
+    render(d, fqdn);
+  }catch(err){ render({error:'Could not reach the scanner. Try again.'}, fqdn); }
+  go.disabled=false; go.textContent='Scan';
+});
+function el(id){return document.getElementById(id)}
+function render(d, fqdn){
+  card.classList.add('show');
+  el('rissues').innerHTML=''; el('rcta').style.display='none'; el('rmeta').textContent='';
+  if(d.error){
+    el('rfqdn').textContent=fqdn;
+    el('rgrade').textContent='—'; el('rgrade').className='grade g-INCONCLUSIVE';
+    el('rnote').textContent=d.error; return;
+  }
+  el('rfqdn').textContent=d.fqdn||fqdn;
+  const g=d.grade||'—';
+  el('rgrade').textContent=g; el('rgrade').className='grade g-'+g;
+  if(d.reachable){
+    el('rmeta').innerHTML='TLS '+(d.tls_version||'?')+' &middot; '+(d.cipher||'cipher n/a');
+  }
+  const ul=el('rissues');
+  (d.issues||[]).forEach(i=>{
+    const li=document.createElement('li');
+    li.innerHTML='<span class="sev s-'+i.severity+'">'+i.severity+'</span>'+
+      '<span><span class="imsg">'+i.message+'</span><br><span class="cid">'+i.check_id+'</span></span>';
+    ul.appendChild(li);
+  });
+  if(d.reachable && (d.issues||[]).length===0){
+    const li=document.createElement('li');
+    li.innerHTML='<span class="sev" style="background:#e6f5ef;color:var(--pass)">PASS</span>'+
+      '<span class="imsg ok">Edge readiness checks passed.</span>';
+    ul.appendChild(li);
+  }
+  if(d.grade==='INCONCLUSIVE'){ el('rnote').textContent=d.note||''; }
+  else { el('rnote').textContent='This grades the edge only. Direct Routing also depends on NAT/media, ACLs, codecs, routing and SIP normalization inside the config.'; el('rcta').style.display='flex'; }
+}
+</script>
+</body>
+</html>
