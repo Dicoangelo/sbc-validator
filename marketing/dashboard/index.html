@@ -387,7 +387,7 @@
 
         <div class="gstep">Step 0 · verify what you received (every path)</div>
         <p class="gsub">The source ships with a SHA-256 manifest covering every file. Verify before you build.</p>
-        <div class="gcode"><button class="gcopy" data-copy="shasum -a 256 -c SHA256SUMS">copy</button>tar -xzf sbc-validator-0.16.2-src.tar.gz &amp;&amp; cd sbc-validator-0.16.2<br>shasum -a 256 -c SHA256SUMS   <span class="c"># every file, against the manifest</span></div>
+        <div class="gcode"><button class="gcopy" data-copy="shasum -a 256 -c SHA256SUMS">copy</button>tar -xzf sbc-validator-0.16.3-src.tar.gz &amp;&amp; cd sbc-validator-0.16.3<br>shasum -a 256 -c SHA256SUMS   <span class="c"># every file, against the manifest</span></div>
 
         <div class="gstep">Path 1 · plain pip — any Python 3.10+ host</div>
         <div class="gcode"><button class="gcopy" data-copy="python3 -m venv .venv && .venv/bin/pip install . && .venv/bin/sbc-validator demo">copy</button>python3 -m venv .venv &amp;&amp; .venv/bin/pip install .<br>.venv/bin/sbc-validator demo   <span class="c"># the full mixed-vendor showcase, locally</span></div>
