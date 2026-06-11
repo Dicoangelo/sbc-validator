@@ -198,6 +198,29 @@
   .card p{font-size:14.5px;color:var(--ink-soft);margin:0;line-height:1.62}
   .seg{font-family:var(--mono);font-size:10.5px;color:var(--garnet);font-weight:700;letter-spacing:.12em;text-transform:uppercase}
 
+
+  /* -- security contract -- */
+  .contract{margin-top:34px;border:1px solid rgba(255,255,255,.14);border-radius:var(--r);overflow:hidden;background:rgba(255,255,255,.02)}
+  .ct-head{padding:13px 20px;font-size:11px;letter-spacing:.16em;color:var(--garnet-soft);border-bottom:1px solid rgba(255,255,255,.10);font-weight:700}
+  .ct-row{display:grid;grid-template-columns:150px 1fr}
+  .ct-row + .ct-row{border-top:1px solid rgba(255,255,255,.08)}
+  .ct-tag{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;padding:18px;border-right:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;justify-content:center;gap:3px}
+  .ct-tag small{font-size:9px;color:var(--rail-faint);letter-spacing:.06em;font-weight:600}
+  .ct-tag.in{color:#9ec4ff}.ct-tag.out{color:#5fd39b}.ct-tag.opt{color:#e0a01f}.ct-tag.run{color:var(--garnet-soft)}
+  .ct-body{padding:16px 20px;font-size:14px;color:var(--rail-text);line-height:1.62}
+  .ct-body b{color:#fff}
+  .ct-body .mono{font-size:12.5px;color:var(--garnet-soft)}
+  .vlist{list-style:none;margin:12px 0 0;padding:0}
+  .vlist li{padding:10px 0;border-top:1px solid rgba(255,255,255,.07);font-size:13.5px;color:var(--rail-text);line-height:1.6}
+  .vlist li:first-child{border-top:none}
+  .vlist li b{color:#fff}
+  .vterm{background:#0c1117;border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7;color:#cdd6e0;overflow-x:auto;margin:12px 0 0}
+  .grid.g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:860px){.grid.g2{grid-template-columns:1fr}}
+  @media(max-width:680px){.ct-row{grid-template-columns:1fr}.ct-tag{flex-direction:row;align-items:center;gap:8px;border-right:none;border-bottom:1px solid rgba(255,255,255,.08);padding:11px 20px}}
+  .scan-note{font-size:12px;font-family:var(--mono);color:var(--ink-faint)}
+  .scan-note a{color:var(--garnet)}
+
   /* ── crisis ──────────────────────────────────── */
   .failbox{background:linear-gradient(180deg,#fff,#fff8f7);border:1px solid #f0dad7;border-left:4px solid var(--crit);border-radius:14px;padding:24px 28px;margin-top:30px;box-shadow:var(--shadow-card)}
   .failbox .tag{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--crit);font-weight:700}
@@ -390,6 +413,7 @@
     <nav aria-label="Primary">
       <a href="#crisis">The deadline</a>
       <a href="#how">How it works</a>
+      <a href="#security">Security</a>
       <a href="#demo">Live demo</a>
       <a href="#market">Market</a>
       <a href="#proof">Proof</a>
@@ -439,11 +463,12 @@
 
       <p class="reveal hero-emph" style="--d:120ms">You cannot monitor a call that is <span class="ser g">cryptographically blocked from ever starting.</span> The only place to catch it is the config, before you ship.</p>
       <div class="cta-row reveal" style="--d:160ms">
-        <a class="btn" href="#cta">Book a design-partner call</a>
-        <a class="btn ghost" href="/scanner">Scan your SBC free</a>
+        <a class="btn" href="#security">Run it in your own environment</a>
+        <a class="btn ghost" href="#cta">Book a design-partner call</a>
         <a class="btn ghost" href="#demo">Run the live demo</a>
       </div>
-      <div class="trustline reveal" style="--d:200ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>160</b> tests in CI · air-gapped</div>
+      <div class="trustline reveal" style="--d:200ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>160</b> tests in CI · zero outbound network required</div>
+      <div class="trustline reveal scan-note" style="--d:240ms">free outside-in <a href="/scanner">edge scan</a> · edge-only · unauthenticated · stores nothing</div>
     </div>
 
     <div class="statgrid reveal" style="--d:120ms">
@@ -588,6 +613,57 @@
   </div>
 </section>
 
+<!-- ═══ SECURITY ═══ -->
+<section id="security" class="dark">
+  <div class="wrap">
+    <span class="eyebrow reveal">Security &amp; data handling</span>
+    <h2 class="reveal" style="--d:60ms;margin-top:18px;max-width:24ch">Where does your data go? <span class="ser g">Nowhere.</span></h2>
+    <p class="lead reveal" style="--d:120ms;margin-top:18px">The data-flow contract, stated precisely, in your language. This panel is written to be lifted straight into a security review.</p>
+
+    <div class="contract reveal" style="--d:160ms">
+      <div class="ct-head mono">DATA-FLOW CONTRACT · SBC-AUTOOPS VALIDATOR</div>
+      <div class="ct-row">
+        <div class="ct-tag in">INBOUND<small>one channel</small></div>
+        <div class="ct-body"><b>A signed rule bundle. Nothing else.</b> Versioned, Ed25519-signed, verified before use against a publisher key pinned in source (<span class="mono">rules/client.py</span>) and deliberately not environment-overridable. A compiled-in freshness floor refuses rollback to stale bundles; inbound reads are capped at 8&nbsp;MB. Configs never travel this channel.</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-tag out">OUTBOUND<small>default</small></div>
+        <div class="ct-body"><b>Nothing.</b> No telemetry, no call-home, no update check. The documented production mode is <span class="mono">docker run --network none</span>: zero outbound network is required to run.</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-tag opt">OUTBOUND<small>opt-in only</small></div>
+        <div class="ct-body"><b>Anonymized findings, only if you pass <span class="mono">--share-anon</span>.</b> The payload (<span class="mono">schema sbc-anon/1</span>) carries check IDs, severities, the vendor family, the ruleset version, and a salted non-reversible org token. Excluded by construction: config text, locators, FQDNs, CN/SAN, IP addresses, file paths, free-text details.</div>
+      </div>
+      <div class="ct-row">
+        <div class="ct-tag run">RUNTIME</div>
+        <div class="ct-body"><b>Air-gapped and unprivileged.</b> The container drops to a non-root user (uid&nbsp;10001). The engine is ~4,700 lines across 29 modules with <b>one</b> runtime dependency (<span class="mono">cryptography</span>); the pcap reader, rule client and dashboard server are hand-rolled on the standard library.</div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:26px">
+      <div class="card reveal" style="--d:200ms">
+        <span class="seg">Verify, don't trust</span>
+        <h3 style="margin-top:10px">Don't take the image's word for it</h3>
+        <ul class="vlist">
+          <li><b>Build it from source, inside your environment.</b> Design partners receive the full source tree with a SHA-256 manifest; <span class="mono">docker build</span> runs entirely on your side. There is no pre-built artifact you are asked to trust.</li>
+          <li><b>The audit fits in an afternoon.</b> One dependency, no framework, no vendored blobs. The Ed25519 pin, the freshness floor and the verify-before-use path are plain Python you can read.</li>
+          <li><b>Prove the air gap yourself.</b> Run a validation with networking disabled; it completes. That is the whole claim, falsifiable in one command.</li>
+        </ul>
+      </div>
+      <div class="card reveal" style="--d:260ms">
+        <span class="seg">Run it yourself</span>
+        <h3 style="margin-top:10px">Air-gapped in three commands</h3>
+        <pre class="vterm mono">$ sha256sum -c SHA256SUMS        # verify the source manifest
+$ docker build -t sbc-validator .
+$ docker run --rm --network none \
+    -v "$PWD/configs:/work" sbc-validator \
+    validate /work/teams.ini --html report.html</pre>
+        <p style="margin-top:12px;font-size:14px;color:var(--rail-text)">165 automated tests in CI across three Python versions. The version-stamped verdict is your audit artifact for the change record.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ INTERACTIVE DEMO ═══ -->
 <section id="demo">
   <div class="wrap">
@@ -628,10 +704,10 @@
       <figcaption class="muted" style="margin-top:14px;font-size:14px;max-width:80ch">One SBC in the walk above; the fleet dashboard rolls the whole estate into one verdict per box, with the 2026-readiness picture across all five vendors at a glance. Same engine output, served locally, nothing leaves your environment.</figcaption>
     </figure>
     <div class="demo-cta reveal" style="--d:320ms;margin-top:30px;display:flex;flex-wrap:wrap;align-items:center;gap:16px 22px">
-      <span style="font-size:18px;font-weight:600;max-width:40ch">That was a replay. Now scan your real SBC's edge, free, no config upload.</span>
-      <a class="btn" href="/scanner">Scan your SBC free</a>
+      <span style="font-size:18px;font-weight:600;max-width:40ch">That was a replay. The real engine runs in your environment, air-gapped.</span>
+      <a class="btn" href="#security">Run it in your own environment</a>
       <a class="btn ghost" href="/dashboard/" target="_blank" rel="noopener">Explore the live dashboard</a>
-      <a class="btn ghost" href="#cta">Bring this to your fleet</a>
+      <a class="btn ghost" href="/scanner" title="Edge-only, unauthenticated, stores nothing">Free edge scan</a>
     </div>
   </div>
 </section>

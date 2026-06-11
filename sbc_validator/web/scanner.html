@@ -117,7 +117,7 @@
     <button id="go" type="submit">Scan</button>
   </form>
   <div class="sweep" aria-hidden="true"><i></i></div>
-  <div class="hint">Outside-in only. We check the handshake, certificate, TLS version and cipher.</div>
+  <div class="hint">Edge-only and unauthenticated: we check the public handshake, certificate, TLS version and cipher. Nothing is stored beyond an anonymized grade and check IDs, never your hostname. The full validator runs air-gapped in your own environment.</div>
 
   <div class="card" id="card">
     <div class="crow">
