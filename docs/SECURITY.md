@@ -90,8 +90,16 @@ image's word for anything:
 3. **Prove the air gap yourself.** Run a validation with `--network none`; it
    completes. The whole claim is falsifiable in one command.
 4. **Check the dependency surface:** `pip show cryptography` is the entire
-   third-party story. `pip-audit` runs clean in seconds.
-5. **165 automated tests in CI** across three Python versions.
+   third-party story. `pip-audit` runs clean in seconds. A CycloneDX SBOM of
+   the runtime environment ships in the repo (`docs/sbom-cyclonedx.json`);
+   regenerate it against your own install with
+   `cyclonedx-py environment <your-venv> -o sbom.json` and diff.
+5. **Verify a rule bundle out-of-band.** The fetch step is deliberately
+   separate from validation so the engine stays offline:
+   `python -m sbc_validator.tools.fetch_ruleset <api_base> <ruleset_id> -o local.json`
+   verifies the Ed25519 signature against the pinned key before writing a
+   byte. A tampered bundle is rejected, not cached.
+6. **165 automated tests in CI** across three Python versions.
 
 ## The hosted scanner is a separate, smaller thing
 

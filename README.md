@@ -140,9 +140,29 @@ sbc-validator serve
 </div>
 
 - **[Live business case](https://sbcvalidator.metaventionsai.com)** — the product, the 2026 deadline, the market
-- **[Free readiness scanner](https://sbcvalidator.metaventionsai.com/scanner)** — outside-in TLS grade for any SBC FQDN, no config upload
+- **[Security & data handling](https://sbcvalidator.metaventionsai.com/#security)** — the data-flow contract, stated precisely
 - **[Live dashboard demo](https://sbcvalidator.metaventionsai.com/dashboard/)** — the fleet view, sample data
+- **[Free readiness scanner](https://sbcvalidator.metaventionsai.com/scanner)** — outside-in TLS grade for any SBC FQDN; edge-only, unauthenticated, stores nothing (grades + check IDs aggregate only, never hostnames)
 - **[State-of-readiness benchmark](https://sbc-autoops-scanner.fly.dev/stats)** — anonymized aggregate grades
+
+## Security & data handling
+
+The data-flow contract is documented precisely in **[docs/SECURITY.md](docs/SECURITY.md)**,
+written to be lifted into a security review. The short version:
+
+- **Inbound, one channel:** a versioned, Ed25519-signed rule bundle, verified before use
+  against a publisher key pinned in source (`sbc_validator/rules/client.py`), with a
+  compiled-in freshness floor that refuses rollback. Configs never travel this channel.
+- **Outbound, default:** nothing. No telemetry, no call-home. `docker run --network none`
+  is the documented production mode.
+- **Outbound, opt-in (`--share-anon`):** check IDs, severities, vendor family, ruleset
+  version, salted org token. Never config text, FQDNs, CN/SAN, IPs, or file paths
+  (`sbc_validator/report/anonymize.py`).
+- **Verify, don't trust:** build from source on your side. `sha256sum -c SHA256SUMS`
+  verifies the tree (regenerate with `scripts/integrity-manifest.sh`); a runtime
+  CycloneDX SBOM ships at `docs/sbom-cyclonedx.json`. One runtime dependency
+  (`cryptography`). Docker is packaging, not a requirement: plain `pip install .` on
+  any Python 3.10+ host, fully-offline wheel installs, and rootless Podman all work.
 
 ## What's verified, stated up front
 
