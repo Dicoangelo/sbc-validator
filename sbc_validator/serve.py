@@ -3,11 +3,16 @@ Local product surface (dashboard + scanner + walkthrough).
 
     sbc-validator serve [--results results] [--port 8787] [--host 127.0.0.1]
 
-Serves the packaged single-page app with three tabs, all backed by the real engine:
-  * Fleet     — live dashboard_data.json rebuilt from the results directory.
-  * Scanner   — outside-in readiness probe (`POST /scan`), same engine as the public scanner.
+Serves the packaged single-page app, all views backed by the real engine:
+  * Fleet       — live dashboard_data.json rebuilt from the results directory.
+  * Scanner     — outside-in readiness probe (`POST /scan`), same engine as the public scanner.
   * Walkthrough — `GET /walk?which=broken|fixed` runs the real `walk` on the bundled
     samples and returns the actual staged output (ingest → validate → verdict → predict).
+  * Findings    — fleet-wide filterable findings table (client-side over the payload).
+  * Rule Bundles — `GET /bundle` provenance of the loaded signed ruleset.
+  * Reports     — `GET /report` executive report (HTML, `?format=md` download) and
+    `GET /report/sbc?name=` per-SBC report from the latest audit-trail JSON.
+  * Setup Guide — wiring the validator into an estate (run paths, CI gate, artifacts).
 
 Pure stdlib, no framework. Local-first: binds to 127.0.0.1 by default; raw configs
 never travel. The scanner only touches public endpoints; the walkthrough only reads

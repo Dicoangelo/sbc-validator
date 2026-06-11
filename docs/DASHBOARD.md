@@ -67,3 +67,23 @@ several runs) and each day becomes a point. A single demo run shows one point.
 result JSON (already on the host); raw configs are never sent anywhere. With
 `--anon` on the data build, the payload carries tokens instead of FQDNs and no
 sites/locators, suitable for a cross-tenant view.
+
+## Views and routes (serve)
+
+The console has seven views: Fleet, Readiness Scanner, Walkthrough, Findings
+(fleet-wide filterable table), Rule Bundles (provenance of the loaded signed
+ruleset), Reports, and the Setup Guide.
+
+Post-run delivery routes, all rendered live from the results directory:
+
+| Route | What it returns |
+|---|---|
+| `/report` | Consolidated executive report (HTML) |
+| `/report?format=md` | Same report as a Markdown download |
+| `/report/sbc?name=<sbc>` | Per-SBC report from that box's latest run JSON |
+| `/bundle` | Signed-bundle metadata: version, issued/verified, domains, freshness floor, pinned-key fingerprint |
+
+The single source of truth behind all of them is `results/<sbc>/<timestamp>.json`
+(history-preserving, identical schema from every run path). Per-SBC reports are
+disabled when serving with `--anon`: that view tokenizes SBC names, and raw
+reports would leak the FQDNs it exists to hide.

@@ -127,7 +127,8 @@ sbc-validator report --compliance mifid2 --results results/
 # outside-in: live TLS handshake to an SBC edge, graded vs the ruleset
 sbc-validator probe sbc.contoso.com
 
-# the local dashboard (reads results/, never leaves the box)
+# the local console: fleet view, findings, reports, bundle provenance
+# (reads results/, never leaves the box)
 sbc-validator serve
 ```
 
