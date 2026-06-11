@@ -696,6 +696,7 @@ document.querySelectorAll(".gcopy").forEach(b=>b.addEventListener("click",()=>{n
     const h1=document.querySelector(".topbar h1"); if(h1) h1.textContent=titles[v];
   }
   document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);}));
+  if(location.hash){const h=location.hash.slice(1); if(views[h]) show(h);}
 
   /* scanner */
   const sf=document.getElementById("scanForm");

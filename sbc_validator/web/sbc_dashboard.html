@@ -152,6 +152,16 @@
 
   /* ---------- tabbed views (Fleet / Scanner / Walkthrough) ---------- */
   .view[hidden]{display:none}
+  .gcode{position:relative;background:#10151c;color:#cdd6e0;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;border-radius:9px;padding:13px 15px;overflow-x:auto;margin:10px 0 0}
+  .gcode .c{color:#6b7785}
+  .gcopy{position:absolute;top:8px;right:8px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:#8b95a1;border:1px solid #2c3340;background:rgba(255,255,255,.05);border-radius:6px;padding:3px 9px;cursor:pointer}
+  .gcopy:hover{color:#e8ecf1}
+  .gstep{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--garnet);font-family:'IBM Plex Mono',monospace;margin:22px 0 4px}
+  .gstep:first-of-type{margin-top:4px}
+  .gsub{font-size:13px;color:var(--ink-soft);margin:2px 0 0;max-width:70ch}
+  .reqs{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}
+  .req{font-size:11.5px;font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-radius:30px;padding:6px 13px}
+  .req b{color:var(--garnet)}
   nav a[data-view]{cursor:pointer}
   /* scanner */
   #scanFqdn:focus{outline:none;border-color:var(--garnet-soft);box-shadow:0 0 0 3px rgba(157,27,84,.12)}
@@ -182,6 +192,7 @@
       <a class="active" data-view="fleet" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Fleet Overview</a>
       <a data-view="scanner" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>Readiness Scanner</a>
       <a data-view="walk" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 4 20 12 6 20 6 4"/></svg>Walkthrough Demo</a>
+      <a data-view="setup" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Setup Guide</a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings<em>soon</em></a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles<em>soon</em></a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports<em>soon</em></a>
@@ -349,6 +360,44 @@
         <pre id="wkOut" class="wk-term">// choose Broken or Fixed, then press Run validation</pre>
       </div>
       <div class="foot"><span>Live <b>sbc-validator walk</b> output. The engine runs locally; nothing leaves your machine.</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ SETUP GUIDE ═══ -->
+  <div id="view-setup" class="view" hidden>
+    <div class="ds-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <h2>Setup Guide — wire the validator into your estate</h2>
+    </div>
+    <section class="panel" style="max-width:860px">
+      <div class="body" style="padding:20px 22px">
+        <p style="margin:0;color:var(--ink-soft);font-size:13.5px;max-width:72ch">This console is already running on your machine; everything below runs the same engine against your own configs. It reads exports, never touches an SBC, and needs <b>zero outbound network</b>.</p>
+        <div class="reqs">
+          <span class="req"><b>Python 3.10+</b> or Docker / Podman</span>
+          <span class="req"><b>1</b> runtime dependency (cryptography)</span>
+          <span class="req"><b>0</b> outbound connections required</span>
+        </div>
+
+        <div class="gstep">Validate a real config</div>
+        <div class="gcode"><button class="gcopy" data-copy="sbc-validator validate your-export.ini --ruleset rulesets/ms_direct_routing_2026-06.json --html report.html">copy</button>sbc-validator validate your-export.ini \<br>&nbsp;&nbsp;--ruleset rulesets/ms_direct_routing_2026-06.json --html report.html<br><span class="c"># any of the five vendors, auto-detected</span></div>
+
+        <div class="gstep">Predict the call, diagnose a capture, diff an HA pair</div>
+        <div class="gcode"><button class="gcopy" data-copy="sbc-validator simulate your-export.ini">copy</button>sbc-validator simulate your-export.ini   <span class="c"># TLS → SIP → SDP → media, where it dies</span><br>sbc-validator explain capture.pcap       <span class="c"># post-mortem, plain English</span><br>sbc-validator diff active.ini standby.ini --fail-on review</div>
+
+        <div class="gstep">Roll up the fleet</div>
+        <div class="gcode"><button class="gcopy" data-copy="sbc-validator fleet sbc-configs/ --ruleset rulesets/ms_direct_routing_2026-06.json">copy</button>sbc-validator fleet sbc-configs/ \<br>&nbsp;&nbsp;--ruleset rulesets/ms_direct_routing_2026-06.json<br><span class="c"># "X of N SBCs ready for the 2026 CA migration" + this console: serve --results results</span></div>
+
+        <div class="gstep">Gate your pipeline</div>
+        <p class="gsub">Drop-in example at <span class="mono">examples/ci/sbc-pre-deploy-gate.yml</span>. Non-zero exit blocks the PR before a non-compliant config reaches the change window.</p>
+        <div class="gcode"><button class="gcopy" data-copy="sbc-validator validate config.ini --ruleset rulesets/ms_direct_routing_2026-06.json --fail-on review">copy</button>sbc-validator validate config.ini --fail-on review \<br>&nbsp;&nbsp;--ruleset rulesets/ms_direct_routing_2026-06.json</div>
+
+        <div class="gstep">Air-gapped and offline installs</div>
+        <div class="gcode"><button class="gcopy" data-copy="docker run --rm --network none sbc-validator demo">copy</button>docker run --rm --network none sbc-validator demo   <span class="c"># or rootless podman, identical</span><br><span class="c"># offline pip: pip download . -d wheels/ on a connected box, then</span><br>pip install --no-index --find-links wheels/ sbc-autoops-validator</div>
+
+        <div class="gstep">Refresh signed rules (stays offline at validate time)</div>
+        <div class="gcode"><button class="gcopy" data-copy="python -m sbc_validator.tools.fetch_ruleset <api_base> ms_direct_routing -o local.json">copy</button>python -m sbc_validator.tools.fetch_ruleset &lt;api_base&gt; ms_direct_routing -o local.json<br><span class="c"># Ed25519 signature verified against the pinned key BEFORE writing a byte</span></div>
+      </div>
+      <div class="foot"><span>Data-flow contract: <b>docs/SECURITY.md</b> in your source tree &middot; sbcvalidator.metaventionsai.com/#security</span></div>
     </section>
   </div>
 </main>
@@ -603,9 +652,10 @@ fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadP
 
 /* ---------------- tabs: Fleet / Scanner / Walkthrough ---------------- */
 (function(){
-  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk")};
-  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo"};
-  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough"};
+  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk"),setup:document.getElementById("view-setup")};
+  document.querySelectorAll(".gcopy").forEach(b=>b.addEventListener("click",()=>{navigator.clipboard.writeText(b.dataset.copy);b.textContent="copied";setTimeout(()=>b.textContent="copy",1200);}));
+  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo",setup:"Setup Guide"};
+  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough",setup:"Setup"};
   function show(v){
     Object.entries(views).forEach(([k,el])=>{ if(el) el.hidden=(k!==v); });
     document.querySelectorAll("nav a[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===v));
@@ -613,6 +663,7 @@ fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadP
     const h1=document.querySelector(".topbar h1"); if(h1) h1.textContent=titles[v];
   }
   document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);}));
+  if(location.hash){const h=location.hash.slice(1); if(views[h]) show(h);}
 
   /* scanner */
   const sf=document.getElementById("scanForm");
