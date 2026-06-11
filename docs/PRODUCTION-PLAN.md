@@ -40,7 +40,7 @@ Goal: a design partner can `docker run` it air-gapped in their environment.
 - [x] **0.1 Key rotation** (commit f5b7ae5): offline publisher keypair, pin
   rotated, ruleset re-signed, dev key removed from working tree, tests use an
   ephemeral `signing_key` fixture.
-- [~] **0.2 Git-history scrub** — DEFERRED by decision (dead key, private repo,
+- [x] **0.2 Git-history scrub** — DONE 2026-06-11 (git-filter-repo, force-pushed; dead key,
   no users). Trigger: before going public. See gate 1 above.
 - [x] **0.3 Clean packaging** (commit 3721ec8) — broken package-data removed,
   description A-G, clean-venv wheel install verified.

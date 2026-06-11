@@ -468,7 +468,7 @@
         <a class="btn ghost" href="#cta">Book a design-partner call</a>
         <a class="btn ghost" href="#demo">Run the live demo</a>
       </div>
-      <div class="trustline reveal" style="--d:200ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>160</b> tests in CI · zero outbound network required</div>
+      <div class="trustline reveal" style="--d:200ms"><b>5</b> vendor parsers · <b>8</b> validation domains · <b>165</b> tests in CI · zero outbound network required</div>
       <div class="trustline reveal scan-note" style="--d:240ms">free outside-in <a href="/scanner">edge scan</a> · edge-only · unauthenticated · stores nothing</div>
     </div>
 
@@ -639,7 +639,7 @@
         <div class="ct-tag run">RUNTIME</div>
         <div class="ct-body"><b>Air-gapped and unprivileged.</b> The container drops to a non-root user (uid&nbsp;10001). The engine is ~4,700 lines across 29 modules with <b>one</b> runtime dependency (<span class="mono">cryptography</span>); the pcap reader, rule client and dashboard server are hand-rolled on the standard library.</div>
       </div>
-      <div class="ct-stamp mono">contract as of 2026-06-10 · engine v0.16.1 · every row maps to source: rules/client.py · report/anonymize.py · Dockerfile</div>
+      <div class="ct-stamp mono">contract as of 2026-06-11 · engine v0.16.2 · every row maps to source: rules/client.py · report/anonymize.py · Dockerfile</div>
     </div>
 
     <div class="grid g2" style="margin-top:26px">
@@ -647,7 +647,7 @@
         <span class="seg">Verify, don't trust</span>
         <h3 style="margin-top:10px">Don't take the image's word for it</h3>
         <ul class="vlist">
-          <li><b>Build it from source, inside your environment.</b> Design partners receive the full source tree with a SHA-256 manifest; <span class="mono">docker build</span> runs entirely on your side. There is no pre-built artifact you are asked to trust.</li>
+          <li><b>Build it from source, inside your environment.</b> Design partners receive the full source tree with a SHA-256 manifest; <span class="mono">docker build</span> runs entirely on your side. There is no pre-built artifact you are asked to trust. Source: <a href="https://github.com/Dicoangelo/sbc-validator" target="_blank" rel="noopener" style="color:var(--garnet-soft)">github.com/Dicoangelo/sbc-validator</a>.</li>
           <li><b>The audit fits in an afternoon.</b> One dependency, no framework, no vendored blobs. The Ed25519 pin, the freshness floor and the verify-before-use path are plain Python you can read.</li>
           <li><b>Prove the air gap yourself.</b> Run a validation with networking disabled; it completes. That is the whole claim, falsifiable in one command.</li>
         </ul>
@@ -800,7 +800,7 @@ $ docker run --rm --network none \
     <div class="pills reveal" style="--d:120ms">
       <span class="pill"><b>5</b> real vendor parsers, one model</span>
       <span class="pill"><b>8</b> validation domains live</span>
-      <span class="pill"><b>160</b> automated tests in CI</span>
+      <span class="pill"><b>165</b> automated tests in CI</span>
       <span class="pill"><b>7</b> Microsoft roots, signed authority-sourced rules</span>
       <span class="pill">air-gapped Docker image</span>
       <span class="pill">validate · simulate · explain · diff · fleet</span>
@@ -827,7 +827,7 @@ $ docker run --rm --network none \
           <li>Validate, simulate, and explain, plus HA-drift diff</li>
           <li>Fleet readiness reports and a CI/CD gate</li>
           <li>Signed rule bundles, air-gapped Docker image</li>
-          <li>160 automated tests in CI</li>
+          <li>165 automated tests in CI</li>
         </ul>
       </div>
       <div class="card reveal" style="--d:90ms"><span class="seg" style="color:var(--ink-soft)">Next · with design partners</span>
