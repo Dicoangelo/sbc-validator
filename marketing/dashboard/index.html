@@ -464,9 +464,14 @@ function renderAll(fleet, trend){
   const by=v=>f.filter(s=>s.summary.verdict===v).length;
   const setStat=(id,v)=>{
     const el=document.getElementById(id);
+    // supersede token: a newer renderAll (e.g. dashboard_data.json arriving
+    // right after the sample paint) cancels any in-flight count-up, otherwise
+    // the old animation's final frame overwrites the real numbers.
+    const tok=(el._statTok=(el._statTok||0)+1);
     if(window.__statsAnimated || window.matchMedia("(prefers-reduced-motion: reduce)").matches){el.textContent=v;return;}
     let t0=null;
     (function tick(ts){
+      if(el._statTok!==tok)return;
       if(!t0)t0=ts;
       const p=Math.min((ts-t0)/850,1), e=1-Math.pow(1-p,3);
       el.textContent=Math.round(v*e);
