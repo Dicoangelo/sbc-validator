@@ -28,3 +28,10 @@ dev/
 
 # Scraped reference pages (scratch)
 .firecrawl/
+
+# Internal strategy material — never tracked (scrubbed from history 2026-06-11)
+business/
+marketing/insights/
+marketing/BUSINESS-CASE-SPEC.md
+docs/MEETING-QA.md
+docs/EXEC-BRIEFING.md
