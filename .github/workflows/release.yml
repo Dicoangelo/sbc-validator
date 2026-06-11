@@ -15,6 +15,7 @@ jobs:
     permissions:
       contents: read
       packages: write          # push to ghcr.io with the built-in GITHUB_TOKEN
+      id-token: write          # keyless cosign signing via GitHub OIDC
     steps:
       - uses: actions/checkout@v5
 
@@ -24,6 +25,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
 
       - name: Image metadata (tags + labels)
         id: meta
@@ -36,12 +40,23 @@ jobs:
             type=raw,value=latest
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Sign the image (keyless, Sigstore)
+        # Signs the pushed digest with an ephemeral certificate bound to this
+        # workflow's OIDC identity. Verify with:
+        #   cosign verify ghcr.io/dicoangelo/sbc-validator@<digest> \
+        #     --certificate-identity-regexp 'github.com/Dicoangelo/sbc-validator' \
+        #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+        run: |
+          IMG=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          cosign sign --yes "${IMG}@${{ steps.build.outputs.digest }}"
 
       - name: Air-gapped smoke on the published image
         run: |

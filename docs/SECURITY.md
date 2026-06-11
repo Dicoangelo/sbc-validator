@@ -99,7 +99,18 @@ image's word for anything:
    `python -m sbc_validator.tools.fetch_ruleset <api_base> <ruleset_id> -o local.json`
    verifies the Ed25519 signature against the pinned key before writing a
    byte. A tampered bundle is rejected, not cached.
-6. **165 automated tests in CI** across three Python versions.
+6. **Published images are signed.** Releases from v0.16.2 onward are signed at
+   build time with Sigstore cosign (keyless: an ephemeral certificate bound to
+   the GitHub Actions workflow identity, no long-lived signing key to steal).
+   Verify before running:
+   ```
+   cosign verify ghcr.io/dicoangelo/sbc-validator@<digest> \
+     --certificate-identity-regexp 'github.com/Dicoangelo/sbc-validator' \
+     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+   ```
+7. **pip-audit runs in CI on every push** against the runtime install, so the
+   "audits clean" claim is continuously enforced, not a snapshot.
+8. **165 automated tests in CI** across three Python versions.
 
 ## The hosted scanner is a separate, smaller thing
 

@@ -23,6 +23,21 @@ jobs:
       - name: Smoke (4-vendor fleet + simulate + explain)
         run: ./demo.sh
 
+  audit:
+    # Keeps the SECURITY.md claim ("pip-audit runs clean") continuously true.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install runtime only
+        run: pip install .
+      - name: pip-audit (runtime dependency surface)
+        run: |
+          pip install pip-audit
+          pip-audit
+
   docker:
     runs-on: ubuntu-latest
     steps:
