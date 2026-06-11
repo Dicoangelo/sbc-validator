@@ -32,7 +32,12 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install runtime only
-        run: pip install .
+        # Upgrade pip first: the audit scans the whole environment, and a stale
+        # runner pip (e.g. PYSEC-2026-196 in 26.1.1) fails the job for a
+        # vulnerability that is not ours.
+        run: |
+          python -m pip install -U pip
+          pip install .
       - name: pip-audit (runtime dependency surface)
         run: |
           pip install pip-audit
