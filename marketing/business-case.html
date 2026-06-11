@@ -625,7 +625,7 @@
       <div class="ct-head mono">DATA-FLOW CONTRACT · SBC-AUTOOPS VALIDATOR</div>
       <div class="ct-row">
         <div class="ct-tag in">INBOUND<small>one channel</small></div>
-        <div class="ct-body"><b>A signed rule bundle. Nothing else.</b> Versioned, Ed25519-signed, verified before use against a publisher key pinned in source (<span class="mono">rules/client.py</span>) and deliberately not environment-overridable. A compiled-in freshness floor refuses rollback to stale bundles; inbound reads are capped at 8&nbsp;MB. Configs never travel this channel.</div>
+        <div class="ct-body"><b>A signed rule bundle. Nothing else.</b> Versioned, Ed25519-signed, verified before use against a publisher key pinned in source (<span class="mono">rules/client.py</span>) and deliberately not environment-overridable. A compiled-in freshness floor refuses rollback to stale bundles; inbound reads are capped at 8&nbsp;MB. Configs never travel this channel. Verify a bundle yourself, out-of-band: <span class="mono">python -m sbc_validator.tools.fetch_ruleset</span> checks the signature before writing a byte; a tampered bundle is rejected, not cached.</div>
       </div>
       <div class="ct-row">
         <div class="ct-tag out">OUTBOUND<small>default</small></div>
