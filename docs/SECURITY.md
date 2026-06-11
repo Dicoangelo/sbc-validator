@@ -41,6 +41,13 @@ docker run --rm --network none -v "$PWD/configs:/work" sbc-validator \
 
 `--network none` is the point: **zero outbound network is required to run.**
 
+Containers are a packaging convenience, not a requirement. The same engine
+runs via `pip install .` on any Python 3.10+ host (one dependency,
+`cryptography`, which ships prebuilt wheels), including fully offline: `pip
+download` on a connected machine, carry the wheels across the air gap, then
+`pip install --no-index`. Rootless Podman runs the OCI image identically to
+Docker.
+
 ### Outbound — opt-in only (`--share-anon`)
 
 Anonymized findings, only if the operator explicitly passes `--share-anon`.

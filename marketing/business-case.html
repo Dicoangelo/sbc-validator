@@ -658,7 +658,8 @@ $ docker build -t sbc-validator .
 $ docker run --rm --network none \
     -v "$PWD/configs:/work" sbc-validator \
     validate /work/teams.ini --html report.html</pre>
-        <p style="margin-top:12px;font-size:14px;color:var(--rail-text)">165 automated tests in CI across three Python versions. The version-stamped verdict is your audit artifact for the change record.</p>
+        <p style="margin-top:12px;font-size:14px;color:var(--rail-text)">No containers allowed? <span class="mono">pip install .</span> runs the same engine on any Python 3.10+ host, with one dependency, even fully offline (wheels carried across the air gap, <span class="mono">pip install --no-index</span>). Rootless Podman works identically to Docker.</p>
+        <p style="margin-top:10px;font-size:14px;color:var(--rail-text)">165 automated tests in CI across three Python versions. The version-stamped verdict is your audit artifact for the change record.</p>
       </div>
     </div>
   </div>
