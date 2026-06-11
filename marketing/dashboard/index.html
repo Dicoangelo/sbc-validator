@@ -157,6 +157,16 @@
   .loadbtn:hover{border-color:var(--garnet-soft);color:var(--garnet)}
 
   /* ---------- tabbed views (Fleet / Scanner / Walkthrough) ---------- */
+  .gcode{position:relative;background:#10151c;color:#cdd6e0;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;border-radius:9px;padding:13px 15px;overflow-x:auto;margin:10px 0 0}
+  .gcode .c{color:#6b7785}
+  .gcopy{position:absolute;top:8px;right:8px;font-size:10px;font-family:'IBM Plex Mono',monospace;color:#8b95a1;border:1px solid #2c3340;background:rgba(255,255,255,.05);border-radius:6px;padding:3px 9px;cursor:pointer}
+  .gcopy:hover{color:#e8ecf1}
+  .gstep{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--garnet);font-family:'IBM Plex Mono',monospace;margin:22px 0 4px}
+  .gstep:first-of-type{margin-top:4px}
+  .gsub{font-size:13px;color:var(--ink-soft);margin:2px 0 0;max-width:70ch}
+  .reqs{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 4px}
+  .req{font-size:11.5px;font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);background:#fff;border:1px solid var(--line);border-radius:30px;padding:6px 13px}
+  .req b{color:var(--garnet)}
   .view[hidden]{display:none}
   nav a[data-view]{cursor:pointer}
   /* scanner */
@@ -188,6 +198,7 @@
       <a class="active" data-view="fleet" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Fleet Overview</a>
       <a data-view="scanner" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>Readiness Scanner</a>
       <a data-view="walk" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 4 20 12 6 20 6 4"/></svg>Walkthrough Demo</a>
+      <a data-view="setup" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Setup Guide</a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings<em>soon</em></a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles<em>soon</em></a>
       <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports<em>soon</em></a>
@@ -355,6 +366,46 @@
         <pre id="wkOut" class="wk-term">// choose Broken or Fixed, then press Run validation</pre>
       </div>
       <div class="foot"><span>Live <b>sbc-validator walk</b> output. The engine runs locally; nothing leaves your machine.</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ SETUP GUIDE ═══ -->
+  <div id="view-setup" class="view" hidden>
+    <div class="ds-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <h2>Setup Guide — run the real engine in your environment</h2>
+    </div>
+    <section class="panel" style="max-width:860px">
+      <div class="body" style="padding:20px 22px">
+        <p style="margin:0;color:var(--ink-soft);font-size:13.5px;max-width:72ch">This dashboard is a demo of the local console. The validator itself runs entirely on your side: it reads config exports, never touches an SBC, and needs <b>zero outbound network</b>. Four ways to run it, all starting from the source tree (design-partner tarball or repository checkout).</p>
+        <div class="reqs">
+          <span class="req"><b>Python 3.10+</b> or Docker / Podman</span>
+          <span class="req"><b>1</b> runtime dependency (cryptography)</span>
+          <span class="req"><b>0</b> outbound connections required</span>
+          <span class="req">non-root container · uid 10001</span>
+        </div>
+
+        <div class="gstep">Step 0 · verify what you received (every path)</div>
+        <p class="gsub">The source ships with a SHA-256 manifest covering every file. Verify before you build.</p>
+        <div class="gcode"><button class="gcopy" data-copy="shasum -a 256 -c SHA256SUMS">copy</button>tar -xzf sbc-validator-0.16.2-src.tar.gz &amp;&amp; cd sbc-validator-0.16.2<br>shasum -a 256 -c SHA256SUMS   <span class="c"># every file, against the manifest</span></div>
+
+        <div class="gstep">Path 1 · plain pip — any Python 3.10+ host</div>
+        <div class="gcode"><button class="gcopy" data-copy="python3 -m venv .venv && .venv/bin/pip install . && .venv/bin/sbc-validator demo">copy</button>python3 -m venv .venv &amp;&amp; .venv/bin/pip install .<br>.venv/bin/sbc-validator demo   <span class="c"># the full mixed-vendor showcase, locally</span></div>
+
+        <div class="gstep">Path 2 · fully offline — isolated environments</div>
+        <div class="gcode"><button class="gcopy" data-copy="pip download . -d wheels/ && pip install --no-index --find-links wheels/ sbc-autoops-validator">copy</button><span class="c"># on a connected machine:</span><br>pip download . -d wheels/<br><span class="c"># carry wheels/ across the air gap, then:</span><br>pip install --no-index --find-links wheels/ sbc-autoops-validator</div>
+
+        <div class="gstep">Path 3 · container — Docker or rootless Podman, same image</div>
+        <div class="gcode"><button class="gcopy" data-copy="docker build -t sbc-validator . && docker run --rm --network none sbc-validator demo">copy</button>docker build -t sbc-validator .   <span class="c"># or podman build, identical</span><br>docker run --rm --network none sbc-validator demo   <span class="c"># the air-gap claim, proven on your hardware</span></div>
+
+        <div class="gstep">Path 4 · your CI/CD — the pre-deploy gate</div>
+        <p class="gsub">A drop-in pipeline example ships at <span class="mono">examples/ci/sbc-pre-deploy-gate.yml</span>. The non-zero exit blocks a PR before a non-compliant config reaches the change window.</p>
+        <div class="gcode"><button class="gcopy" data-copy="sbc-validator validate config.ini --ruleset rulesets/ms_direct_routing_2026-06.json --fail-on review">copy</button>sbc-validator validate config.ini \<br>&nbsp;&nbsp;--ruleset rulesets/ms_direct_routing_2026-06.json --fail-on review</div>
+
+        <div class="gstep">Then explore</div>
+        <div class="gcode"><button class="gcopy" data-copy="sbc-validator serve --results results">copy</button>sbc-validator validate &middot; walk &middot; simulate &middot; explain &middot; diff &middot; fleet<br>sbc-validator serve --results results   <span class="c"># this console, live on your own results</span></div>
+      </div>
+      <div class="foot"><span>Data-flow contract: <a href="https://sbcvalidator.metaventionsai.com/#security" style="color:var(--garnet)">sbcvalidator.metaventionsai.com/#security</a> &middot; full details in <b>docs/SECURITY.md</b> &middot; source: <a href="https://github.com/Dicoangelo/sbc-validator" style="color:var(--garnet)">github.com/Dicoangelo/sbc-validator</a></span></div>
     </section>
   </div>
 </main>
@@ -634,9 +685,10 @@ fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadP
 
 /* ---------------- tabs: Fleet / Scanner / Walkthrough ---------------- */
 (function(){
-  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk")};
-  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo"};
-  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough"};
+  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk"),setup:document.getElementById("view-setup")};
+document.querySelectorAll(".gcopy").forEach(b=>b.addEventListener("click",()=>{navigator.clipboard.writeText(b.dataset.copy);b.textContent="copied";setTimeout(()=>b.textContent="copy",1200);}));
+  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo",setup:"Setup Guide"};
+  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough",setup:"Setup"};
   function show(v){
     Object.entries(views).forEach(([k,el])=>{ if(el) el.hidden=(k!==v); });
     document.querySelectorAll("nav a[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===v));
