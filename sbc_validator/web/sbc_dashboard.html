@@ -193,9 +193,9 @@
       <a data-view="scanner" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>Readiness Scanner</a>
       <a data-view="walk" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 4 20 12 6 20 6 4"/></svg>Walkthrough Demo</a>
       <a data-view="setup" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Setup Guide</a>
-      <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings<em>soon</em></a>
-      <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles<em>soon</em></a>
-      <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports<em>soon</em></a>
+      <a data-view="findings" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings</a>
+      <a data-view="bundle" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles</a>
+      <a data-view="reports" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports</a>
     </div>
     <div class="navgroup">
       <h4>Home</h4>
@@ -379,7 +379,7 @@
         </div>
 
         <div class="gstep">Validate a real config</div>
-        <div class="gcode"><button class="gcopy" data-copy="sbc-validator validate your-export.ini --ruleset rulesets/ms_direct_routing_2026-06.json --html report.html">copy</button>sbc-validator validate your-export.ini \<br>&nbsp;&nbsp;--ruleset rulesets/ms_direct_routing_2026-06.json --html report.html<br><span class="c"># any of the five vendors, auto-detected</span></div>
+        <div class="gcode"><button class="gcopy" data-copy="sbc-validator validate your-export.ini --ruleset rulesets/ms_direct_routing_2026-06.json --out results --html report.html">copy</button>sbc-validator validate your-export.ini \<br>&nbsp;&nbsp;--ruleset rulesets/ms_direct_routing_2026-06.json --out results --html report.html<br><span class="c"># any of the five vendors, auto-detected</span></div>
 
         <div class="gstep">Predict the call, diagnose a capture, diff an HA pair</div>
         <div class="gcode"><button class="gcopy" data-copy="sbc-validator simulate your-export.ini">copy</button>sbc-validator simulate your-export.ini   <span class="c"># TLS → SIP → SDP → media, where it dies</span><br>sbc-validator explain capture.pcap       <span class="c"># post-mortem, plain English</span><br>sbc-validator diff active.ini standby.ini --fail-on review</div>
@@ -398,6 +398,50 @@
         <div class="gcode"><button class="gcopy" data-copy="python -m sbc_validator.tools.fetch_ruleset <api_base> ms_direct_routing -o local.json">copy</button>python -m sbc_validator.tools.fetch_ruleset &lt;api_base&gt; ms_direct_routing -o local.json<br><span class="c"># Ed25519 signature verified against the pinned key BEFORE writing a byte</span></div>
       </div>
       <div class="foot"><span>Data-flow contract: <b>docs/SECURITY.md</b> in your source tree &middot; sbcvalidator.metaventionsai.com/#security</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ FINDINGS ═══ -->
+  <div id="view-findings" class="view" hidden>
+    <div class="ds-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/></svg><h2>Findings — every open check across the fleet</h2></div>
+    <section class="panel">
+      <div class="body" style="padding:16px 18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          <select id="ff-sev" style="font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px"><option value="">All severities</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select>
+          <select id="ff-dom" style="font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px"><option value="">All domains</option></select>
+          <input id="ff-q" type="text" placeholder="search check id / sbc" style="font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--line);border-radius:7px;padding:7px 10px;min-width:220px">
+          <span class="mono" id="ff-count" style="font-size:12px;color:var(--ink-faint)"></span>
+        </div>
+        <table><thead><tr><th>SBC</th><th>Check</th><th>Domain</th><th>Severity</th></tr></thead><tbody id="ff-tbl"></tbody></table>
+      </div>
+      <div class="foot"><span>Live from the loaded payload. Open an SBC's full report (Reports tab) for detail and remediation text.</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ RULE BUNDLES ═══ -->
+  <div id="view-bundle" class="view" hidden>
+    <div class="ds-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg><h2>Rule Bundles — what produced these verdicts</h2></div>
+    <section class="panel" style="max-width:760px">
+      <div class="body" style="padding:18px 20px" id="bundleCard">loading bundle provenance…</div>
+      <div class="foot"><span>Bundles are Ed25519-signed and verified against a key pinned in source before use; a compiled-in freshness floor refuses rollback. Configs never travel this channel.</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ REPORTS ═══ -->
+  <div id="view-reports" class="view" hidden>
+    <div class="ds-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><h2>Reports — the post-run deliverables</h2></div>
+    <section class="panel" style="max-width:860px">
+      <div class="body" style="padding:18px 20px">
+        <p style="margin:0 0 6px;color:var(--ink-soft);font-size:13.5px;max-width:74ch"><b>Single source of truth:</b> every run writes <span class="mono">results/&lt;sbc&gt;/&lt;timestamp&gt;.json</span> (history-preserving, identical schema from every run path: pip, offline, container, CI). Everything below is a rendering of those audit-trail files.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 6px">
+          <a class="loadbtn" style="background:var(--garnet);color:#fff;border-color:var(--garnet);font-weight:600;text-decoration:none" href="/report" target="_blank" rel="noopener">Open executive report</a>
+          <a class="loadbtn" style="text-decoration:none" href="/report?format=md">Download Markdown</a>
+        </div>
+        <h3 style="font-size:12.5px;color:var(--ink-soft);margin:18px 0 6px">Per-SBC reports (latest run)</h3>
+        <div id="sbcReports" class="mono" style="font-size:12.5px;line-height:2"></div>
+        <p style="margin:16px 0 0;color:var(--ink-faint);font-size:12px">CLI equivalents: <span class="mono">validate --html report.html</span> · <span class="mono">sbc-validator report --results results/ </span> · <span class="mono">fleet --out fleet.md</span> · <span class="mono">report --compliance mifid2</span></p>
+      </div>
+      <div class="foot"><span>The version-stamped verdict JSON is the audit artifact for your change record.</span></div>
     </section>
   </div>
 </main>
@@ -650,19 +694,75 @@ setMode("sample");
 renderAll(SAMPLE_FLEET, TREND);
 fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadPayload(p); }).catch(()=>{});
 
+
+/* ---------------- findings / bundle / reports views ---------------- */
+function renderFindings(){
+  const sev=document.getElementById("ff-sev").value, dom=document.getElementById("ff-dom").value,
+        q=document.getElementById("ff-q").value.trim().toLowerCase();
+  const rows=[];
+  (CURRENT.fleet||[]).forEach(s=>(s.findings||[]).forEach(f=>{
+    if(f.severity==="INFO")return;
+    if(sev&&f.severity!==sev)return;
+    if(dom&&f.domain!==dom)return;
+    if(q&&!(f.check_id||"").toLowerCase().includes(q)&&!(s.sbc||"").toLowerCase().includes(q))return;
+    rows.push({sbc:s.sbc,f});
+  }));
+  rows.sort((a,b)=>SEV.indexOf(a.f.severity)-SEV.indexOf(b.f.severity));
+  document.getElementById("ff-tbl").innerHTML=rows.map(r=>
+    `<tr><td class="mono">${esc(r.sbc)}</td><td class="mono">${esc(r.f.check_id)}</td>`+
+    `<td>${esc((DOM_NAME[r.f.domain]||r.f.domain||"—"))}</td>`+
+    `<td><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;color:${SEV_COLOR[r.f.severity]||"#666"}">${esc(r.f.severity)}</span></td></tr>`).join("")
+    || '<tr><td colspan="4" style="color:var(--ink-faint)">no findings match</td></tr>';
+  document.getElementById("ff-count").textContent=rows.length+" findings";
+  const df=document.getElementById("ff-dom");
+  if(df.options.length===1){Object.keys(DOM_NAME).forEach(d=>{const o=document.createElement("option");o.value=d;o.textContent=DOM_NAME[d];df.appendChild(o);});}
+}
+["ff-sev","ff-dom","ff-q"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener(el.tagName==="INPUT"?"input":"change",renderFindings);});
+
+function renderReports(){
+  const box=document.getElementById("sbcReports");
+  if(!box)return;
+  if(CURRENT.mode==="demo"||CURRENT.mode==="sample"){
+    box.innerHTML='<span style="color:var(--ink-faint)">Demo data has no per-run files. Run <span class="mono">validate ... --out results</span>, then refresh.</span>';
+    return;
+  }
+  box.innerHTML=(CURRENT.fleet||[]).map(s=>
+    `<a href="/report/sbc?name=${encodeURIComponent(s.sbc)}" target="_blank" rel="noopener" style="color:var(--garnet);text-decoration:none">${esc(s.sbc)}</a>`+
+    ` <span style="color:var(--ink-faint)">· ${esc(s.summary&&s.summary.verdict||"?")}</span>`).join("<br>")
+    || '<span style="color:var(--ink-faint)">no SBCs in the current payload</span>';
+}
+
+let _bundleLoaded=false;
+function loadBundle(){
+  if(_bundleLoaded)return;_bundleLoaded=true;
+  fetch("/bundle").then(r=>r.json()).then(b=>{
+    const card=document.getElementById("bundleCard");
+    if(b.error){card.innerHTML='<span style="color:var(--ink-faint)">'+esc(b.error)+'</span>';return;}
+    card.innerHTML=
+      '<table style="font-size:13px"><tbody>'+
+      [["Ruleset",b.ruleset_id],["Bundle version",b.bundle_version],["Issued",b.issued_at],
+       ["Verified on",b.verified_on||"—"],["Freshness floor (compiled in)",b.freshness_floor],
+       ["Domains carried",(b.domains||[]).join(" · ")],
+       ["Signature","Ed25519 · "+(b.signature_present?"present, verified before use":"MISSING")],
+       ["Pinned publisher key (sha256)",b.pinned_publisher_key_sha256]]
+      .map(r=>`<tr><td style="color:var(--ink-faint);padding:6px 14px 6px 0;white-space:nowrap">${r[0]}</td><td class="mono" style="padding:6px 0">${esc(String(r[1]??"—"))}</td></tr>`).join("")+
+      '</tbody></table>';
+  }).catch(()=>{const c=document.getElementById("bundleCard");c&&(c.textContent="bundle provenance unavailable (serve not running with a ruleset)");});
+}
+
 /* ---------------- tabs: Fleet / Scanner / Walkthrough ---------------- */
 (function(){
-  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk"),setup:document.getElementById("view-setup")};
+  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk"),setup:document.getElementById("view-setup"),findings:document.getElementById("view-findings"),bundle:document.getElementById("view-bundle"),reports:document.getElementById("view-reports")};
   document.querySelectorAll(".gcopy").forEach(b=>b.addEventListener("click",()=>{navigator.clipboard.writeText(b.dataset.copy);b.textContent="copied";setTimeout(()=>b.textContent="copy",1200);}));
-  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo",setup:"Setup Guide"};
-  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough",setup:"Setup"};
+  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo",setup:"Setup Guide",findings:"Findings",bundle:"Rule Bundles",reports:"Reports"};
+  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough",setup:"Setup",findings:"Findings",bundle:"Bundles",reports:"Reports"};
   function show(v){
     Object.entries(views).forEach(([k,el])=>{ if(el) el.hidden=(k!==v); });
     document.querySelectorAll("nav a[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===v));
     const cb=document.querySelector(".crumb"); if(cb) cb.innerHTML="Home / <b>"+crumbs[v]+"</b>";
     const h1=document.querySelector(".topbar h1"); if(h1) h1.textContent=titles[v];
   }
-  document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);}));
+  document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);if(a.dataset.view==="findings")renderFindings();if(a.dataset.view==="reports")renderReports();if(a.dataset.view==="bundle")loadBundle();}));
   if(location.hash){const h=location.hash.slice(1); if(views[h]) show(h);}
 
   /* scanner */

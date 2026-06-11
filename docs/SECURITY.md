@@ -35,8 +35,8 @@ trusted.
 No telemetry, no call-home, no update check. The documented production mode is:
 
 ```
-docker run --rm --network none -v "$PWD/configs:/work" sbc-validator \
-    validate /work/teams.ini --html report.html
+docker run --rm --network none -v "$PWD:/work" sbc-validator \
+    validate /work/configs/teams.ini --out /work/results --html /work/report.html
 ```
 
 `--network none` is the point: **zero outbound network is required to run.**

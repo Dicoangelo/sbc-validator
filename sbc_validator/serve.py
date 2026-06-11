@@ -145,6 +145,73 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str, bundle):
                                "_warnings": [f"no result files in {results_dir} yet "
                                              "(run: sbc-validator validate ... --out " + results_dir + ")"]}
                 self._send(200, json.dumps(payload).encode(), "application/json")
+            elif path == "/report":
+                # Consolidated executive report rendered live from the results dir.
+                # ?format=md downloads the Markdown rendering of the same payload.
+                payload = build_payload(results_dir, anon=anon, org_salt=org_salt)
+                if payload is None:
+                    body = ("<html><body style='font-family:system-ui;padding:40px'>"
+                            "<h2>No results yet</h2><p>Run <code>sbc-validator validate "
+                            "&lt;config&gt; --ruleset ... --out "
+                            f"{results_dir}</code> and refresh.</p></body></html>").encode()
+                    return self._send(200, body, "text/html; charset=utf-8")
+                if parse_qs(u.query).get("format", ["html"])[0] == "md":
+                    from .report.exec import render_markdown
+                    body = render_markdown(payload).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/markdown; charset=utf-8")
+                    self.send_header("Content-Disposition",
+                                     'attachment; filename="sbc-exec-report.md"')
+                    self.send_header("Content-Length", str(len(body)))
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("X-Content-Type-Options", "nosniff")
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
+                from .report.exec import render_html as _render_exec
+                self._send(200, _render_exec(payload).encode(), "text/html; charset=utf-8")
+            elif path == "/report/sbc":
+                # Per-SBC report from the LATEST run JSON (the audit-trail artifact).
+                if anon:
+                    # the anonymized view tokenizes SBC names; per-SBC raw reports
+                    # would leak the FQDNs that view exists to hide.
+                    return self._send(403, json.dumps(
+                        {"error": "per-SBC reports are disabled in the anonymized view"}
+                    ).encode(), "application/json")
+                name = parse_qs(u.query).get("name", [""])[0]
+                base = Path(results_dir)
+                # zero traversal surface: exact match against real directory entries
+                entries = {p.name for p in base.iterdir() if p.is_dir()} if base.is_dir() else set()
+                if name not in entries:
+                    return self._send(404, b"unknown sbc", "text/plain")
+                runs = sorted((base / name).glob("*.json"))
+                if not runs:
+                    return self._send(404, b"no runs for this sbc", "text/plain")
+                from .report.html import render_html as _render_sbc
+                report = json.loads(runs[-1].read_text())
+                self._send(200, _render_sbc(report).encode(), "text/html; charset=utf-8")
+            elif path == "/bundle":
+                # Provenance of the loaded signed bundle (metadata only).
+                if bundle is None:
+                    return self._send(200, json.dumps(
+                        {"error": "no signed bundle loaded"}).encode(), "application/json")
+                import hashlib
+                from .rules.client import _MIN_BUNDLE_VERSION, _PINNED_PUBLIC_KEY_B64
+                meta = {
+                    "ruleset_id": bundle.get("ruleset_id"),
+                    "bundle_version": bundle.get("bundle_version"),
+                    "issued_at": bundle.get("issued_at"),
+                    "verified_on": bundle.get("verified_on"),
+                    "source": bundle.get("source"),
+                    "sources": bundle.get("sources"),
+                    "domains": sorted(k for k in bundle
+                                      if len(k) == 1 and isinstance(bundle.get(k), dict)),
+                    "signature_present": bool(bundle.get("signature")),
+                    "freshness_floor": _MIN_BUNDLE_VERSION,
+                    "pinned_publisher_key_sha256":
+                        hashlib.sha256(_PINNED_PUBLIC_KEY_B64.encode()).hexdigest()[:32],
+                }
+                self._send(200, json.dumps(meta).encode(), "application/json")
             else:
                 self._send(404, b"not found", "text/plain")
 

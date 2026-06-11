@@ -199,9 +199,9 @@
       <a data-view="scanner" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>Readiness Scanner</a>
       <a data-view="walk" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 4 20 12 6 20 6 4"/></svg>Walkthrough Demo</a>
       <a data-view="setup" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Setup Guide</a>
-      <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings<em>soon</em></a>
-      <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles<em>soon</em></a>
-      <a class="soon" title="Planned — not in this build"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports<em>soon</em></a>
+      <a data-view="findings" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Findings</a>
+      <a data-view="bundle" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>Rule Bundles</a>
+      <a data-view="reports" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Reports</a>
     </div>
     <div class="navgroup">
       <h4>Home</h4>
@@ -387,7 +387,7 @@
 
         <div class="gstep">Step 0 · verify what you received (every path)</div>
         <p class="gsub">The source ships with a SHA-256 manifest covering every file. Verify before you build.</p>
-        <div class="gcode"><button class="gcopy" data-copy="shasum -a 256 -c SHA256SUMS">copy</button>tar -xzf sbc-validator-0.16.3-src.tar.gz &amp;&amp; cd sbc-validator-0.16.3<br>shasum -a 256 -c SHA256SUMS   <span class="c"># every file, against the manifest</span></div>
+        <div class="gcode"><button class="gcopy" data-copy="shasum -a 256 -c SHA256SUMS">copy</button>tar -xzf sbc-validator-0.16.4-src.tar.gz &amp;&amp; cd sbc-validator-0.16.4<br>shasum -a 256 -c SHA256SUMS   <span class="c"># every file, against the manifest</span></div>
 
         <div class="gstep">Path 1 · plain pip — any Python 3.10+ host</div>
         <div class="gcode"><button class="gcopy" data-copy="python3 -m venv .venv && .venv/bin/pip install . && .venv/bin/sbc-validator demo">copy</button>python3 -m venv .venv &amp;&amp; .venv/bin/pip install .<br>.venv/bin/sbc-validator demo   <span class="c"># the full mixed-vendor showcase, locally</span></div>
@@ -398,6 +398,10 @@
         <div class="gstep">Path 3 · container — Docker or rootless Podman, same image</div>
         <div class="gcode"><button class="gcopy" data-copy="docker build -t sbc-validator . && docker run --rm --network none sbc-validator demo">copy</button>docker build -t sbc-validator .   <span class="c"># or podman build, identical</span><br>docker run --rm --network none sbc-validator demo   <span class="c"># the air-gap claim, proven on your hardware</span></div>
 
+        <div class="gstep">The audit artifact — identical from every path</div>
+        <p class="gsub">Every run path writes the same single source of truth: <span class="mono">results/&lt;sbc&gt;/&lt;timestamp&gt;.json</span>, history-preserving. In containers, mount it out or it dies with the container:</p>
+        <div class="gcode"><button class="gcopy" data-copy='docker run --rm --network none -v "$PWD:/work" sbc-validator validate /work/configs/teams.ini --out /work/results --html /work/report.html'>copy</button>docker run --rm --network none -v "$PWD:/work" sbc-validator \<br>&nbsp;&nbsp;validate /work/configs/teams.ini --out /work/results --html /work/report.html<br><span class="c"># in CI: upload results/ as a pipeline artifact (see examples/ci/)</span></div>
+
         <div class="gstep">Path 4 · your CI/CD — the pre-deploy gate</div>
         <p class="gsub">A drop-in pipeline example ships at <span class="mono">examples/ci/sbc-pre-deploy-gate.yml</span>. The non-zero exit blocks a PR before a non-compliant config reaches the change window.</p>
         <div class="gcode"><button class="gcopy" data-copy="sbc-validator validate config.ini --ruleset rulesets/ms_direct_routing_2026-06.json --fail-on review">copy</button>sbc-validator validate config.ini \<br>&nbsp;&nbsp;--ruleset rulesets/ms_direct_routing_2026-06.json --fail-on review</div>
@@ -406,6 +410,55 @@
         <div class="gcode"><button class="gcopy" data-copy="sbc-validator serve --results results">copy</button>sbc-validator validate &middot; walk &middot; simulate &middot; explain &middot; diff &middot; fleet<br>sbc-validator serve --results results   <span class="c"># this console, live on your own results</span></div>
       </div>
       <div class="foot"><span>Data-flow contract: <a href="https://sbcvalidator.metaventionsai.com/#security" style="color:var(--garnet)">sbcvalidator.metaventionsai.com/#security</a> &middot; full details in <b>docs/SECURITY.md</b> &middot; source: <a href="https://github.com/Dicoangelo/sbc-validator" style="color:var(--garnet)">github.com/Dicoangelo/sbc-validator</a></span></div>
+    </section>
+  </div>
+
+  <!-- ═══ FINDINGS ═══ -->
+  <div id="view-findings" class="view" hidden>
+    <div class="ds-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3 8-8"/></svg><h2>Findings — every open check across the fleet</h2></div>
+    <section class="panel">
+      <div class="body" style="padding:16px 18px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          <select id="ff-sev" style="font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px"><option value="">All severities</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select>
+          <select id="ff-dom" style="font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px"><option value="">All domains</option></select>
+          <input id="ff-q" type="text" placeholder="search check id / sbc" style="font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--line);border-radius:7px;padding:7px 10px;min-width:220px">
+          <span class="mono" id="ff-count" style="font-size:12px;color:var(--ink-faint)"></span>
+        </div>
+        <table><thead><tr><th>SBC</th><th>Check</th><th>Domain</th><th>Severity</th></tr></thead><tbody id="ff-tbl"></tbody></table>
+      </div>
+      <div class="foot"><span>Demo data. In your environment this view runs over your live results directory.</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ RULE BUNDLES ═══ -->
+  <div id="view-bundle" class="view" hidden>
+    <div class="ds-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg><h2>Rule Bundles — what produces the verdicts</h2></div>
+    <section class="panel" style="max-width:760px">
+      <div class="body" style="padding:18px 20px">
+        <table style="font-size:13px"><tbody>
+          <tr><td style="color:var(--ink-faint);padding:6px 14px 6px 0">Ruleset</td><td class="mono">ms_direct_routing · <span id="bundleVer">2026-06-07</span> (authority-sourced)</td></tr>
+          <tr><td style="color:var(--ink-faint);padding:6px 14px 6px 0">Carries</td><td class="mono">7 required 2026 roots (incl. the DigiCert G5 pair) · TLS ≥1.2 · SIP cipher allowlist · SRTP suite · serverAuth-EKU enforcement</td></tr>
+          <tr><td style="color:var(--ink-faint);padding:6px 14px 6px 0">Integrity</td><td class="mono">Ed25519-signed · verified against a source-pinned key before use · compiled-in freshness floor refuses rollback</td></tr>
+          <tr><td style="color:var(--ink-faint);padding:6px 14px 6px 0">Channel</td><td class="mono">rules in, never configs out · 8&nbsp;MB inbound cap</td></tr>
+        </tbody></table>
+        <p style="margin:14px 0 0;color:var(--ink-faint);font-size:12.5px">Live provenance (issued/verified dates, key fingerprint, domains carried) is served by <span class="mono">sbc-validator serve</span> at <span class="mono">/bundle</span> in your environment.</p>
+      </div>
+      <div class="foot"><span>Sourcing and the re-sign workflow are documented in docs/RULE_AUTHORITY.md.</span></div>
+    </section>
+  </div>
+
+  <!-- ═══ REPORTS ═══ -->
+  <div id="view-reports" class="view" hidden>
+    <div class="ds-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><h2>Reports — the post-run deliverables</h2></div>
+    <section class="panel" style="max-width:860px">
+      <div class="body" style="padding:18px 20px">
+        <p style="margin:0 0 6px;color:var(--ink-soft);font-size:13.5px;max-width:74ch"><b>Single source of truth:</b> every run writes <span class="mono">results/&lt;sbc&gt;/&lt;timestamp&gt;.json</span> — history-preserving, identical schema from every run path (pip, offline wheels, Docker/Podman, CI). Every report below is a rendering of those audit-trail files.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 6px">
+          <button id="mdExport" class="loadbtn" style="background:var(--garnet);color:#fff;border-color:var(--garnet);font-weight:600">Download executive report (Markdown)</button>
+        </div>
+        <p style="margin:12px 0 0;color:var(--ink-soft);font-size:13px;max-width:74ch">In your environment, <span class="mono">sbc-validator serve</span> also renders the executive report as HTML at <span class="mono">/report</span> and a per-SBC report from each box's latest run at <span class="mono">/report/sbc</span>. CLI equivalents: <span class="mono">validate --html</span> · <span class="mono">report --results results/</span> · <span class="mono">fleet --out</span> · <span class="mono">report --compliance mifid2</span>.</p>
+      </div>
+      <div class="foot"><span>The version-stamped verdict JSON is the audit artifact for your change record.</span></div>
     </section>
   </div>
 </main>
@@ -683,19 +736,62 @@ setMode("sample");
 renderAll(SAMPLE_FLEET, TREND);
 fetch("./dashboard_data.json").then(r=>r.ok?r.json():null).then(p=>{ if(p) loadPayload(p); }).catch(()=>{});
 
+
+/* ---------------- findings / reports views (client-side) ---------------- */
+function renderFindings(){
+  const sev=document.getElementById("ff-sev").value, dom=document.getElementById("ff-dom").value,
+        q=document.getElementById("ff-q").value.trim().toLowerCase();
+  const rows=[];
+  (CURRENT.fleet||[]).forEach(s=>(s.findings||[]).forEach(f=>{
+    if(f.severity==="INFO")return;
+    if(sev&&f.severity!==sev)return;
+    if(dom&&f.domain!==dom)return;
+    if(q&&!(f.check_id||"").toLowerCase().includes(q)&&!(s.sbc||"").toLowerCase().includes(q))return;
+    rows.push({sbc:s.sbc,f});
+  }));
+  rows.sort((a,b)=>SEV.indexOf(a.f.severity)-SEV.indexOf(b.f.severity));
+  document.getElementById("ff-tbl").innerHTML=rows.map(r=>
+    `<tr><td class="mono">${esc(r.sbc)}</td><td class="mono">${esc(r.f.check_id)}</td>`+
+    `<td>${esc((DOM_NAME[r.f.domain]||r.f.domain||"—"))}</td>`+
+    `<td><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;color:${SEV_COLOR[r.f.severity]||"#666"}">${esc(r.f.severity)}</span></td></tr>`).join("")
+    || '<tr><td colspan="4" style="color:var(--ink-faint)">no findings match</td></tr>';
+  document.getElementById("ff-count").textContent=rows.length+" findings";
+  const df=document.getElementById("ff-dom");
+  if(df.options.length===1){Object.keys(DOM_NAME).forEach(d=>{const o=document.createElement("option");o.value=d;o.textContent=DOM_NAME[d];df.appendChild(o);});}
+}
+["ff-sev","ff-dom","ff-q"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener(el.tagName==="INPUT"?"input":"change",renderFindings);});
+
+document.getElementById("mdExport").addEventListener("click",()=>{
+  const fleet=CURRENT.fleet||[], HIGHSET=["CRITICAL","HIGH"];
+  const caBad=s=>(s.findings||[]).some(f=>/^(C\.CA\.|C\.CERT\.|C\.TLS\.|C\.SRTP\.)/.test(f.check_id||"")&&HIGHSET.includes(f.severity));
+  const v={};fleet.forEach(s=>{const k=(s.summary||{}).verdict||"?";v[k]=(v[k]||0)+1;});
+  const notReady=fleet.filter(caBad).length;
+  const common={};fleet.forEach(s=>(s.findings||[]).forEach(f=>{if(HIGHSET.includes(f.severity))common[f.check_id]=(common[f.check_id]||0)+1;}));
+  const top=Object.entries(common).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const L=["# SBC Fleet Executive Report","",`_${fleet.length} SBCs - generated ${new Date().toISOString().slice(0,16)}Z_`,"",
+    "## 2026 Microsoft CA migration readiness","",`**${fleet.length-notReady} of ${fleet.length} SBCs ready.** ${notReady} carry a TLS/CA/cert/SRTP blocker.`,"",
+    "## Deploy verdicts",""];
+  ["BLOCK","REVIEW","PASS"].forEach(k=>{if(v[k])L.push(`- ${k}: ${v[k]}`);});
+  L.push("","## Most common high-severity findings","");
+  top.forEach(([cid,n])=>L.push(`- \`${cid}\` x${n}`));
+  L.push("","_SBC Validator - the independent truth layer for real-time voice._");
+  const blob=new Blob([L.join("\n")],{type:"text/markdown"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sbc-exec-report.md";a.click();
+});
+
 /* ---------------- tabs: Fleet / Scanner / Walkthrough ---------------- */
 (function(){
-  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk"),setup:document.getElementById("view-setup")};
+  const views={fleet:document.getElementById("view-fleet"),scanner:document.getElementById("view-scanner"),walk:document.getElementById("view-walk"),setup:document.getElementById("view-setup"),findings:document.getElementById("view-findings"),bundle:document.getElementById("view-bundle"),reports:document.getElementById("view-reports")};
 document.querySelectorAll(".gcopy").forEach(b=>b.addEventListener("click",()=>{navigator.clipboard.writeText(b.dataset.copy);b.textContent="copied";setTimeout(()=>b.textContent="copy",1200);}));
-  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo",setup:"Setup Guide"};
-  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough",setup:"Setup"};
+  const crumbs={fleet:"Fleet Validation",scanner:"Readiness Scanner",walk:"Walkthrough Demo",setup:"Setup Guide",findings:"Findings",bundle:"Rule Bundles",reports:"Reports"};
+  const titles={fleet:"Dashboards",scanner:"Scanner",walk:"Walkthrough",setup:"Setup",findings:"Findings",bundle:"Bundles",reports:"Reports"};
   function show(v){
     Object.entries(views).forEach(([k,el])=>{ if(el) el.hidden=(k!==v); });
     document.querySelectorAll("nav a[data-view]").forEach(a=>a.classList.toggle("active",a.dataset.view===v));
     const cb=document.querySelector(".crumb"); if(cb) cb.innerHTML="Home / <b>"+crumbs[v]+"</b>";
     const h1=document.querySelector(".topbar h1"); if(h1) h1.textContent=titles[v];
   }
-  document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);}));
+  document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);if(a.dataset.view==="findings")renderFindings();}));
   if(location.hash){const h=location.hash.slice(1); if(views[h]) show(h);}
 
   /* scanner */

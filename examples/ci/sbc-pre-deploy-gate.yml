@@ -34,9 +34,19 @@ jobs:
             echo "::group::$cfg"
             sbc-validator validate "$cfg" \
               --ruleset rulesets/ms_direct_routing_2026-06.json \
-              --fail-on review
+              --out results --fail-on review
             echo "::endgroup::"
           done
+
+      # Retain the audit artifact: results/<sbc>/<timestamp>.json is the
+      # version-stamped verdict your change record points at. Same schema as
+      # every other run path (pip, offline, container), so one source of truth.
+      - name: Upload verdict artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbc-verdicts
+          path: results/
 
       # Optional: also fail if an active/standby pair has drifted.
       - name: HA drift check
