@@ -6,19 +6,19 @@ Canonical artifacts, and exactly how to reproduce them, so no session re-derives
 | File | What it is | Engine |
 |---|---|---|
 | `sbc-autoops-architecture-refined.webp` | **Canonical architecture** (4K master). Six-zone air-gapped pipeline: INPUT (AudioCodes/Cisco CUBE/Ribbon/Oracle Acme/Metaswitch Perimeta) → PARSERS → NORMALIZED MODEL → VALIDATORS (8 domains) → MODES (validate/simulate/explain) → OUTPUT (PASS/REVIEW/BLOCK). Signed rule bundle "only inbound", anonymized findings out. | researchgravity refined pipeline |
-| `sbc-autoops-architecture-web.png` | 1800px web copy of the above (embedded in `business-case.html` #how). | `sips -Z 1800` |
+| `sbc-autoops-architecture-web.webp` | 1800px web copy of the above (embedded in `business-case.html` #how). | `sips -Z 1800` |
 | `sbc-autoops-architecture.webp` | First-pass architecture (raw nano-banana, no critic). Superseded; kept as alt. | nano-banana-pro raw |
 | `sbc-autoops-positioning.webp` | Positioning chart: call-life timeline (red X at TLS handshake) + three coverage bars (AIOps blind / single-vendor siloed / SBC-AutoOps pre-deploy). | nano-banana raw |
 | `sbc-autoops-forcing-calendar-refined.webp` | **Forcing-event calendar 2026-2029** (4K master). Timeline: Wave 1 Microsoft CA/EKU (Mar 7-roots / Apr edge rotation / Jun serverAuth-only), Wave 2 cert-lifetime step chart 398→200→100→47 days, Wave 3 Chrome root policy, Wave 4 PQC. Footer: "each wave = a new signed rule bundle, same engine." Source: `insights/09-cadence-forcing-events.md`. The "cadence, not climax" evidence image. | researchgravity refined pipeline |
-| `sbc-autoops-forcing-calendar-web.png` | 1800px web copy of the above. | `sips -Z 1800` |
+| `sbc-autoops-forcing-calendar-web.webp` | 1800px web copy of the above. | `sips -Z 1800` |
 | `sbc-autoops-call-death-chain-refined.webp` | **Where Calls Die** (4K master). Four-link chain TLS→SIP→SDP→media→STABLE, each with failure card: verdict (NO_CONNECT/REJECTED/NO_MEDIA/ONE_WAY_AUDIO), user symptom, two real check IDs. Source: `sbc_validator/call_sim.py` hardstop maps. | researchgravity refined pipeline |
-| `sbc-autoops-call-death-chain-web.png` | 1800px web copy of the above. | `sips -Z 1800` |
+| `sbc-autoops-call-death-chain-web.webp` | 1800px web copy of the above. | `sips -Z 1800` |
 | `sbc-autoops-silent-failure.webp` | Editorial narrative image: NOC with all-green dashboards while voice is silently dead ("you hear about it from users, not a dashboard"). Hero / LinkedIn / outreach asset. Web copy is `-web.jpg` (photo → jpeg). | nano-banana-pro raw (2K) |
-| `sbc-autoops-hero-truth-layer.webp` | **Front-end hero visual** (4K + `-web.png`). Abstract "truth layer": five chaotic vendor streams pass through a translucent garnet plane and emerge as ordered parallel lines. NO text; right side intentionally quiet (terminal widget sits there). For the light hero on business-case.html. | refined pipeline (SUPERMAX council spec) |
-| `sbc-autoops-architecture-dark.webp` | **Dark-theme architecture** (4K + `-web.png`) for the `#how` dark section. Six zones on rail blue-black `#161c25`, uniform faint-white panels, terminal-palette verdict pills, "Air-gapped in VPC" dashed boundary, "signed rules in"/"anon findings out" chips. | refined pipeline (SUPERMAX council spec) |
+| `sbc-autoops-hero-truth-layer.webp` | **Front-end hero visual** (4K + `-web.webp`). Abstract "truth layer": five chaotic vendor streams pass through a translucent garnet plane and emerge as ordered parallel lines. NO text; right side intentionally quiet (terminal widget sits there). For the light hero on business-case.html. | refined pipeline (SUPERMAX council spec) |
+| `sbc-autoops-architecture-dark.webp` | **Dark-theme architecture** (4K + `-web.webp`) for the `#how` dark section. Six zones on rail blue-black `#161c25`, uniform faint-white panels, terminal-palette verdict pills, "Air-gapped in VPC" dashed boundary, "signed rules in"/"anon findings out" chips. | refined pipeline (SUPERMAX council spec) |
 
-| `sbc-autoops-call-death-chain-dark.webp` | **Dark-theme call-death chain** (4K + `-web.png`) for the `#regulated` dark section. Four garnet-soft chain links → STABLE pill, four failure cards with VERDICT/SYMPTOMS/CHECK-ID eyebrows and real check IDs. | refined pipeline (SUPERMAX council spec) |
-| `sbc-autoops-og-banner.webp` | **OG/social banner** (4K + `-web.png`; export 1200×630 for og:image). Brand mark + "The independent *truth* layer / for real-time voice" + mono trustline. Supersedes `og-card.png` candidate. | refined pipeline (SUPERMAX council spec) |
+| `sbc-autoops-call-death-chain-dark.webp` | **Dark-theme call-death chain** (4K + `-web.webp`) for the `#regulated` dark section. Four garnet-soft chain links → STABLE pill, four failure cards with VERDICT/SYMPTOMS/CHECK-ID eyebrows and real check IDs. | refined pipeline (SUPERMAX council spec) |
+| `sbc-autoops-og-banner.webp` | **OG/social banner** (4K + `-web.webp`; export 1200×630 for og:image). Brand mark + "The independent *truth* layer / for real-time voice" + mono trustline. Supersedes `og-card.png` candidate. | refined pipeline (SUPERMAX council spec) |
 
 ### SUPERMAX front-end set (2026-06-10)
 All four specs live in `SPECS-frontend-set.md`, authored by the sbc-image-council
@@ -76,4 +76,4 @@ GEMINI_API_KEY is set; uv at ~/.local/bin/uv.
 - Brand garnet hex is `#9d1b54` (matches business-case.html), white background for embed.
 - Fable 5 cannot generate images (text model); Gemini/Nano Banana Pro is the only image engine.
 
-**2026-06-11:** all 4K masters converted to WebP q90 (105MB -> 4MB, ~0.4MB each at full 4K). True PNG originals remain in `~/visual_assets/`. Web copies (`-web.png`) and `og-banner-1200x630.png` unchanged.
+**2026-06-11:** all 4K masters converted to WebP q90 (105MB -> 4MB, ~0.4MB each at full 4K). True PNG originals remain in `~/visual_assets/`. Web copies (`-web.webp`) and `og-banner-1200x630.png` unchanged.

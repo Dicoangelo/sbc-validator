@@ -42,7 +42,7 @@
 ## Architecture
 
 <div align="center">
-<img src="marketing/diagrams/sbc-autoops-architecture-web.png" width="92%" alt="SBC-AutoOps architecture: five vendor configs normalized into one model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict, air-gapped, signed rules in and anonymized findings out."/>
+<img src="marketing/diagrams/sbc-autoops-architecture-web.webp" width="92%" alt="SBC-AutoOps architecture: five vendor configs normalized into one model, validated across eight domains in three modes, producing a PASS / REVIEW / BLOCK verdict, air-gapped, signed rules in and anonymized findings out."/>
 </div>
 
 ```mermaid
@@ -136,12 +136,13 @@ sbc-validator serve
 ## See it
 
 <div align="center">
-<img src="marketing/diagrams/dashboard-demo.png" width="92%" alt="SBC-AutoOps fleet dashboard: seven SBCs across five vendors with deploy verdicts, findings-by-domain and severity-trend charts, average risk per vendor, a verdict donut, and a severity-by-domain heatmap."/>
+<img src="marketing/diagrams/dashboard-demo.webp" width="92%" alt="SBC-AutoOps fleet dashboard: seven SBCs across five vendors with deploy verdicts, findings-by-domain and severity-trend charts, average risk per vendor, a verdict donut, and a severity-by-domain heatmap."/>
 </div>
 
 - **[Live business case](https://sbcvalidator.metaventionsai.com)** — the product, the 2026 deadline, the market
 - **[Security & data handling](https://sbcvalidator.metaventionsai.com/#security)** — the data-flow contract, stated precisely
 - **[Live dashboard demo](https://sbcvalidator.metaventionsai.com/dashboard/)** — the fleet view, sample data
+- **[Setup Guide](https://sbcvalidator.metaventionsai.com/dashboard/#setup)** — the four run paths, copy-paste ready
 - **[Free readiness scanner](https://sbcvalidator.metaventionsai.com/scanner)** — outside-in TLS grade for any SBC FQDN; edge-only, unauthenticated, stores nothing (grades + check IDs aggregate only, never hostnames)
 - **[State-of-readiness benchmark](https://sbc-autoops-scanner.fly.dev/stats)** — anonymized aggregate grades
 
