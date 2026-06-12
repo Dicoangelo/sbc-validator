@@ -212,7 +212,7 @@ dashboard (`serve`), an executive report (`report`), and a one-command `demo`.
 
 ## 11. Team
 
-Metaventions AI. Philip Drammeh (co-founder, telecom domain expert, ex-Microsoft
+Philip Drammeh (co-founder, telecom domain expert, ex-Microsoft
 Telecom Spec Lead) and Dico Angelo (co-founder, AI builder/systems architect).
 The product is built by Dico iterating with Claude (AI-assisted development),
 grounded in Philip's domain expertise.

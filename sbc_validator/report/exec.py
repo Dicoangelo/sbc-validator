@@ -116,5 +116,5 @@ def render_html(payload: dict) -> str:
  <h2>Fleet</h2>
  <table><thead><tr><th>SBC</th><th>Vendor</th><th>Site</th><th>Verdict</th><th>Risk</th><th>Top finding</th></tr></thead><tbody>{rows}</tbody></table>
  <h2>Most common high-severity findings</h2><ul>{top}</ul>
- <div class="foot">SBC Validator &middot; Metaventions AI &middot; the independent truth layer for real-time voice</div>
+ <div class="foot">SBC Validator &middot; the independent truth layer for real-time voice</div>
 </div></body></html>"""

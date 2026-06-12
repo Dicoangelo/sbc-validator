@@ -48,5 +48,5 @@ dashboard, and an executive report.
 One real (sanitized) SBC config per vendor. It turns routing + security real for
 that vendor, the same path that made AudioCodes real. See CONFIG-REQUEST.md.
 
-*Metaventions AI. Philip Drammeh (telecom domain) and Dico Angelo (AI builder).
+*Philip Drammeh (telecom domain) and Dico Angelo (AI builder).
 Contact: dicoangelo@metaventionsai.com*

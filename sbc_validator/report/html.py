@@ -128,5 +128,5 @@ def render_html(report: dict) -> str:
   <div class="chips">{chips}</div>
   {pred_html}
   {rows}
-  <div class="foot">SBC Validator &middot; Metaventions AI &middot; the independent truth layer for real-time voice</div>
+  <div class="foot">SBC Validator &middot; the independent truth layer for real-time voice</div>
 </div></body></html>"""
