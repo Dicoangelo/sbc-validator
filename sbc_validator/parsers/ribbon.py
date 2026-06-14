@@ -138,7 +138,11 @@ class RibbonParser(AbstractParser):
                 sans=[fqdn] if fqdn else [],
                 ekus=[],                         # filled by deep C pass from PEM
                 source_file=leaf_cert_file,
-                chain_complete=True,
+                # Unknown until proven: when a real leaf PEM is supplied the deep
+                # C pass computes chain completeness from the chain itself; absent
+                # that, do not assert a complete chain we never inspected.
+                # (COV-002 honesty: None, not a guessed True.)
+                chain_complete=None,
             )
 
         for zone, z in zones.items():
@@ -150,7 +154,11 @@ class RibbonParser(AbstractParser):
                 minv = min(vers, key=lambda s: tuple(int(x) for x in s.split("."))) if vers else None
                 ctx = TlsContext(
                     name=z["tls_profile"] or f"{zone}-tls",
-                    mtls_enabled=prof.get("mtls", True),
+                    # Only assert mTLS from an actually-parsed TLS profile (where
+                    # `authClient` was observed). If the zone references a profile
+                    # we never parsed (prof == {}), it is unknown, not on.
+                    # (COV-002 honesty: None, not a guessed True.)
+                    mtls_enabled=prof.get("mtls"),
                     presented_cert=leaf,
                     trusted_root_ids=list(roots),
                     min_tls_version=minv,

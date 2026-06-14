@@ -136,7 +136,11 @@ class OracleAcmeParser(AbstractParser):
                            if clist else None)
                 ctx = TlsContext(
                     name=str(tls_name or f"{rid}-tls"),
-                    mtls_enabled=True,
+                    # The ACLI export carries no client-auth/mTLS element we model
+                    # yet; leave it unknown rather than assert it on. A security
+                    # validator must never positively claim an unobserved control.
+                    # (COV-002 honesty: None, not a guessed True.)
+                    mtls_enabled=None,
                     presented_cert=(Certificate(source_file=leaf_cert_file)
                                     if leaf_cert_file else None),
                     trusted_root_ids=[],

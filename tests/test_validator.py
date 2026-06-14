@@ -149,6 +149,43 @@ def test_ribbon_eku_review_not_block(ruleset):
     assert "C.CA.ROOT_MISSING" not in found     # all 7 roots present
 
 
+# ---- parser honesty: never positively assert an unobserved control (COV-002) ----
+
+def test_parsers_do_not_assert_unobserved_chain_or_mtls():
+    """A security validator must never claim a control it did not observe.
+    Neither shipped Oracle/Ribbon export carries a real leaf PEM, so chain
+    completeness is unproven -> None (never a guessed True). Oracle's ACLI has
+    no client-auth element we model -> mTLS None. Guards against re-introducing
+    optimistic `=True` parser defaults. (COV-002.)
+    """
+    for sample in ("oracle_teams.acli", "ribbon_sbc.cli"):
+        cfg = detect_and_parse((REPO / "samples" / sample).read_text())
+        for iface in cfg.sip_interfaces:
+            ctx = iface.tls_context
+            if ctx is None:
+                continue
+            cert = ctx.presented_cert
+            if cert is not None:
+                assert cert.chain_complete is None, \
+                    f"{sample}: asserted chain completeness with no PEM inspected"
+
+    oracle = detect_and_parse((REPO / "samples" / "oracle_teams.acli").read_text())
+    for iface in oracle.sip_interfaces:
+        if iface.tls_context is not None:
+            assert iface.tls_context.mtls_enabled is None, \
+                "oracle: asserted unobserved mTLS"
+
+
+def test_observed_mtls_is_still_honoured():
+    """The honesty fix must not blind the parser to a control it DOES observe:
+    the Ribbon export carries `authClient true`, so mTLS reads True (observed),
+    not None. Regression guard for the prof.get('mtls') default change.
+    """
+    cfg = detect_and_parse((REPO / "samples" / "ribbon_sbc.cli").read_text())
+    teams = next(i for i in cfg.sip_interfaces if i.role == "teams")
+    assert teams.tls_context.mtls_enabled is True
+
+
 # ---- TLS version + cipher policy (ruleset-driven, previously unenforced) ----
 
 def test_tls_weak_version_and_cipher_flagged(ruleset):
