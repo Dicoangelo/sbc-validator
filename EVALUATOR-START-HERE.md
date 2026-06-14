@@ -9,24 +9,33 @@ If you only have sixty seconds, run the two lines under step 2 and read step 4.
 
 ---
 
-## 1. Verify what you received (don't trust it)
+## 1. Get it, and verify it (don't trust it)
 
-You were sent a source tarball and, in a separate channel (the email body), a SHA-256.
+Two ways in, depending on what you were sent. Both end at the same manifest check.
+
+**If you were sent the repository link** (clone it):
 
 ```bash
-# the hash you compute must match the one in the email
-shasum -a 256 sbc-validator-*-src.tar.gz
-
-tar -xzf sbc-validator-*-src.tar.gz
-cd sbc-validator-*/
-
-# every file in the tree, checked against the shipped manifest
-shasum -a 256 -c SHA256SUMS
+git clone https://github.com/Dicoangelo/sbc-validator.git
+cd sbc-validator
+git log --oneline -1               # the tagged release commit you were pointed at
+shasum -a 256 -c SHA256SUMS         # every tracked file against the in-tree manifest
 ```
 
-There is no pre-built binary to trust. You build from source. A runtime
-CycloneDX SBOM ships at `docs/sbom-cyclonedx.json`; the engine has one runtime
-dependency (`cryptography`).
+**If you were sent the source tarball** (with a SHA-256 in the email body):
+
+```bash
+shasum -a 256 sbc-validator-*-src.tar.gz    # must match the hash in the email
+tar -xzf sbc-validator-*-src.tar.gz && cd sbc-validator-*/
+shasum -a 256 -c SHA256SUMS                 # the same manifest check
+```
+
+Either path ends with the manifest verifying clean (every tracked file `OK`; the
+only file it cannot self-cover is `SHA256SUMS` itself). There is no pre-built
+binary to trust: you build from source. A runtime CycloneDX SBOM ships at
+`docs/sbom-cyclonedx.json`. The engine has exactly one *direct* runtime dependency,
+`cryptography`; a `pip list` shows it plus its own transitive deps (`cffi`,
+`pycparser`) and nothing else.
 
 ## 2. Run it (no container required)
 
@@ -98,6 +107,10 @@ Supported inputs today: AudioCodes `.ini`, Cisco CUBE IOS-XE running-config, Rib
 set-config, Oracle Acme ACLI, Metaswitch Perimeta adjacency export. The exact export
 commands per vendor are in **[docs/CONFIG-REQUEST.md](docs/CONFIG-REQUEST.md)** (it is
 written as an intake spec, but it doubles as the "how do I export mine" guide).
+
+For full certificate-chain depth (EKU, self-signed, root-anchor checks), also hand it
+the leaf PEM next to the config; without it the certificate checks stay silent and say
+so (`verify out-of-band`) rather than guess. Everything else runs from the config alone.
 
 ## 5. What it will and will not tell you
 
