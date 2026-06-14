@@ -13,8 +13,8 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 git archive --prefix="sbc-validator-${VER}/" "$TAG" \
-  sbc_validator rulesets samples tests examples README.md pyproject.toml Dockerfile .dockerignore demo.sh \
-  docs/SECURITY.md docs/ARCHITECTURE.md docs/RUNBOOK.md docs/DOMAIN_REFERENCE.md \
+  sbc_validator rulesets samples tests examples README.md EVALUATOR-START-HERE.md pyproject.toml Dockerfile .dockerignore demo.sh \
+  docs/SECURITY.md docs/ARCHITECTURE.md docs/RUNBOOK.md docs/DOMAIN_REFERENCE.md docs/CONFIG-REQUEST.md \
   docs/VALIDATOR-COVERAGE.md docs/RULE_AUTHORITY.md docs/PRE-COMMIT-CONTROL.md docs/sbom-cyclonedx.json \
   | tar -x -C "$WORK"
 

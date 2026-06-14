@@ -106,30 +106,43 @@ flowchart LR
 
 ## Quick start
 
-```bash
-# one packaged command runs the whole demo-fleet showcase
-sbc-validator demo
+> **Evaluating this for your org?** Follow **[EVALUATOR-START-HERE.md](EVALUATOR-START-HERE.md)** instead:
+> verify the checksum, run it, prove the air gap, then point it at one of your own configs (which never leaves your box).
 
-# validate a single config (any of the five vendors auto-detected)
-sbc-validator validate sbc-configs/teams.ini \
-    --ruleset rulesets/ms_direct_routing_2026-06.json \
-    --html report.html
+```bash
+# install (Python 3.10+); the signed ruleset ships in-tree, so --ruleset is optional
+python3 -m venv .venv && .venv/bin/pip install .
+
+# one packaged command runs the whole five-vendor demo-fleet showcase
+sbc-validator demo
+```
+
+Every command below runs as-is against the bundled `samples/`, so you can paste and go:
+
+```bash
+# validate a single config (any of the five vendors auto-detected); non-zero exit on BLOCK
+sbc-validator validate samples/audiocodes_teams_real.ini --html report.html   # PASS, risk 4
+sbc-validator validate samples/broken_a.ini                                   # BLOCK, exit 1
 
 # predict the call, diagnose a capture, diff an HA pair, roll up a fleet
-sbc-validator simulate sbc-configs/teams.ini
-sbc-validator explain capture.pcap
-sbc-validator diff active.ini standby.ini --fail-on review
-sbc-validator fleet sbc-configs/
-
-# map findings to a regulatory control framework
-sbc-validator report --compliance mifid2 --results results/
-
-# outside-in: live TLS handshake to an SBC edge, graded vs the ruleset
-sbc-validator probe sbc.contoso.com
+sbc-validator simulate samples/audiocodes_min.ini
+sbc-validator explain  samples/one_way_audio.pcap
+sbc-validator diff     samples/audiocodes_min.ini samples/audiocodes_standby.ini
+sbc-validator fleet    samples
 
 # the local console: fleet view, findings, reports, bundle provenance
 # (reads results/, never leaves the box)
 sbc-validator serve
+```
+
+Against your own estate (swap in your paths):
+
+```bash
+# map a prior run's findings to a regulatory control framework
+sbc-validator report --compliance mifid2 --results results/
+
+# outside-in: live TLS handshake to one of your SBC edges, graded vs the ruleset
+sbc-validator probe sbc.your-domain.com
 ```
 
 `validate` returns a non-zero exit code, so it drops straight into CI and fails the build before a non-compliant config reaches the change window.
