@@ -41,6 +41,12 @@ docker run --rm --network none -v "$PWD:/work" sbc-validator \
 
 `--network none` is the point: **zero outbound network is required to run.**
 
+The dashboard's drag-and-drop upload (`POST /validate`) keeps this contract:
+the dropped config is parsed and graded **in memory and never written to
+disk**, the endpoint **refuses any non-loopback client** (so a deliberately
+widened `--host` cannot expose config upload), and the response is the verdict
+JSON only — it travels nowhere beyond `127.0.0.1`.
+
 Containers are a packaging convenience, not a requirement. The same engine
 runs via `pip install .` on any Python 3.10+ host (one dependency,
 `cryptography`, which ships prebuilt wheels), including fully offline: `pip
@@ -110,7 +116,7 @@ image's word for anything:
    ```
 7. **pip-audit runs in CI on every push** against the runtime install, so the
    "audits clean" claim is continuously enforced, not a snapshot.
-8. **173 automated tests in CI** across three Python versions.
+8. **178 automated tests in CI** across three Python versions.
 
 ## The hosted scanner is a separate, smaller thing
 

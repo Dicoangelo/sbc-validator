@@ -145,3 +145,57 @@ def test_report_empty_results_is_friendly(tmp_path):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+# ---- drag-and-drop validate (POST /validate, OPS-004) ----------------------
+
+def _post(url, body: bytes, ctype="text/plain"):
+    req = urllib.request.Request(url, data=body, method="POST",
+                                 headers={"Content-Type": ctype})
+    try:
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return e.code, json.loads(e.read())
+
+
+def test_validate_good_config_returns_verdict(live):
+    cfg = (REPO / "samples" / "walkthrough" / "sbc-teams-01-broken.ini").read_bytes()
+    code, d = _post(live + "/validate", cfg)
+    assert code == 200
+    assert d["ok"] is True
+    assert d["verdict"] == "BLOCK"          # broken Teams config -> blocked
+    assert d["vendor"] == "audiocodes"
+    assert d["report"]["findings"]          # findings present
+    assert d["report"]["call_prediction"]["outcome"] == "NO_CONNECT"
+    assert "<!doctype html>" in d["html"].lower()   # reuses the HTML renderer
+
+
+def test_validate_fixed_config_passes(live):
+    cfg = (REPO / "samples" / "walkthrough" / "sbc-teams-01-fixed.ini").read_bytes()
+    code, d = _post(live + "/validate", cfg)
+    assert code == 200 and d["verdict"] == "PASS"
+
+
+def test_validate_malformed_config_is_clean_error(live):
+    # No vendor parser matches -> a clean one-line error, never a 500/traceback.
+    code, d = _post(live + "/validate", b"this is not any SBC vendor config\n")
+    assert code == 200
+    assert "error" in d and "ok" not in d
+    assert "Traceback" not in d["error"]
+    assert d["error"]  # non-empty human-readable message
+
+
+def test_validate_empty_body_rejected(live):
+    code, d = _post(live + "/validate", b"")
+    assert code == 400 and "error" in d
+
+
+def test_validate_unavailable_without_bundle(tmp_path):
+    httpd, base = _serve(str(tmp_path / "x"), bundle=None)
+    try:
+        code, d = _post(base + "/validate", b"[ Teams ]\n")
+        assert code == 200 and "error" in d and "ruleset" in d["error"]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

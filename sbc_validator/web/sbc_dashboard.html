@@ -179,6 +179,21 @@
   .wk-toggle button.active{background:var(--garnet);color:#fff}
   .wk-verdict{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700}
   .wk-term{background:#161c25;color:#c7d0db;border-radius:10px;padding:18px 20px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.3px;line-height:1.62;overflow-x:auto;white-space:pre;margin:0;min-height:140px}
+  /* drag-and-drop validate */
+  .dropzone{display:flex;align-items:center;gap:13px;border:1.5px dashed var(--line);border-radius:11px;background:var(--panel);padding:15px 18px;margin-bottom:16px;cursor:pointer;transition:border-color .15s,background .15s}
+  .dropzone:hover{border-color:var(--garnet-soft)}
+  .dropzone.over{border-color:var(--garnet);background:#fdf3f7;border-style:solid}
+  .dropzone svg{width:22px;height:22px;color:var(--garnet);flex:none}
+  .dz-copy{flex:1;min-width:0}
+  .dz-copy b{font-size:13.5px;color:var(--ink)}
+  .dz-copy span{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .dz-result{margin-bottom:16px}
+  .dz-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:13px 16px;border:1px solid var(--line);border-bottom:none;border-radius:11px 11px 0 0;background:var(--panel)}
+  .dz-bar .mono{font-size:12.5px;color:var(--ink-soft)}
+  .dz-bar .verdict{font-size:13px}
+  .dz-bar .dz-x{margin-left:auto;border:none;background:none;color:var(--ink-faint);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px}
+  .dz-frame{width:100%;height:520px;border:1px solid var(--line);border-radius:0 0 11px 11px;background:#fff;display:block}
+  .dz-err{padding:13px 16px;border:1px solid var(--high);border-radius:11px;background:#fdf0e3;color:#8a4b10;font-size:13px}
 </style>
 
 <aside>
@@ -238,6 +253,14 @@
       </div>
     </div>
   </div>
+
+  <div id="dz" class="dropzone" role="button" tabindex="0" aria-label="Drop an SBC config file to validate it">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div class="dz-copy"><b>Drop an SBC config to validate</b><span>AudioCodes .ini · Cisco CUBE · Ribbon · Oracle Acme · Metaswitch — read in memory, never written to disk, never leaves this machine.</span></div>
+    <label for="dz-file" class="loadbtn">Browse…</label>
+    <input id="dz-file" type="file" hidden />
+  </div>
+  <div id="dz-result" class="dz-result" hidden></div>
 
   <div class="ds-title">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9v7l4 2v-9z"/></svg>
@@ -683,6 +706,53 @@ document.getElementById("f-file").addEventListener("change",e=>{
   r.onload=()=>{ try{ loadPayload(JSON.parse(r.result)); }catch(err){ alert("Couldn't parse JSON: "+err.message); } };
   r.readAsText(file);
 });
+
+/* ---------------- drag-and-drop validate (POST /validate, loopback) -------- */
+(function(){
+  const dz=document.getElementById("dz"), out=document.getElementById("dz-result"),
+        fileInput=document.getElementById("dz-file");
+  if(!dz) return;
+  function showErr(msg){ out.hidden=false; out.innerHTML=`<div class="dz-err">${esc(msg)}</div>`; }
+  function showResult(d){
+    out.hidden=false;
+    const v=esc(d.verdict||"?");
+    out.innerHTML=
+      `<div class="dz-bar"><span class="verdict ${v}">${v}</span>`+
+      `<span class="mono">risk ${esc(d.risk)}/100 · ${esc((d.vendor||"").replace("_"," "))} · `+
+      `predicted ${esc((d.report&&d.report.call_prediction&&d.report.call_prediction.outcome)||"—")}</span>`+
+      `<button class="dz-x" title="Dismiss" aria-label="Dismiss result">×</button></div>`+
+      `<iframe class="dz-frame" title="Validation report"></iframe>`;
+    // srcdoc reuses the exact validate --html renderer; sandboxed, no scripts.
+    const frame=out.querySelector("iframe");
+    frame.setAttribute("sandbox","");
+    frame.srcdoc=d.html||"";
+    out.querySelector(".dz-x").addEventListener("click",()=>{out.hidden=true;out.innerHTML="";});
+    out.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+  async function validateText(text,name){
+    dz.classList.add("over");
+    out.hidden=false; out.innerHTML=`<div class="dz-err" style="border-color:var(--line);background:var(--line-soft);color:var(--ink-soft)">Validating ${esc(name||"config")}…</div>`;
+    try{
+      const r=await fetch("/validate",{method:"POST",headers:{"Content-Type":"text/plain"},body:text});
+      const d=await r.json();
+      if(d.error) showErr(d.error); else showResult(d);
+    }catch(err){ showErr("The live engine is required for upload validation — run: sbc-validator serve"); }
+    dz.classList.remove("over");
+  }
+  function handleFile(file){
+    if(!file) return;
+    if(file.size>4_000_000){ showErr("That file is larger than expected for an SBC export (>4 MB)."); return; }
+    const r=new FileReader();
+    r.onload=()=>validateText(r.result,file.name);
+    r.readAsText(file);
+  }
+  dz.addEventListener("click",()=>fileInput.click());
+  dz.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();fileInput.click();} });
+  fileInput.addEventListener("change",e=>{ handleFile(e.target.files[0]); e.target.value=""; });
+  ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("over");}));
+  ["dragleave","dragend"].forEach(ev=>dz.addEventListener(ev,e=>{ if(e.target===dz) dz.classList.remove("over"); }));
+  dz.addEventListener("drop",e=>{ e.preventDefault(); dz.classList.remove("over"); handleFile(e.dataTransfer.files[0]); });
+})();
 
 ["f-vendor","f-verdict"].forEach(id=>
   document.getElementById(id).addEventListener("change",()=>renderAll(CURRENT.fleet,CURRENT.trend)));

@@ -50,7 +50,7 @@
       "id": "OPS-004",
       "title": "Drag-and-drop validate in the dashboard (C-suite operability)",
       "priority": 1,
-      "status": "pending",
+      "status": "done",
       "dependsOn": [],
       "description": "Turn the read-only dashboard into something a non-technical user OPERATES: drop a config file onto Fleet Overview and see the verdict, without a terminal. This is the Tier-2 unlock that makes it self-serve.",
       "acceptanceCriteria": [
@@ -91,7 +91,9 @@
       "title": "Parser honesty for Cisco/Ribbon/Oracle (emit None, not guessed False)",
       "priority": 2,
       "status": "pending",
-      "dependsOn": ["COV-001"],
+      "dependsOn": [
+        "COV-001"
+      ],
       "description": "Finish the C1 tristate work for the non-AudioCodes parsers: set SRTP/keepalive/mtls/chain only when observed, leave None otherwise, so a real config never false-fires. Gated on COV-001 to validate against ground truth.",
       "acceptanceCriteria": [
         "Cisco/Ribbon/Oracle parsers emit None for unobserved SRTP/keepalive/mtls/chain_complete",
@@ -104,7 +106,9 @@
       "title": "Per-config cipher-suite + min-TLS assertion (H5)",
       "priority": 3,
       "status": "pending",
-      "dependsOn": ["COV-001"],
+      "dependsOn": [
+        "COV-001"
+      ],
       "description": "Close the 'unasserted crypto specs' gap: assert the config actually offers TLS 1.2+ and the required SRTP/cipher suites the ruleset already carries.",
       "acceptanceCriteria": [
         "TlsContext gains min_tls_version + offered cipher/SRTP suites (tristate, silent on None)",

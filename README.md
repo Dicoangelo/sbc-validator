@@ -14,7 +14,7 @@
 
 <br/>
 
-<img src="https://img.shields.io/badge/Tests-173-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Tests" />
+<img src="https://img.shields.io/badge/Tests-178-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Tests" />
 <img src="https://img.shields.io/badge/Vendors-5-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Vendors" />
 <img src="https://img.shields.io/badge/Domains-8-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Domains" />
 <img src="https://img.shields.io/badge/Checks-59-9d1b54?style=for-the-badge&labelColor=2b0a18" alt="Checks" />
@@ -168,7 +168,7 @@ written to be lifted into a security review. The short version:
 
 ## What's verified, stated up front
 
-Capabilities described as available are implemented and tested (**173 tests in CI**, three Python versions). Routing and security depth for Cisco, Ribbon, and Oracle, per-config cipher matching, and live probing stay **silent** until validated against a real config for that vendor. Metaswitch Perimeta is read from an adjacency-CLI export that does not carry the trust store, certificate, or codec policy inline, so those domains stay silent for it. The tool refuses to guess — a wrong verdict is the one thing a pre-deployment control cannot afford.
+Capabilities described as available are implemented and tested (**178 tests in CI**, three Python versions). Routing and security depth for Cisco, Ribbon, and Oracle, per-config cipher matching, and live probing stay **silent** until validated against a real config for that vendor. Metaswitch Perimeta is read from an adjacency-CLI export that does not carry the trust store, certificate, or codec policy inline, so those domains stay silent for it. The tool refuses to guess — a wrong verdict is the one thing a pre-deployment control cannot afford.
 
 ## Project layout
 

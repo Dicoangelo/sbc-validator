@@ -74,6 +74,58 @@ def _walk_text(which: str, bundle) -> str:
     return _ANSI.sub("", buf.getvalue())
 
 
+_LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"}
+
+
+def _validate_text(text: str, bundle) -> dict:
+    """Run the real engine over a config string, fully in memory.
+
+    Mirrors `cli.run`'s report record (the per-SBC shape the dashboard already
+    consumes) and renders it with the SAME customer-facing HTML renderer used by
+    `validate --html`. Raw config is never written to disk. Returns either
+    {"ok": True, ...report+html...} or {"error": "<clean one-line message>"}.
+    """
+    from datetime import datetime, timezone
+    from .parsers.audiocodes import detect_and_parse
+    from .cli import VALIDATORS
+    from .report.risk import score
+    from .report.html import render_html
+    from .call_sim import simulate_call
+
+    try:
+        config = detect_and_parse(text)
+    except (ValueError, NotImplementedError) as e:
+        return {"error": str(e)}
+    except Exception as e:                # defensive: never spill a traceback
+        return {"error": f"could not parse config ({type(e).__name__})"}
+
+    findings = []
+    for vcls in VALIDATORS:
+        findings.extend(vcls(bundle).validate(config).findings)
+    summary = score(findings)
+    report = {
+        "sbc": config.sbc_fqdn or "uploaded-config",
+        "vendor": config.vendor,
+        "site": config.raw_meta.get("site") or "uploaded",
+        "ruleset_version": bundle.get("bundle_version", "unknown"),
+        "validated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "summary": summary,
+        "findings": [vars(f) | {"severity": f.severity.name} for f in findings],
+    }
+    sim = simulate_call(config, bundle, findings)
+    report["call_prediction"] = {
+        "outcome": sim.outcome, "dies_at": sim.dies_at, "summary": sim.summary,
+    }
+    return {
+        "ok": True,
+        "verdict": summary.get("verdict"),
+        "risk": summary.get("risk_score"),
+        "vendor": config.vendor,
+        "report": report,
+        "html": render_html(report),
+    }
+
+
 _demo_cache: dict = {}
 
 
@@ -221,7 +273,10 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str, bundle):
                 self._send(404, b"not found", "text/plain")
 
         def do_POST(self):
-            if urlparse(self.path).path != "/scan":
+            path = urlparse(self.path).path
+            if path == "/validate":
+                return self._do_validate()
+            if path != "/scan":
                 return self._send(404, b"not found", "text/plain")
             try:
                 n = int(self.headers.get("Content-Length", 0))
@@ -235,6 +290,41 @@ def _make_handler(results_dir: str, anon: bool, org_salt: str, bundle):
                     {"error": "scanner unavailable: no ruleset loaded"}).encode(),
                     "application/json")
             self._send(200, json.dumps(_scan(fqdn, bundle)).encode(), "application/json")
+
+        def _do_validate(self):
+            """Drag-and-drop validate: raw config in the body, verdict JSON out.
+
+            Loopback-only by contract: the raw config is validated in memory and
+            the host is bound to 127.0.0.1 by default, but we still refuse any
+            non-loopback client so a deliberately widened --host never exposes
+            config upload. Nothing is written to disk; nothing leaves the box.
+            """
+            client = (self.client_address[0] if self.client_address else "")
+            if client not in _LOOPBACK:
+                return self._send(403, json.dumps(
+                    {"error": "validate is loopback-only"}).encode(), "application/json")
+            if bundle is None:
+                return self._send(200, json.dumps(
+                    {"error": "validation unavailable: no signed ruleset loaded"}
+                ).encode(), "application/json")
+            try:
+                n = int(self.headers.get("Content-Length", 0))
+            except ValueError:
+                n = 0
+            if n <= 0:
+                return self._send(400, json.dumps(
+                    {"error": "empty request: drop a config file"}).encode(),
+                    "application/json")
+            if n > 4_000_000:             # an SBC export is KB-scale; cap abuse
+                return self._send(413, json.dumps(
+                    {"error": "config too large"}).encode(), "application/json")
+            raw = self.rfile.read(n)
+            text = raw.decode("utf-8", errors="replace")
+            try:
+                result = _validate_text(text, bundle)
+            except Exception as e:        # never 500 the operator surface
+                result = {"error": f"validation failed ({type(e).__name__})"}
+            self._send(200, json.dumps(result).encode(), "application/json")
 
         def log_message(self, *a):  # quiet by default
             pass
