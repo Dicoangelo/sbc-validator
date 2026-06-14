@@ -65,7 +65,7 @@
       "id": "OPS-005",
       "title": "First real sidebar sub-page: Findings drill-down",
       "priority": 2,
-      "status": "pending",
+      "status": "done",
       "description": "Convert one 'soon' nav item into a live page so the sidebar starts earning its chrome. Findings is the highest-value: a fleet-wide, filterable findings table.",
       "acceptanceCriteria": [
         "Clicking Findings shows a table of every finding across the fleet (SBC, domain, severity, check_id, title)",

@@ -65,9 +65,11 @@ def _anonymize(run: dict, salt: str) -> dict:
         "site": "—",                        # site stripped
         "ruleset_version": run.get("ruleset_version", "unknown"),
         "summary": run.get("summary", {}),
-        # findings reduced to check_id + severity + domain only (no detail/locator)
+        # findings reduced to check_id + title + severity + domain (the generic
+        # check label; never detail/locator/remediation, which can carry specifics)
         "findings": [
-            {"check_id": x.get("check_id"), "severity": x.get("severity"),
+            {"check_id": x.get("check_id"), "title": x.get("title"),
+             "severity": x.get("severity"),
              "domain": x.get("domain") or (x.get("check_id", "?").split(".", 1)[0])}
             for x in run.get("findings", [])
         ],

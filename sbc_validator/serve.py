@@ -152,8 +152,9 @@ def _demo_payload(bundle) -> dict:
             "sbc": cfg.sbc_fqdn or p.stem, "vendor": cfg.vendor, "site": site,
             "ruleset_version": bundle.get("bundle_version", "unknown"),
             "summary": summary,
-            "findings": [{"check_id": f.check_id, "domain": f.domain or
-                          f.check_id.split(".")[0], "severity": f.severity.name}
+            "findings": [{"check_id": f.check_id, "title": f.title,
+                          "domain": f.domain or f.check_id.split(".")[0],
+                          "severity": f.severity.name}
                          for f in findings],
         })
     payload = {"fleet": fleet, "trend": {"labels": [], "series": {}}, "mode": "demo"}

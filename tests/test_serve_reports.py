@@ -199,3 +199,31 @@ def test_validate_unavailable_without_bundle(tmp_path):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+# ---- findings drill-down payload (OPS-005) ---------------------------------
+
+def test_demo_payload_findings_carry_title(live):
+    # The Findings drill-down needs the check title, so the slimmed dashboard
+    # payload must carry it (check_id + title + severity + domain).
+    code, _, body = _get(live + "/dashboard_data.json?demo=1")
+    assert code == 200
+    fleet = json.loads(body)["fleet"]
+    found = [f for s in fleet for f in s["findings"]]
+    assert found, "demo payload had no findings to check"
+    assert all({"check_id", "title", "severity", "domain"} <= set(f) for f in found)
+    assert any(f.get("title") for f in found)        # at least one real title
+
+
+def test_anon_payload_carries_title_not_specifics():
+    # The anonymized payload keeps the generic title but never detail/locator.
+    from sbc_validator.tools.build_dashboard_data import _anonymize
+    run = {"sbc": "sbc.contoso.com", "vendor": "audiocodes",
+           "summary": {"verdict": "BLOCK"},
+           "findings": [{"check_id": "C.CA.ROOT_MISSING", "title": "2 of 7 roots missing",
+                         "severity": "CRITICAL", "domain": "C",
+                         "detail": "missing G5 pair", "locator": "TlsContext 'Teams'"}]}
+    out = _anonymize(run, "salt")
+    f = out["findings"][0]
+    assert f["title"] == "2 of 7 roots missing"
+    assert "detail" not in f and "locator" not in f   # specifics excluded by construction

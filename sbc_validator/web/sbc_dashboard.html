@@ -123,6 +123,9 @@
   thead th.num,td.num{text-align:right}
   tbody td{padding:8px 10px;border-bottom:1px solid var(--line-soft);white-space:nowrap}
   tbody tr:hover{background:#fafbfc}
+  tbody tr.ff-row{cursor:pointer}
+  tbody tr.row-flash{animation:rowflash 1.6s ease-out}
+  @keyframes rowflash{0%,30%{background:#fbe3ee}100%{background:transparent}}
   .vendor-pill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;background:var(--line-soft);color:var(--ink-soft);font-weight:600}
   .verdict{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:11.5px}
   .verdict::before{content:"";width:8px;height:8px;border-radius:50%}
@@ -430,14 +433,14 @@
     <section class="panel">
       <div class="body" style="padding:16px 18px">
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-          <select id="ff-sev" style="font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px"><option value="">All severities</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select>
+          <select id="ff-sev" style="font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px"><option value="">All severities</option><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option><option>INFO</option></select>
           <select id="ff-dom" style="font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:7px;padding:7px 10px"><option value="">All domains</option></select>
           <input id="ff-q" type="text" placeholder="search check id / sbc" style="font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--line);border-radius:7px;padding:7px 10px;min-width:220px">
           <span class="mono" id="ff-count" style="font-size:12px;color:var(--ink-faint)"></span>
         </div>
-        <table><thead><tr><th>SBC</th><th>Check</th><th>Domain</th><th>Severity</th></tr></thead><tbody id="ff-tbl"></tbody></table>
+        <table><thead><tr><th>SBC</th><th>Check</th><th>Title</th><th>Domain</th><th>Severity</th></tr></thead><tbody id="ff-tbl"></tbody></table>
       </div>
-      <div class="foot"><span>Live from the loaded payload. Open an SBC's full report (Reports tab) for detail and remediation text.</span></div>
+      <div class="foot"><span>Live from the loaded payload. Click a row to jump to that SBC in Fleet Overview; open its full report (Reports tab) for remediation text.</span></div>
     </section>
   </div>
 
@@ -647,7 +650,7 @@ function renderAll(fleet, trend){
     const r=s.summary.risk_score;
     const col=r>=70?"#c0392b":r>=35?"#e07a1f":"#1f8a6d";
     const verdict=esc(s.summary.verdict);
-    tb.insertAdjacentHTML("beforeend",`<tr>
+    tb.insertAdjacentHTML("beforeend",`<tr data-sbc="${esc(s.sbc)}">
       <td class="mono">${esc(s.sbc)}</td>
       <td><span class="vendor-pill">${esc(String(s.vendor).replace("_"," "))}</span></td>
       <td>${esc(s.site)}</td>
@@ -771,23 +774,39 @@ function renderFindings(){
         q=document.getElementById("ff-q").value.trim().toLowerCase();
   const rows=[];
   (CURRENT.fleet||[]).forEach(s=>(s.findings||[]).forEach(f=>{
-    if(f.severity==="INFO")return;
     if(sev&&f.severity!==sev)return;
     if(dom&&f.domain!==dom)return;
-    if(q&&!(f.check_id||"").toLowerCase().includes(q)&&!(s.sbc||"").toLowerCase().includes(q))return;
+    if(q&&!(f.check_id||"").toLowerCase().includes(q)&&!(s.sbc||"").toLowerCase().includes(q)
+        &&!(f.title||"").toLowerCase().includes(q))return;
     rows.push({sbc:s.sbc,f});
   }));
   rows.sort((a,b)=>SEV.indexOf(a.f.severity)-SEV.indexOf(b.f.severity));
   document.getElementById("ff-tbl").innerHTML=rows.map(r=>
-    `<tr><td class="mono">${esc(r.sbc)}</td><td class="mono">${esc(r.f.check_id)}</td>`+
+    `<tr class="ff-row" data-sbc="${esc(r.sbc)}" title="Jump to ${esc(r.sbc)} in Fleet Overview">`+
+    `<td class="mono">${esc(r.sbc)}</td><td class="mono">${esc(r.f.check_id)}</td>`+
+    `<td style="white-space:normal">${esc(r.f.title||"—")}</td>`+
     `<td>${esc((DOM_NAME[r.f.domain]||r.f.domain||"—"))}</td>`+
     `<td><span style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;color:${SEV_COLOR[r.f.severity]||"#666"}">${esc(r.f.severity)}</span></td></tr>`).join("")
-    || '<tr><td colspan="4" style="color:var(--ink-faint)">no findings match</td></tr>';
+    || '<tr><td colspan="5" style="color:var(--ink-faint)">no findings match</td></tr>';
   document.getElementById("ff-count").textContent=rows.length+" findings";
   const df=document.getElementById("ff-dom");
   if(df.options.length===1){Object.keys(DOM_NAME).forEach(d=>{const o=document.createElement("option");o.value=d;o.textContent=DOM_NAME[d];df.appendChild(o);});}
 }
 ["ff-sev","ff-dom","ff-q"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener(el.tagName==="INPUT"?"input":"change",renderFindings);});
+
+// Click a findings row -> jump to that SBC in Fleet Overview (highlight the row).
+function jumpToSbc(sbc){
+  (window.show||function(){})("fleet");
+  const tr=document.querySelector(`#fleet tbody tr[data-sbc="${(window.CSS&&CSS.escape)?CSS.escape(sbc):sbc}"]`);
+  if(!tr){ const ff=document.getElementById("f-vendor"), fv=document.getElementById("f-verdict");
+           if(ff)ff.value=""; if(fv)fv.value=""; renderAll(CURRENT.fleet,CURRENT.trend); }
+  const row=document.querySelector(`#fleet tbody tr[data-sbc="${(window.CSS&&CSS.escape)?CSS.escape(sbc):sbc}"]`);
+  if(row){ row.scrollIntoView({behavior:"smooth",block:"center"});
+           row.classList.remove("row-flash"); void row.offsetWidth; row.classList.add("row-flash"); }
+}
+document.getElementById("ff-tbl").addEventListener("click",e=>{
+  const tr=e.target.closest("tr.ff-row"); if(tr&&tr.dataset.sbc) jumpToSbc(tr.dataset.sbc);
+});
 
 function renderReports(){
   const box=document.getElementById("sbcReports");
@@ -832,6 +851,7 @@ function loadBundle(){
     const cb=document.querySelector(".crumb"); if(cb) cb.innerHTML="Home / <b>"+crumbs[v]+"</b>";
     const h1=document.querySelector(".topbar h1"); if(h1) h1.textContent=titles[v];
   }
+  window.show=show;   // reachable from jumpToSbc (findings drill-down)
   document.querySelectorAll("nav a[data-view]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();show(a.dataset.view);if(a.dataset.view==="findings")renderFindings();if(a.dataset.view==="reports")renderReports();if(a.dataset.view==="bundle")loadBundle();}));
   if(location.hash){const h=location.hash.slice(1); if(views[h]) show(h);}
 
