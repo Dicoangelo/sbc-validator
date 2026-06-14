@@ -110,7 +110,7 @@ image's word for anything:
    ```
 7. **pip-audit runs in CI on every push** against the runtime install, so the
    "audits clean" claim is continuously enforced, not a snapshot.
-8. **172 automated tests in CI** across three Python versions.
+8. **173 automated tests in CI** across three Python versions.
 
 ## The hosted scanner is a separate, smaller thing
 

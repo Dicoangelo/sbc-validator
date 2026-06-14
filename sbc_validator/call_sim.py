@@ -28,10 +28,17 @@ _TLS_HARDSTOP = {
     # self-signed, a chain that fails signature verification, or a chain that
     # terminates at a root outside the required Microsoft/DigiCert set.
     "C.CERT.SELF_SIGNED", "C.CERT.CHAIN_INVALID", "C.CERT.UNTRUSTED_ANCHOR",
+    # No cipher in common with Direct Routing means the negotiation produces no
+    # shared suite: the handshake hard-fails before any cert is exchanged.
+    "C.TLS.CIPHER_NOT_ALLOWED",
 }
 # C.CERT.EXPIRY is handled severity-aware below: CRITICAL (already expired) hard-
 # stops the handshake; MEDIUM (expiring soon) is a warning. Same id, two outcomes.
-_TLS_WARN = {"C.CERT.EKU_NO_SERVERAUTH", "C.CERT.CHAIN_INCOMPLETE", "C.CERT.EKU_DUALUSE"}
+# C.TLS.WEAK_VERSION is a WARN, not a hard-stop: a low TLS *floor* is downgrade
+# exposure, but the handshake can still negotiate 1.2+ if the SBC offers it, so
+# treating it as a guaranteed NO_CONNECT would be its own over-guess.
+_TLS_WARN = {"C.CERT.EKU_NO_SERVERAUTH", "C.CERT.CHAIN_INCOMPLETE", "C.CERT.EKU_DUALUSE",
+             "C.TLS.WEAK_VERSION"}
 _SIP_HARDSTOP = {
     "B.SIP.TRANSPORT", "B.IFACE.NO_TEAMS", "A.STRUCT.NO_SIP_INTERFACES",
     "A.SEM.DANGLING_TLS",

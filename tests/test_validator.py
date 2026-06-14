@@ -390,6 +390,21 @@ def test_sim_missing_root_dies_at_tls(ruleset):
     assert not any("INVITE" in line for line in sim.ladder)
 
 
+def test_sim_cipher_mismatch_dies_at_tls(ruleset):
+    # Regression: validate proves C.TLS.CIPHER_NOT_ALLOWED (no common cipher ->
+    # handshake hard-fails), so the call sim must agree and die at TLS, not
+    # predict a STABLE call. The two engines read the same findings.
+    cfg = detect_and_parse((REPO / "samples" / "audiocodes_weak_tls.ini").read_text())
+    fs = _all_findings(cfg, ruleset)
+    assert "C.TLS.CIPHER_NOT_ALLOWED" in ids(fs)  # validator emits it
+    sim = simulate_call(cfg, ruleset, fs)
+    assert sim.outcome == "NO_CONNECT"
+    assert sim.dies_at == "TLS handshake"
+    assert not any("INVITE" in line for line in sim.ladder)
+    tls = next(s for s in sim.stages if s.name == "TLS handshake")
+    assert "C.TLS.CIPHER_NOT_ALLOWED" in tls.driven_by
+
+
 def test_sim_one_way_audio_from_private_media(ruleset):
     # TLS/SIP/SDP all clean, but media advertises a private IP -> one-way audio
     cfg = NormalizedConfig(
